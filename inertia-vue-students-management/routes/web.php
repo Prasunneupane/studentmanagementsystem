@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\StudentsController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -7,9 +8,24 @@ Route::get('/', function () {
     return Inertia::render('auth/Login');
 })->name('home');
 
-Route::get('dashboard', function () {
-    return Inertia::render('Dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+// Route::get('dashboard', function () {
+//     return Inertia::render('Dashboard');
+// })->middleware(['auth', 'verified'])->name('dashboard');
 
+Route::middleware(['auth', 'verified'])->group(function () {
+    // Existing dashboard route...
+    Route::get('/dashboard', function () {
+        return Inertia::render('Dashboard');
+    })->name('dashboard');
+
+    // Student Management routes
+    Route::get('/students', [StudentsController::class, 'index'])->name('students.index');
+    Route::get('/students/create', [StudentsController::class, 'create'])->name('students.create');
+    Route::post('/students', [StudentsController::class, 'store'])->name('students.store');
+    Route::get('/students/{student}', [StudentsController::class, 'show'])->name('students.show');
+    Route::get('/students/{student}/edit', [StudentsController::class, 'edit'])->name('students.edit');
+    Route::put('/students/{student}', [StudentsController::class, 'update'])->name('students.update');
+    Route::delete('/students/{student}', [StudentsController::class, 'destroy'])->name('students.destroy');
+});
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';

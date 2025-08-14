@@ -29,6 +29,7 @@ return new class extends Migration
             $table->string('guardian_name')->nullable();
             $table->string('contact_number')->nullable();
             $table->string('photo')->nullable();
+            $table->datetime('joined_date');
             $table->string('address')->nullable();
             $table->integer('state_id')->nullable();
             $table->integer('district_id')->nullable();

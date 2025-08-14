@@ -12,9 +12,12 @@ export interface BreadcrumbItem {
 
 export interface NavItem {
     title: string;
-    href: string;
-    icon?: LucideIcon;
-    isActive?: boolean;
+    href?: string;
+    icon?: any;
+    items?: NavItem[];
+    disabled?: boolean;
+    external?: boolean;
+    isOpen?: boolean;
 }
 
 export type AppPageProps<T extends Record<string, unknown> = Record<string, unknown>> = T & {
