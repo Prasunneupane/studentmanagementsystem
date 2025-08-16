@@ -31,6 +31,11 @@ const mainNavItems: NavItem[] = [
             },
         ],
     },
+    {
+        title: 'Settings',
+        href: '/settings',
+        icon: LayoutGrid,
+    },
 ];
 
 const footerNavItems: NavItem[] = [

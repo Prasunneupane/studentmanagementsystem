@@ -13,21 +13,40 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import { ChevronRight } from 'lucide-vue-next';
-import { computed, reactive, watch, onMounted } from 'vue';
+import { reactive, watch } from 'vue';
 
 const props = defineProps<{
     items: NavItem[];
 }>();
 
-// Create reactive items with open state
+const page = usePage();
+
+// ✅ Only mark active if EXACT match
+const isExactActive = (href?: string) => {
+    if (!href) return false;
+    return page.url.split('?')[0] === href; // strip query params
+};
+
+// ✅ Parent active if it or one of its children matches
+const hasActiveChild = (items?: NavItem[]) => {
+    if (!items) return false;
+    return items.some(item => isExactActive(item.href));
+};
+
+const isParentActive = (item: NavItem) => {
+    if (isExactActive(item.href)) return true;
+    return hasActiveChild(item.items);
+};
+
+// ✅ reactive items to track collapsibles
 const reactiveItems = reactive(
     props.items.map(item => ({
         ...item,
-        isOpen: hasActiveChild(item.items)
+        isOpen: hasActiveChild(item.items),
     }))
 );
 
-// Watch for route changes to update open states
+// Watch for route changes → update open/active state
 watch(() => page.url, () => {
     reactiveItems.forEach(item => {
         if (item.items) {
@@ -35,23 +54,6 @@ watch(() => page.url, () => {
         }
     });
 });
-
-const page = usePage();
-
-const isActive = (href: string) => {
-    // Exact match for current URL
-    return page.url === href || page.url.startsWith(href + '/') || page.url.startsWith(href + '?');
-};
-
-const hasActiveChild = (items?: NavItem[]) => {
-    if (!items) return false;
-    return items.some(item => item.href && isActive(item.href));
-};
-
-const isParentActive = (item: NavItem) => {
-    if (item.href && isActive(item.href)) return true;
-    return hasActiveChild(item.items);
-};
 </script>
 
 <template>
@@ -59,12 +61,12 @@ const isParentActive = (item: NavItem) => {
         <SidebarGroupLabel>Platform</SidebarGroupLabel>
         <SidebarMenu>
             <SidebarMenuItem v-for="item in reactiveItems" :key="item.title">
-                <!-- Regular menu item without sub-items -->
+                <!-- Normal menu -->
                 <SidebarMenuButton
                     v-if="!item.items"
                     as-child
                     :tooltip="item.title"
-                    :is-active="item.href ? isActive(item.href) : false"
+                    :is-active="isExactActive(item.href)"
                 >
                     <Link :href="item.href || '#'">
                         <component :is="item.icon" />
@@ -72,7 +74,7 @@ const isParentActive = (item: NavItem) => {
                     </Link>
                 </SidebarMenuButton>
 
-                <!-- Collapsible menu item with sub-items -->
+                <!-- Collapsible with children -->
                 <Collapsible
                     v-else
                     :default-open="hasActiveChild(item.items)"
@@ -86,15 +88,21 @@ const isParentActive = (item: NavItem) => {
                         >
                             <component :is="item.icon" />
                             <span>{{ item.title }}</span>
-                            <ChevronRight class="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                            <ChevronRight
+                                class="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90"
+                            />
                         </SidebarMenuButton>
                     </CollapsibleTrigger>
+
                     <CollapsibleContent>
                         <SidebarMenuSub>
-                            <SidebarMenuSubItem v-for="subItem in item.items" :key="subItem.title">
+                            <SidebarMenuSubItem
+                                v-for="subItem in item.items"
+                                :key="subItem.title"
+                            >
                                 <SidebarMenuSubButton
                                     as-child
-                                    :is-active="subItem.href ? isActive(subItem.href) : false"
+                                    :is-active="isExactActive(subItem.href)"
                                 >
                                     <Link :href="subItem.href || '#'">
                                         <component :is="subItem.icon" />
