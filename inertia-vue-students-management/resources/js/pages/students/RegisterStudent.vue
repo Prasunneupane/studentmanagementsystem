@@ -1,119 +1,98 @@
 <script setup lang="ts">
-import InputError from '@/components/InputError.vue';
+import { ref } from "vue"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Button } from "@/components/ui/button"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import AppLayout from '@/layouts/AppLayout.vue';
-import SettingsLayout from '@/layouts/settings/Layout.vue';
-import { Head, useForm } from '@inertiajs/vue3';
-import { ref } from 'vue';
-
-import HeadingSmall from '@/components/HeadingSmall.vue';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { type BreadcrumbItem } from '@/types';
+import { Head } from '@inertiajs/vue3';
+// Import custom select
+import SelectItem from "@/components/ui/select/Select-Item.vue"
+import Select from "@/components/ui/select/Select.vue"
+import SelectSearch from "@/components/ui/select/Select-Search.vue"
+// import SelectSearch from "@/components/ui/select/Select-Search.vue"
 
-const breadcrumbItems: BreadcrumbItem[] = [
+const name = ref("")
+const country = ref("")
+const selectedFramework = ref("Select Class")
+// const country = ref("")
+const city = ref("")
+const allCities = ["Kathmandu", "Pokhara", "Butwal", "Delhi", "Tokyo", "New York"]
+const breadcrumbs: BreadcrumbItem[] = [
     {
-        title: 'Password settings',
-        href: '/settings/password',
+        title: 'Add Student',
+        href: '/student/create',
     },
+    
 ];
 
-const passwordInput = ref<HTMLInputElement | null>(null);
-const currentPasswordInput = ref<HTMLInputElement | null>(null);
+const frameworks = [
+  { value: "next.js", label: "Next.js" },
+  { value: "sveltekit", label: "SvelteKit" },
+  { value: "nuxt", label: "Nuxt" },
+  { value: "remix", label: "Remix" },
+  { value: "astro", label: "Astro" },
+]
 
-const form = useForm({
-    current_password: '',
-    password: '',
-    password_confirmation: '',
-});
-
-const updatePassword = () => {
-    form.put(route('password.update'), {
-        preserveScroll: true,
-        onSuccess: () => form.reset(),
-        onError: (errors: any) => {
-            if (errors.password) {
-                form.reset('password', 'password_confirmation');
-                if (passwordInput.value instanceof HTMLInputElement) {
-                    passwordInput.value.focus();
-                }
-            }
-
-            if (errors.current_password) {
-                form.reset('current_password');
-                if (currentPasswordInput.value instanceof HTMLInputElement) {
-                    currentPasswordInput.value.focus();
-                }
-            }
-        },
-    });
-};
+const handleSubmit = () => {
+  console.log("Form submitted:", { name: name.value, country: country.value })
+}
 </script>
 
 <template>
-    <AppLayout :breadcrumbs="breadcrumbItems">
-        <Head title="Password settings" />
+<Head title="Student Register" />
+<AppLayout :breadcrumbs="breadcrumbs">
+  <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4 overflow-x-auto">
+    <Card class="w-full max-w-md shadow-lg rounded-2xl">
+      <CardHeader>
+        <CardTitle class="text-xl font-bold">User Form</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form @submit.prevent="handleSubmit" class="space-y-4">
+          <!-- Name Input -->
+          <div class="space-y-2">
+            <Label for="name">First Name</Label>
+            <Input id="name" class="w-full" v-model="name" placeholder="Enter your name" />
+          </div>
 
-        <SettingsLayout>
-            <div class="space-y-6">
-                <HeadingSmall title="Update password" description="Ensure your account is using a long, random password to stay secure" />
+          <div class="space-y-2">
+            <Label for="name">Middle Name</Label>
+            <Input id="name" class="w-full" v-model="name" placeholder="Enter your name" />
+          </div>
 
-                <form @submit.prevent="updatePassword" class="space-y-6">
-                    <div class="grid gap-2">
-                        <Label for="current_password">Current password</Label>
-                        <Input
-                            id="current_password"
-                            ref="currentPasswordInput"
-                            v-model="form.current_password"
-                            type="password"
-                            class="mt-1 block w-full"
-                            autocomplete="current-password"
-                            placeholder="Current password"
-                        />
-                        <InputError :message="form.errors.current_password" />
-                    </div>
+          <div class="space-y-2">
+            <Label for="name">Last Name</Label>
+            <Input id="name" class="w-full" v-model="name" placeholder="Enter your name" />
+          </div>
 
-                    <div class="grid gap-2">
-                        <Label for="password">New password</Label>
-                        <Input
-                            id="password"
-                            ref="passwordInput"
-                            v-model="form.password"
-                            type="password"
-                            class="mt-1 block w-full"
-                            autocomplete="new-password"
-                            placeholder="New password"
-                        />
-                        <InputError :message="form.errors.password" />
-                    </div>
 
-                    <div class="grid gap-2">
-                        <Label for="password_confirmation">Confirm password</Label>
-                        <Input
-                            id="password_confirmation"
-                            v-model="form.password_confirmation"
-                            type="password"
-                            class="mt-1 block w-full"
-                            autocomplete="new-password"
-                            placeholder="Confirm password"
-                        />
-                        <InputError :message="form.errors.password_confirmation" />
-                    </div>
 
-                    <div class="flex items-center gap-4">
-                        <Button :disabled="form.processing">Save password</Button>
-
-                        <Transition
-                            enter-active-class="transition ease-in-out"
-                            enter-from-class="opacity-0"
-                            leave-active-class="transition ease-in-out"
-                            leave-to-class="opacity-0"
-                        >
-                            <p v-show="form.recentlySuccessful" class="text-sm text-neutral-600">Saved.</p>
-                        </Transition>
-                    </div>
-                </form>
-            </div>
-        </SettingsLayout>
-    </AppLayout>
+          <!-- Country Select -->
+          <!-- <div class="space-y-2">
+            <Label for="country">Country</Label>
+            <Select v-model="country">
+              <SelectItem value="nepal">Nepal</SelectItem>
+              <SelectItem value="india">India</SelectItem>
+              <SelectItem value="usa">USA</SelectItem>
+            </Select>
+          </div> -->
+          <!-- Searchable Select -->
+      <div class="space-y-2 w-full">
+        <Label for="class" >Class</Label>
+        <SelectSearch id="class"
+            v-model="selectedFramework"
+            :options="frameworks"
+            placeholder="Select Class"
+            class="w-full"
+        />
+      </div>
+          <!-- Submit Button -->
+          <Button type="submit" class="w-full">Submit</Button>
+        </form>
+      </CardContent>
+    </Card>
+  </div>
+  </AppLayout>
 </template>
+

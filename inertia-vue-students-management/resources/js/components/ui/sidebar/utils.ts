@@ -1,5 +1,7 @@
 import type { ComputedRef, Ref } from 'vue'
 import { createContext } from 'reka-ui'
+import { type ClassValue, clsx } from "clsx"
+import { twMerge } from "tailwind-merge"
 
 export const SIDEBAR_COOKIE_NAME = 'sidebar_state'
 export const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
@@ -17,3 +19,7 @@ export const [useSidebar, provideSidebarContext] = createContext<{
   setOpenMobile: (value: boolean) => void
   toggleSidebar: () => void
 }>('Sidebar')
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}
