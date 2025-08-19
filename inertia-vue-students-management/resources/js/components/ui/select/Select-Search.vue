@@ -36,8 +36,8 @@ const selected = computed({
 })
 </script>
 
-<template>
-  <Combobox v-model="selected" by="value">
+<template >
+  <Combobox class="w-full " v-model="selected" by="value">
     <ComboboxAnchor as-child>
       <ComboboxTrigger as-child>
         <Button variant="outline" class="justify-between w-full">
@@ -49,20 +49,19 @@ const selected = computed({
       </ComboboxTrigger>
     </ComboboxAnchor>
 
-    <ComboboxList class="w-full">
+    <ComboboxList class="w-[--reka-combobox-trigger-width]">
       <div class="relative w-full items-center">
         <div class="flex items-center px-3 border rounded-md bg-background">
           <!-- <Search class="h-4 w-4 text-muted-foreground" /> -->
           <ComboboxInput
             class="w-full p-2 focus-visible:ring-0 focus-visible:outline-none border-0 bg-transparent"
-           
-          />
+            />
         </div>
       </div>
 
       <ComboboxEmpty>No option found.</ComboboxEmpty>
 
-      <ComboboxGroup>
+      <ComboboxGroup class="w-full">
         <ComboboxItem
           v-for="option in props.options"
           :key="option.value"
