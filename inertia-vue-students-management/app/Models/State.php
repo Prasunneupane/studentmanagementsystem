@@ -8,4 +8,9 @@ class State extends Model
 {
     //
     protected $table = "states";
+
+    public function districts()
+    {
+        return $this->hasMany(District::class, 'state_id');
+    }
 }

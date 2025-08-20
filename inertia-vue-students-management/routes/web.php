@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\StateDistricMunController;
 use App\Http\Controllers\StudentsController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -27,5 +28,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('/students/{student}', [StudentsController::class, 'update'])->name('students.update');
     Route::delete('/students/{student}', [StudentsController::class, 'destroy'])->name('students.destroy');
 });
+
+Route::get('/getListOfStates', [StateDistricMunController::class,'getAllStates'])->name('statelist');
+Route::get('/getListOfDistrictByStateId', [StateDistricMunController::class,'getDistrictsByStateId'])->name('districtlist');
+Route::get('/getListOfMunicipalitiesByDistrictId', [StateDistricMunController::class,'getMunicipalitiesByDistrictId'])->name('municipalitylist');
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';
