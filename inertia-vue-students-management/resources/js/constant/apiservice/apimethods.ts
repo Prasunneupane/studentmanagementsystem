@@ -1,8 +1,14 @@
 import ApiService from '@/constant/apiservice/apiservice';
-import { VITE_API_STATES,VITE_API_DISTRICTS,VITE_API_MUNICIPALITIES } from '@/constant/services';
+import { 
+  VITE_API_STATES,
+  VITE_API_DISTRICTS,
+  VITE_API_MUNICIPALITIES,
+  VITE_API_CLASSES, 
+  VITE_API_SECTIONS
+ } from '@/constant/services';
 
 // Update LocationItem to reflect actual response
-interface LocationItem {
+export interface LocationItem {
   id: number; // Changed from string to number
   name: string; // Changed from dynamic key to explicit "name"
 }
@@ -14,7 +20,7 @@ interface ApiMethodConfig {
   data?: any;
 }
 
-const apiMethods = {
+export const apiMethods = {
   getAllStates: (): ApiMethodConfig => ({
     endpoint:VITE_API_STATES,
     method: 'GET'
@@ -30,6 +36,18 @@ const apiMethods = {
     endpoint: VITE_API_MUNICIPALITIES,
     method: 'GET',
     params: { district_id: districtId }
+  }),
+
+   getClassesList: (): ApiMethodConfig => ({
+    endpoint: VITE_API_CLASSES,
+    method: 'GET',
+    // params: {  }
+  }),
+
+    getSectionList: (): ApiMethodConfig => ({
+    endpoint: VITE_API_SECTIONS,
+    method: 'GET',
+    // params: {  }
   }),
 
   createStudent: (formData: FormData): ApiMethodConfig => ({
@@ -51,20 +69,3 @@ export const executeApiMethod = async <T>(
   return response.data;
 };
 
-// Update to expect an array directly
-export const getAllStates = () =>
-  executeApiMethod<LocationItem[]>(apiMethods.getAllStates());
-
-export const getDistrictsByStateId = (stateId: string) =>
-  executeApiMethod<LocationItem[]>(apiMethods.getDistrictsByStateId(stateId));
-
-export const getMunicipalitiesByDistrictId = (districtId: string) =>
-  executeApiMethod<{
-    municipalities: LocationItem[];
-  }>(apiMethods.getMunicipalitiesByDistrictId(districtId));
-
-export const createStudent = (formData: FormData) =>
-  executeApiMethod<{
-    message: string;
-    student: any;
-  }>(apiMethods.createStudent(formData));

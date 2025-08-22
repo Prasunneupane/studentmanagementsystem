@@ -31,7 +31,7 @@ class ApiService {
           'Accept': 'application/json'
         }
       };
-      console.log(config,"config");
+      // console.log(config,"config");
       
       const response = await axios(config);
       return {
