@@ -11,6 +11,7 @@ import { format } from "date-fns";
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import SelectSearch from "@/components/ui/select/Select-Search.vue";
+import DatePicker from "@/components/ui/datepicker/DatePicker.vue"; // Import the custom DatePicker
 import type { BreadcrumbItem } from '@/types';
 import { 
   getAllStates, 
@@ -63,11 +64,16 @@ const isMunicipalityLoading = ref(false);
 const isClassesLoading = ref(false);
 const isSectionLoading = ref(false);
 
-// Date picker states - Fixed initialization
+// Date picker states
 const dateOfBirthOpen = ref(false);
 const joinedDateOpen = ref(false);
-const dateOfBirthValue = ref<Date | undefined>(undefined);
-const joinedDateValue = ref<Date>(new Date());
+const dateOfBirthValue = ref<Date | null>(null); // Allow null initially
+const joinedDateValue =  ref<Date | null>(null); // Default to current date
+
+// Breadcrumbs
+const breadcrumbs: BreadcrumbItem[] = [
+  { title: 'Add Student', href: '/student/create' }
+];
 
 // Validation rule type
 type ValidationRule = {
@@ -82,9 +88,22 @@ type ValidationRule = {
 const validationRules: Record<string, ValidationRule> = {
   fName: { required: true, message: 'First name is required' },
   lName: { required: true, message: 'Last name is required' },
-  email: { required: false, pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: 'Please enter a valid email address' },
-  phone: { required: true, pattern: /^\d{10}$/, message: 'Please enter a valid 10-digit phone number' },
-  age: { required: true, min: 1, max: 100, message: 'Age must be between 1 and 100' },
+  email: { 
+    required: false, 
+    pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+    message: 'Please enter a valid email address'
+  },
+  phone: { 
+    required: true, 
+    pattern: /^\d{10}$/,
+    message: 'Please enter a valid 10-digit phone number'
+  },
+  age: { 
+    required: true, 
+    min: 1, 
+    max: 100,
+    message: 'Age must be between 1 and 100'
+  },
   dateOfBirth: { required: true, message: 'Date of birth is required' },
   classId: { required: true, message: 'Please select a class' },
   fatherName: { required: true, message: 'Father name is required' },
@@ -166,12 +185,12 @@ const validateAllFields = (): boolean => {
   return isValid;
 };
 
-// Date formatting - Fixed to handle undefined dates
-const formatDate = (date: Date | undefined): string => {
+// Date formatting
+const formatDate = (date: Date | null): string => {
   return date ? format(date, 'yyyy-MM-dd') : '';
 };
 
-// Sync form with date picker values - Fixed watchers
+// Sync form with date picker values
 watch(dateOfBirthValue, (newDate) => {
   form.dateOfBirth = formatDate(newDate);
   if (showValidation.value) validateField('dateOfBirth');
@@ -183,13 +202,13 @@ watch(joinedDateValue, (newDate) => {
 });
 
 // Handle date selection - New functions to properly handle date selection
-const handleDateOfBirthSelect = (selectedDate: Date | undefined) => {
+const handleDateOfBirthSelect = (selectedDate: Date | null) => {
   dateOfBirthValue.value = selectedDate;
   dateOfBirthOpen.value = false;
   if (showValidation.value) validateField('dateOfBirth');
 };
 
-const handleJoinedDateSelect = (selectedDate: Date | undefined) => {
+const handleJoinedDateSelect = (selectedDate: Date | null) => {
   joinedDateValue.value = selectedDate || new Date();
   joinedDateOpen.value = false;
   if (showValidation.value) validateField('joinedDate');
@@ -287,7 +306,9 @@ watch(() => form.districtId, async (newDistrict) => {
 
 // Field blur handler
 const handleFieldBlur = (fieldName: keyof typeof validationRules) => {
-  validateField(fieldName); // Validate on blur, errors shown only if showValidation is true
+  if (showValidation.value) {
+    validateField(fieldName);
+  }
 };
 
 // Phone input handler to limit to 10 digits
@@ -343,7 +364,7 @@ const handleSubmit = async () => {
       data: formData,
       onSuccess: () => {
         console.log('Form submitted successfully');
-        dateOfBirthValue.value = undefined;
+        dateOfBirthValue.value = null;
         joinedDateValue.value = new Date();
         showValidation.value = false;
         validationErrors.value = {};
@@ -451,7 +472,7 @@ fetchSection();
               </div>
               
               <div class="space-y-2" id="age">
-                <Label for="age">Age <span class="text-red-500">*</span></Label>
+                <Label for="age">Age <small>*</small></Label>
                 <Input 
                   id="age" 
                   v-model="form.age" 
@@ -472,29 +493,12 @@ fetchSection();
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div class="space-y-2" id="dateOfBirth">
                 <Label for="dateOfBirth">Date of Birth <span class="text-red-500">*</span></Label>
-                <Popover v-model:open="dateOfBirthOpen">
-                  <PopoverTrigger as-child>
-                    <Button
-                      variant="outline"
-                      :class="[
-                        'w-full justify-start text-left font-normal',
-                        !dateOfBirthValue && 'text-muted-foreground',
-                        validationErrors.dateOfBirth && 'border-red-500 focus:border-red-500'
-                      ]"
-                      @click="dateOfBirthOpen = !dateOfBirthOpen"
-                    >
-                      <CalendarIcon class="mr-2 h-4 w-4" />
-                      {{ dateOfBirthValue ? format(dateOfBirthValue, 'yyyy-MM-dd') : 'Select date of birth' }}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent class="w-auto p-0" align="start">
-                    <Calendar
-                      :model-value="dateOfBirthValue"
-                      @update:model-value="handleDateOfBirthSelect"
-                      initial-focus
-                    />
-                  </PopoverContent>
-                </Popover>
+             
+                <DatePicker
+                  id="dateOfBirth"
+                  v-model="dateOfBirthValue"
+                  :monthYearSelector="true"
+                />
                 <p v-if="validationErrors.dateOfBirth" class="text-sm text-red-600 mt-1">
                   {{ validationErrors.dateOfBirth }}
                 </p>
@@ -590,29 +594,13 @@ fetchSection();
               
               <div class="space-y-2" id="joinedDate">
                 <Label for="joinedDate">Joined Date <span class="text-red-500">*</span></Label>
-                <Popover v-model:open="joinedDateOpen">
-                  <PopoverTrigger as-child>
-                    <Button
-                      variant="outline"
-                      :class="[
-                        'w-full justify-start text-left font-normal',
-                        !joinedDateValue && 'text-muted-foreground',
-                        validationErrors.joinedDate && 'border-red-500 focus:border-red-500'
-                      ]"
-                      @click="joinedDateOpen = !joinedDateOpen"
-                    >
-                      <CalendarIcon class="mr-2 h-4 w-4" />
-                      {{ joinedDateValue ? format(joinedDateValue, 'yyyy-MM-dd') : 'Select joined date' }}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent class="w-auto p-0" align="start">
-                    <Calendar
-                      :model-value="joinedDateValue"
-                      @update:model-value="handleJoinedDateSelect"
-                      initial-focus
-                    />
-                  </PopoverContent>
-                </Popover>
+                <DatePicker
+                  id="dateOfBirth"
+                  v-model="joinedDateValue"
+                  :month-year-show="true"
+                  :error-message="validationErrors.classId || 'Please select a class'"
+                  
+                />
                 <p v-if="validationErrors.joinedDate" class="text-sm text-red-600 mt-1">
                   {{ validationErrors.joinedDate }}
                 </p>
