@@ -83,7 +83,7 @@ const handleMonthYearChange = (part: 'month' | 'year', v: string | null) => {
       <div v-if="monthYearSelector" class="flex gap-2 mb-2">
         <Select
           :default-value="placeholder?.month?.toString() ?? ''"
-          @update:model-value="(v) => handleMonthYearChange('month', v)"
+          @update:model-value="(v) => handleMonthYearChange('month', v?.toString() ?? null)"
         >
           <SelectTrigger class="w-[120px]">
             <SelectValue />
@@ -101,7 +101,7 @@ const handleMonthYearChange = (part: 'month' | 'year', v: string | null) => {
 
         <Select
           :default-value="placeholder?.year?.toString() ?? ''"
-          @update:model-value="(v) => handleMonthYearChange('year', v)"
+          @update:model-value="(v) => handleMonthYearChange('year', v?.toString() ?? null)"
         >
           <SelectTrigger class="w-[100px]">
             <SelectValue />

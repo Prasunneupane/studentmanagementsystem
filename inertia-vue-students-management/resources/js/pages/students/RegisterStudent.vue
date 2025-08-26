@@ -361,7 +361,7 @@ const handleSubmit = async () => {
     console.log('Form data to submit:', Object.fromEntries(formData));
     
     form.post(route('student.store'), {
-      data: formData,
+     // data: formData,
       onSuccess: () => {
         console.log('Form submitted successfully');
         dateOfBirthValue.value = null;
