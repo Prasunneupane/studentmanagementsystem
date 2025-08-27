@@ -63,4 +63,10 @@ class StudentsController extends Controller
     {
         //
     }
+
+    public function registerStudent(Students $students)
+    {
+       $students->attach($students->student_id);
+       return redirect()->route('students.index')->with('success', 'Student registered successfully.');
+    }
 }
