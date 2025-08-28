@@ -36,7 +36,7 @@ Route::get('/getListOfDistrictByStateId', [StateDistricMunController::class,'get
 Route::get('/getListOfMunicipalitiesByDistrictId', [StateDistricMunController::class,'getMunicipalitiesByDistrictId'])->name('municipalitylist');
 Route::get('/getClassesList', [ClassSectionController::class,'getAllClasses'])->name('classeslist');
 Route::get('/getSectionList', [ClassSectionController::class,'getAllSection'])->name('sectionlist');
-Route::get('/registerStudent', [ClassSectionController::class,'registerStudent'])->name('registerStudent');
+// Route::get('/registerStudent', [ClassSectionController::class,'registerStudent'])->name('registerStudent');
 
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';

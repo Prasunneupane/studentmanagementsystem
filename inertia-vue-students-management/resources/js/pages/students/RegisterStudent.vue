@@ -198,6 +198,8 @@ watch(dateOfBirthValue, (newDate) => {
 
 watch(joinedDateValue, (newDate) => {
   form.joinedDate = formatDate(newDate);
+  console.log(form.joinedDate,newDate);
+  
   if (showValidation.value) validateField('joinedDate');
 });
 
@@ -338,6 +340,7 @@ const handleSubmit = async () => {
     if (!validateAllFields()) {
       const firstErrorField = Object.keys(validationErrors.value)[0];
       const errorElement = document.getElementById(firstErrorField);
+      console.log(errorElement);
       if (errorElement) {
         errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
         errorElement.focus();
