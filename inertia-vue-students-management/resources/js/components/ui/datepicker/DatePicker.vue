@@ -52,7 +52,8 @@ const onSelectDate = (d: DateValue | undefined) => {
   value.value = d
   open.value = false
 }
-
+// handling month/year change
+// if month or year is changed, update the placeholder date
 // ✅ Handle month/year change
 const handleMonthYearChange = (part: 'month' | 'year', v: string | null) => {
   if (!v || !placeholder.value) return
