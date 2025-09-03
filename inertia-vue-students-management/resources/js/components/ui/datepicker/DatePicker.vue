@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from "vue"
+import { ref, computed, watch } from "vue"
 import type { DateValue } from "@internationalized/date"
 import { CalendarDate, today, getLocalTimeZone } from "@internationalized/date"
 import { Calendar as CalendarIcon } from "lucide-vue-next"
@@ -21,22 +21,57 @@ import {
   SelectValue,
 } from "@/components/ui/shadcnselect"
 
-// ✅ Props
-defineProps<{
+// ✅ Props with model value support
+interface Props {
   monthYearSelector?: boolean
+  modelValue?: Date | null
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  monthYearSelector: false,
+  modelValue: null
+})
+
+// ✅ Emits
+const emit = defineEmits<{
+  'update:modelValue': [value: Date | null]
 }>()
 
 // ✅ State
 const value = ref<DateValue>()
 const open = ref(false)
 const placeholder = ref<DateValue>(today(getLocalTimeZone()))
-const calendarKey = ref(0) // Add a key for re-rendering
+const calendarKey = ref(0)
+
+// ✅ Convert JavaScript Date to DateValue
+const dateToDateValue = (date: Date | null): DateValue | undefined => {
+  if (!date) return undefined
+  return new CalendarDate(date.getFullYear(), date.getMonth() + 1, date.getDate())
+}
+
+// ✅ Convert DateValue to JavaScript Date
+const dateValueToDate = (dateValue: DateValue): Date => {
+  return new Date(dateValue.year, dateValue.month - 1, dateValue.day)
+}
+
+// ✅ Watch for external model value changes
+watch(() => props.modelValue, (newDate) => {
+  if (newDate) {
+    value.value = dateToDateValue(newDate)
+    // Update placeholder to show the correct month/year
+    placeholder.value = dateToDateValue(newDate) || today(getLocalTimeZone())
+  } else {
+    value.value = undefined
+  }
+}, { immediate: true })
 
 // ✅ Format date as YYYY-MM-DD
 const formattedDate = computed(() => {
   if (!value.value) return "Pick a date"
-  const d = value.value.toDate(getLocalTimeZone())
-  return d.toISOString().split("T")[0]
+  const year = value.value.year.toString().padStart(4, '0')
+  const month = value.value.month.toString().padStart(2, '0')
+  const day = value.value.day.toString().padStart(2, '0')
+  return `${year}-${month}-${day}`
 })
 
 // ✅ Month & Year arrays
@@ -46,21 +81,24 @@ const months = Array.from({ length: 12 }, (_, i) => ({
 }))
 const years = Array.from({ length: 50 }, (_, i) => (2000 + i).toString())
 
-// ✅ Handle date selection → close popover
+// ✅ Handle date selection → close popover and emit the date
 const onSelectDate = (d: DateValue | undefined) => {
   if (!d) return
   value.value = d
   open.value = false
+  
+  // Convert DateValue to JavaScript Date WITHOUT timezone conversion
+  const jsDate = dateValueToDate(d)
+  emit('update:modelValue', jsDate)
 }
-// handling month/year change
-// if month or year is changed, update the placeholder date
+
 // ✅ Handle month/year change
 const handleMonthYearChange = (part: 'month' | 'year', v: string | null) => {
   if (!v || !placeholder.value) return
   const newValue = Number(v)
   if (newValue === placeholder.value[part]) return
   placeholder.value = placeholder.value.set({ [part]: newValue })
-  calendarKey.value++ // Increment the key to force re-render
+  calendarKey.value++
 }
 </script>
 

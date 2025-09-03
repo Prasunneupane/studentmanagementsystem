@@ -4,25 +4,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-vue-next";
-import { format } from "date-fns";
+import { format, subYears, differenceInYears } from "date-fns";
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import SelectSearch from "@/components/ui/select/Select-Search.vue";
-import DatePicker from "@/components/ui/datepicker/DatePicker.vue"; // Import the custom DatePicker
+import DatePicker from "@/components/ui/datepicker/DatePicker.vue";
 import type { BreadcrumbItem } from '@/types';
 import { 
   getAllStates, 
   getDistrictsByStateId, 
   getMunicipalitiesByDistrictId, 
-  createStudent,
   getClassesList,
   getSectionList
 } from '@/constant/apiservice/callService';
 
 // Form with validation state
+const today = new Date(); // September 3, 2025
 const form = useForm({
   fName: '',
   mName: '',
@@ -38,7 +35,7 @@ const form = useForm({
   guardianName: '',
   contactNumber: '',
   photo: null as File | null,
-  joinedDate: new Date().toISOString().split('T')[0],
+  joinedDate: format(today, 'yyyy-MM-dd'),
   address: '',
   stateId: null as { value: string; label: string } | null,
   districtId: null as { value: string; label: string } | null,
@@ -65,10 +62,12 @@ const isClassesLoading = ref(false);
 const isSectionLoading = ref(false);
 
 // Date picker states
-const dateOfBirthOpen = ref(false);
-const joinedDateOpen = ref(false);
-const dateOfBirthValue = ref<Date | null>(null); // Allow null initially
-const joinedDateValue =  ref<Date | null>(null); // Default to current date
+const dateOfBirthValue = ref<Date | null>(null);
+const joinedDateValue = ref<Date | null>(today);
+
+// Flags to prevent recursive updates
+const isUpdatingAge = ref(false);
+const isUpdatingDateOfBirth = ref(false);
 
 // Breadcrumbs
 const breadcrumbs: BreadcrumbItem[] = [
@@ -77,11 +76,11 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 // Validation rule type
 type ValidationRule = {
-  required: boolean;
-  message: string;
+  required?: boolean;
   pattern?: RegExp;
   min?: number;
   max?: number;
+  message: string;
 };
 
 // Validation rules
@@ -122,15 +121,13 @@ const validateField = (fieldName: keyof typeof validationRules): boolean => {
   // Required validation
   if (rule.required) {
     if (!value || (typeof value === 'string' && value.trim() === '') || 
-        (typeof value === 'object' && value === null) || 
-        (fieldName === 'dateOfBirth' && !dateOfBirthValue.value) || 
-        (fieldName === 'joinedDate' && !joinedDateValue.value)) {
+        (typeof value === 'object' && value === null)) {
       if (showValidation.value) {
         validationErrors.value[fieldName] = rule.message;
       }
       return false;
     } else {
-      delete validationErrors.value[fieldName]; // Clear error only if valid
+      delete validationErrors.value[fieldName];
     }
   }
 
@@ -187,34 +184,58 @@ const validateAllFields = (): boolean => {
 
 // Date formatting
 const formatDate = (date: Date | null): string => {
-  return date ? format(date, 'yyyy-MM-dd') : '';
+  if (!date || isNaN(date.getTime())) {
+    return '';
+  }
+  try {
+    return format(date, 'yyyy-MM-dd');
+  } catch (e) {
+    console.error("Invalid date in formatDate:", e);
+    return '';
+  }
 };
 
 // Sync form with date picker values
 watch(dateOfBirthValue, (newDate) => {
+  if (isUpdatingAge.value) return; // Prevent recursive updates
+  isUpdatingDateOfBirth.value = true;
   form.dateOfBirth = formatDate(newDate);
-  if (showValidation.value) validateField('dateOfBirth');
+  if (newDate && !isNaN(newDate.getTime())) {
+    form.age = differenceInYears(today, newDate).toString();
+  } else {
+    form.age = '';
+  }
+  if (showValidation.value) {
+    validateField('dateOfBirth');
+    validateField('age');
+  }
+  isUpdatingDateOfBirth.value = false;
+});
+
+// Sync age with dateOfBirth
+watch(() => form.age, (newAge) => {
+  if (isUpdatingDateOfBirth.value) return; // Prevent recursive updates
+  isUpdatingAge.value = true;
+  const ageNum = Number(newAge);
+  if (!isNaN(ageNum) && ageNum >= 1 && ageNum <= 100) {
+    const calculatedDate = subYears(today, ageNum);
+    dateOfBirthValue.value = calculatedDate;
+    form.dateOfBirth = formatDate(calculatedDate);
+  } else {
+    dateOfBirthValue.value = null;
+    form.dateOfBirth = '';
+  }
+  if (showValidation.value) {
+    validateField('age');
+    validateField('dateOfBirth');
+  }
+  isUpdatingAge.value = false;
 });
 
 watch(joinedDateValue, (newDate) => {
   form.joinedDate = formatDate(newDate);
-  console.log(form.joinedDate,newDate);
-  
   if (showValidation.value) validateField('joinedDate');
 });
-
-// Handle date selection - New functions to properly handle date selection
-const handleDateOfBirthSelect = (selectedDate: Date | null) => {
-  dateOfBirthValue.value = selectedDate;
-  dateOfBirthOpen.value = false;
-  if (showValidation.value) validateField('dateOfBirth');
-};
-
-const handleJoinedDateSelect = (selectedDate: Date | null) => {
-  joinedDateValue.value = selectedDate || new Date();
-  joinedDateOpen.value = false;
-  if (showValidation.value) validateField('joinedDate');
-};
 
 // API functions
 const fetchStates = async () => {
@@ -225,6 +246,12 @@ const fetchStates = async () => {
       value: state.id.toString(),
       label: state.name
     }));
+    const defaultState = states.value.find(state => state.value === '5');
+    if (defaultState) {
+      form.stateId = defaultState;
+    } else {
+      console.warn("Default stateId '5' not found in states");
+    }
   } catch (error) {
     console.error('Failed to fetch states:', error);
   } finally {
@@ -262,6 +289,48 @@ const fetchSection = async () => {
   }
 };
 
+const fetchDistricts = async (stateId: string) => {
+  isDistrictLoading.value = true;
+  try {
+    const response = await getDistrictsByStateId(stateId);
+    districts.value = response.map((district) => ({
+      value: district.id.toString(),
+      label: district.name
+    }));
+    const defaultDistrict = districts.value.find(district => district.value === '46');
+    if (defaultDistrict) {
+      form.districtId = defaultDistrict;
+    } else {
+      console.warn("Default districtId '23' not found in districts");
+    }
+  } catch (error) {
+    console.error('Failed to fetch districts:', error);
+  } finally {
+    isDistrictLoading.value = false;
+  }
+};
+
+const fetchMunicipalities = async (districtId: string) => {
+  isMunicipalityLoading.value = true;
+  try {
+    const response = await getMunicipalitiesByDistrictId(districtId);
+    municipalities.value = response.municipalities.map((municipality) => ({
+      value: municipality.id.toString(),
+      label: municipality.name
+    }));
+    const defaultMunicipality = municipalities.value.find(municipality => municipality.value === '463');
+    if (defaultMunicipality) {
+      form.municipalityId = defaultMunicipality;
+    } else {
+      console.warn("Default municipalityId '10' not found in municipalities");
+    }
+  } catch (error) {
+    console.error('Failed to fetch municipalities:', error);
+  } finally {
+    isMunicipalityLoading.value = false;
+  }
+};
+
 // Watch state changes
 watch(() => form.stateId, async (newState) => {
   districts.value = [];
@@ -270,20 +339,9 @@ watch(() => form.stateId, async (newState) => {
   form.municipalityId = null;
   
   if (newState && newState.value) {
-    isDistrictLoading.value = true;
-    try {
-      const response = await getDistrictsByStateId(newState.value);
-      districts.value = response.map((district) => ({
-        value: district.id.toString(),
-        label: district.name || district.name
-      }));
-    } catch (error) {
-      console.error('Failed to fetch districts:', error);
-    } finally {
-      isDistrictLoading.value = false;
-    }
+    await fetchDistricts(newState.value);
   }
-});
+}, { immediate: false });
 
 // Watch district changes
 watch(() => form.districtId, async (newDistrict) => {
@@ -291,20 +349,9 @@ watch(() => form.districtId, async (newDistrict) => {
   form.municipalityId = null;
   
   if (newDistrict && newDistrict.value) {
-    isMunicipalityLoading.value = true;
-    try {
-      const response = await getMunicipalitiesByDistrictId(newDistrict.value);
-      municipalities.value = response.municipalities.map((municipality) => ({
-        value: municipality.id.toString(),
-        label: municipality.name
-      }));
-    } catch (error) {
-      console.error('Failed to fetch municipalities:', error);
-    } finally {
-      isMunicipalityLoading.value = false;
-    }
+    await fetchMunicipalities(newDistrict.value);
   }
-});
+}, { immediate: false });
 
 // Field blur handler
 const handleFieldBlur = (fieldName: keyof typeof validationRules) => {
@@ -313,7 +360,7 @@ const handleFieldBlur = (fieldName: keyof typeof validationRules) => {
   }
 };
 
-// Phone input handler to limit to 10 digits
+// Phone input handler
 const handlePhoneInput = (event: Event) => {
   const input = event.target as HTMLInputElement;
   if (input.value.length > 10) {
@@ -363,15 +410,14 @@ const handleSubmit = async () => {
     
     console.log('Form data to submit:', Object.fromEntries(formData));
     
-    form.post(route('student.store'), {
-     // data: formData,
+    form.post(route('students.store'), {
       onSuccess: () => {
         console.log('Form submitted successfully');
         dateOfBirthValue.value = null;
         joinedDateValue.value = new Date();
         showValidation.value = false;
         validationErrors.value = {};
-        form.reset(); // Reset form fields
+        form.reset();
       },
       onError: (errors) => {
         console.error('Form submission errors:', errors);
@@ -385,10 +431,20 @@ const handleSubmit = async () => {
   }
 };
 
-// Initialize data on mount
-fetchStates();
-fetchClasses();
-fetchSection();
+// Initialize data and set defaults
+const initializeForm = async () => {
+  await fetchStates();
+  if (form.stateId?.value) {
+    await fetchDistricts(form.stateId.value);
+    if (form.districtId?.value) {
+      await fetchMunicipalities(form.districtId.value);
+    }
+  }
+  await Promise.all([fetchClasses(), fetchSection()]);
+};
+
+// Run initialization
+initializeForm();
 </script>
 
 <template>
@@ -416,7 +472,6 @@ fetchSection();
                   {{ validationErrors.fName }}
                 </p>
               </div>
-              
               <div class="space-y-2" id="mName">
                 <Label for="mName">Middle Name</Label>
                 <Input 
@@ -425,7 +480,6 @@ fetchSection();
                   placeholder="Enter middle name" 
                 />
               </div>
-              
               <div class="space-y-2" id="lName">
                 <Label for="lName">Last Name <span class="text-red-500">*</span></Label>
                 <Input 
@@ -457,7 +511,6 @@ fetchSection();
                   {{ validationErrors.email }}
                 </p>
               </div>
-              
               <div class="space-y-2" id="phone">
                 <Label for="phone">Mobile Number <span class="text-red-500">*</span></Label>
                 <Input 
@@ -473,9 +526,8 @@ fetchSection();
                   {{ validationErrors.phone }}
                 </p>
               </div>
-              
               <div class="space-y-2" id="age">
-                <Label for="age">Age <small>*</small></Label>
+                <Label for="age">Age <span class="text-red-500">*</span></Label>
                 <Input 
                   id="age" 
                   v-model="form.age" 
@@ -496,17 +548,15 @@ fetchSection();
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div class="space-y-2" id="dateOfBirth">
                 <Label for="dateOfBirth">Date of Birth <span class="text-red-500">*</span></Label>
-             
                 <DatePicker
                   id="dateOfBirth"
                   v-model="dateOfBirthValue"
-                  :monthYearSelector="true"
+                  month-year-selector
                 />
                 <p v-if="validationErrors.dateOfBirth" class="text-sm text-red-600 mt-1">
                   {{ validationErrors.dateOfBirth }}
                 </p>
               </div>
-              
               <div class="space-y-2" id="classId">
                 <Label for="classId">Class <span class="text-red-500">*</span></Label>
                 <SelectSearch
@@ -521,7 +571,6 @@ fetchSection();
                   @blur="handleFieldBlur('classId')"
                 />
               </div>
-              
               <div class="space-y-2" id="sectionId">
                 <Label for="sectionId">Section</Label>
                 <SelectSearch
@@ -549,7 +598,6 @@ fetchSection();
                   {{ validationErrors.fatherName }}
                 </p>
               </div>
-              
               <div class="space-y-2" id="motherName">
                 <Label for="motherName">Mother Name</Label>
                 <Input 
@@ -558,7 +606,6 @@ fetchSection();
                   placeholder="Enter mother name" 
                 />
               </div>
-              
               <div class="space-y-2" id="guardianName">
                 <Label for="guardianName">Guardian Name <span class="text-red-500">*</span></Label>
                 <Input 
@@ -584,7 +631,6 @@ fetchSection();
                   placeholder="Enter contact number" 
                 />
               </div>
-              
               <div class="space-y-2" id="photo">
                 <Label for="photo">Photo</Label>
                 <Input 
@@ -594,15 +640,12 @@ fetchSection();
                   @change="handlePhotoChange" 
                 />
               </div>
-              
               <div class="space-y-2" id="joinedDate">
                 <Label for="joinedDate">Joined Date <span class="text-red-500">*</span></Label>
                 <DatePicker
-                  id="dateOfBirth"
+                  id="joinedDate"
                   v-model="joinedDateValue"
-                  :month-year-show="true"
-                  :error-message="validationErrors.classId || 'Please select a class'"
-                  
+                  month-year-selector
                 />
                 <p v-if="validationErrors.joinedDate" class="text-sm text-red-600 mt-1">
                   {{ validationErrors.joinedDate }}
@@ -620,7 +663,6 @@ fetchSection();
                   placeholder="Enter address" 
                 />
               </div>
-              
               <div class="space-y-2" id="stateId">
                 <Label for="stateId">State <span class="text-red-500">*</span></Label>
                 <SelectSearch
@@ -635,7 +677,6 @@ fetchSection();
                   @blur="handleFieldBlur('stateId')"
                 />
               </div>
-              
               <div class="space-y-2" id="districtId">
                 <Label for="districtId">District</Label>
                 <SelectSearch
@@ -664,13 +705,20 @@ fetchSection();
             </div>
 
             <!-- Submit Button -->
+            <!-- Other form sections unchanged -->
             <div class="flex justify-end pt-6">
               <Button 
                 type="submit" 
                 :disabled="isSubmitting"
-                class="px-8 py-2"
+                class="px-8 py-2 flex items-center justify-center"
               >
-                <span v-if="isSubmitting">Submitting...</span>
+                <span v-if="isSubmitting" class="flex items-center">
+                  <svg class="animate-spin h-5 w-5 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Submitting...
+                </span>
                 <span v-else>Submit Registration</span>
               </Button>
             </div>
@@ -682,7 +730,6 @@ fetchSection();
 </template>
 
 <style scoped>
-/* Ensure button has pointer cursor */
 button[type="submit"],
 button[role="button"] {
   cursor: pointer !important;
@@ -693,7 +740,6 @@ button[role="button"]:hover {
   cursor: pointer !important;
 }
 
-/* Form styling improvements */
 .space-y-2 > label {
   font-weight: 500;
 }
@@ -702,7 +748,6 @@ button[role="button"]:hover {
   font-weight: 600;
 }
 
-/* Validation error styling */
 .border-red-500 {
   border-color: rgb(239 68 68) !important;
 }
