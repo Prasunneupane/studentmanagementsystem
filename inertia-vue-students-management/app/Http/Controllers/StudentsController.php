@@ -5,12 +5,24 @@ namespace App\Http\Controllers;
 use App\Models\Students;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Http\JsonResponse;
+use App\Contracts\StudentServiceInterface;
+use Tymon\JWTAuth\Facades\JWTAuth;
 
 class StudentsController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
+
+    protected $studentService;
+
+    public function __construct(StudentServiceInterface $studentService)
+    {
+        $this->studentService = $studentService;
+        $this->middleware('auth:api');
+    }
+
     public function index()
     {
         //
@@ -27,9 +39,19 @@ class StudentsController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(Request $request): JsonResponse
     {
+
         dd($request->all());
+        try {
+            $userId = JWTAuth::user()->id;
+            $this->studentService->createStudent($request->all(), $userId);
+            return response()->json(['message' => 'Student created successfully'], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(['errors' => $e->errors()], 422);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Failed to create student'], 500);
+        }
     }
 
     /**
@@ -69,4 +91,7 @@ class StudentsController extends Controller
        $students->attach($students->student_id);
        return redirect()->route('students.index')->with('success', 'Student registered successfully.');
     }
+
+
+
 }

@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::get('/', function () {
+    // dd('Hello World');
     return Inertia::render('auth/Login');
 })->name('home');
 

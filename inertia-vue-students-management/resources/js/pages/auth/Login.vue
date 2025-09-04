@@ -22,6 +22,11 @@ const form = useForm({
 
 const submit = () => {
     form.post(route('login'), {
+        onSuccess: (page) => {
+        if (page.props.jwt_token) {
+            localStorage.setItem('jwt_token', String(page.props.jwt_token));
+        }
+        },
         onFinish: () => form.reset('password'),
     });
 };

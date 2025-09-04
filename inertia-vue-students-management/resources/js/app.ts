@@ -6,8 +6,15 @@ import type { DefineComponent } from 'vue';
 import { createApp, h } from 'vue';
 import { ZiggyVue } from 'ziggy-js';
 import { initializeTheme } from './composables/useAppearance';
-
+import axios from 'axios';
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+axios.interceptors.request.use(config => {
+    const token = localStorage.getItem('jwt_token');
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+});
 
 createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),
