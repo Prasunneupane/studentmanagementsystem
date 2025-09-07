@@ -397,16 +397,34 @@ const handleSubmit = async () => {
     
     const formData = new FormData();
     for (const [key, value] of Object.entries(form)) {
-      if (value !== null && value !== '') {
-        if (['stateId', 'districtId', 'municipalityId', 'classId', 'sectionId'].includes(key) && value) {
-          formData.append(key, (value as { value: string }).value);
-        } else if (key === 'photo' && value) {
-          formData.append(key, value as File);
-        } else if (typeof value === 'string') {
-          formData.append(key, value);
-        }
-      }
+  // Skip null, undefined, and empty string values
+  if (value === null || value === undefined || value === '') {
+    continue;
+  }
+  
+  // Handle select fields with {value, label} structure
+  if (['stateId', 'districtId', 'municipalityId', 'classId', 'sectionId'].includes(key)) {
+    // Check if value is an object with a 'value' property
+    if (typeof value === 'object' && value !== null && 'value' in value) {
+      formData.append(key, (value as { value: string }).value);
+    } else {
+      // If it's already a simple value, use it directly
+      formData.append(key, String(value));
     }
+  }
+  // Handle file uploads
+  else if (key === 'photo' && value instanceof File) {
+    formData.append(key, value);
+  }
+  // Handle all other simple values
+  else if (typeof value === 'string' || typeof value === 'number') {
+    formData.append(key, String(value));
+  }
+  // Handle boolean values
+  else if (typeof value === 'boolean') {
+    formData.append(key, String(value));
+  }
+}
     
     console.log('Form data to submit:', Object.fromEntries(formData));
     

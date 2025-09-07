@@ -28,8 +28,9 @@ class AuthenticatedSessionController extends Controller
     /**
      * Handle an incoming authentication request.
      */
-    public function store(LoginRequest $request): Response
+    public function store(LoginRequest $request): RedirectResponse
     {
+        // dd('a');
         $request->authenticate();
         $request->session()->regenerate();
 
@@ -38,10 +39,7 @@ class AuthenticatedSessionController extends Controller
         $token = JWTAuth::fromUser($user);
 
         // Pass token to frontend via flash message
-        return Inertia::render('Dashboard', [
-            'jwt_token' => $token,
-            'message' => 'Login successful',
-        ])->with('jwt_token', $token);
+        return redirect()->intended(route('dashboard'),false)->with('jwt_token', $token);
     }
 
     /**
@@ -50,7 +48,7 @@ class AuthenticatedSessionController extends Controller
     public function destroy(Request $request): RedirectResponse
     {
         Auth::guard('web')->logout();
-
+        
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 

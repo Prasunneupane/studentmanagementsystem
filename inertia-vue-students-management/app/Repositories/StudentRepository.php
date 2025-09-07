@@ -15,7 +15,7 @@ class StudentRepository implements StudentRepositoryInterface
         if (isset($data['photo']) && $data['photo'] instanceof \Illuminate\Http\UploadedFile) {
             $data['photo'] = $data['photo']->store('photos', 'public');
         }
-
+        dd($data);
         return Students::create($data);
     }
 }

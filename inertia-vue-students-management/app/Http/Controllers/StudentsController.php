@@ -20,7 +20,7 @@ class StudentsController extends Controller
     public function __construct(StudentServiceInterface $studentService)
     {
         $this->studentService = $studentService;
-        $this->middleware('auth:api');
+        // $this->middleware('auth:api');
     }
 
     public function index()
@@ -42,9 +42,10 @@ class StudentsController extends Controller
     public function store(Request $request): JsonResponse
     {
 
-        dd($request->all());
+        // dd($request->all());
         try {
             $userId = JWTAuth::user()->id;
+            // dd($userId);
             $this->studentService->createStudent($request->all(), $userId);
             return response()->json(['message' => 'Student created successfully'], 201);
         } catch (\Illuminate\Validation\ValidationException $e) {
