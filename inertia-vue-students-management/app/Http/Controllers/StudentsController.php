@@ -51,7 +51,7 @@ class StudentsController extends Controller
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json(['errors' => $e->errors()], 422);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Failed to create student'], 500);
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 

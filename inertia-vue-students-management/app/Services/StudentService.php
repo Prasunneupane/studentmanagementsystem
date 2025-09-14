@@ -78,7 +78,7 @@ class StudentService implements StudentServiceInterface
             'municipality_id' => $data['municipalityId'] ?? null,
             'created_by' => $userId,
         ];
-
-        return $this->studentRepository->create($studentData);
+       // dd($studentData);
+       return  $this->studentRepository->create($studentData);
     }
 }

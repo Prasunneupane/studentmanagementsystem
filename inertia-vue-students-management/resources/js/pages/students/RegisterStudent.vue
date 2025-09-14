@@ -387,7 +387,6 @@ const handleSubmit = async () => {
     if (!validateAllFields()) {
       const firstErrorField = Object.keys(validationErrors.value)[0];
       const errorElement = document.getElementById(firstErrorField);
-      console.log(errorElement);
       if (errorElement) {
         errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
         errorElement.focus();
@@ -395,40 +394,29 @@ const handleSubmit = async () => {
       return;
     }
     
-    const formData = new FormData();
-    for (const [key, value] of Object.entries(form)) {
-  // Skip null, undefined, and empty string values
-  if (value === null || value === undefined || value === '') {
-    continue;
-  }
-  
-  // Handle select fields with {value, label} structure
-  if (['stateId', 'districtId', 'municipalityId', 'classId', 'sectionId'].includes(key)) {
-    // Check if value is an object with a 'value' property
-    if (typeof value === 'object' && value !== null && 'value' in value) {
-      formData.append(key, (value as { value: string }).value);
-    } else {
-      // If it's already a simple value, use it directly
-      formData.append(key, String(value));
-    }
-  }
-  // Handle file uploads
-  else if (key === 'photo' && value instanceof File) {
-    formData.append(key, value);
-  }
-  // Handle all other simple values
-  else if (typeof value === 'string' || typeof value === 'number') {
-    formData.append(key, String(value));
-  }
-  // Handle boolean values
-  else if (typeof value === 'boolean') {
-    formData.append(key, String(value));
-  }
-}
-    
-    console.log('Form data to submit:', Object.fromEntries(formData));
-    
-    form.post(route('students.store'), {
+    // Transform the form data before sending with Inertia
+    form.transform((data) => {
+      const transformedData: Record<string, any> = {};
+      
+      for (const [key, value] of Object.entries(data)) {
+        if (value !== null && value !== '' && value !== undefined) {
+          if (['stateId', 'districtId', 'municipalityId', 'classId', 'sectionId'].includes(key)) {
+            // Extract only the value, ignore the label
+            transformedData[key] = (typeof value === 'object' && !(value instanceof File) && value?.value) ? value.value : value;
+          } else if (key === 'photo' && value instanceof File) {
+            transformedData[key] = value;
+          } else if (key === 'photo' && (typeof value === 'object' && Object.keys(value).length === 0)) {
+            // Skip empty photo object
+            continue;
+          } else {
+            transformedData[key] = value;
+          }
+        }
+      }
+      
+      console.log('Transformed data:', transformedData);
+      return transformedData;
+    }).post(route('students.store'), {
       onSuccess: () => {
         console.log('Form submitted successfully');
         dateOfBirthValue.value = null;

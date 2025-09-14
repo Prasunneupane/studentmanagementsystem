@@ -6,9 +6,32 @@ use Illuminate\Database\Eloquent\Model;
 
 class Students extends Model
 {
-    protected $table = "tbl_students";
+    protected $table = "students";
     protected $primaryKey = "student_id";
     public $timestamps = true;
+
+    protected $fillable = [
+        'first_name',
+        'middle_name',
+        'last_name',
+        'email',
+        'phone',
+        'age',
+        'date_of_birth',
+        'class_id',
+        'section_id',
+        'mother_name',
+        'father_name',
+        'guardian_name',
+        'contact_number',
+        'photo',
+        'joined_date',
+        'address',
+        'state_id',
+        'district_id',
+        'municipality_id',
+        'created_by',
+    ];
     
 
     public function getFullNameAttribute()
