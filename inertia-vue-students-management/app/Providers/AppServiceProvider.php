@@ -9,6 +9,8 @@ use App\Contracts\StudentRepositoryInterface;
 use App\Contracts\StudentServiceInterface;
 use App\Services\StudentService;
 use App\Repositories\StudentRepository;
+use Inertia\Inertia;
+use Illuminate\Support\Facades\Session;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -27,6 +29,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        Inertia::share([
+        'jwt_token' => fn () => session('jwt_token'),
+    ]);
     }
 }

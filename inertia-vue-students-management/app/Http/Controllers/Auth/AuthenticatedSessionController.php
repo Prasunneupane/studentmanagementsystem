@@ -30,17 +30,14 @@ class AuthenticatedSessionController extends Controller
      */
     public function store(LoginRequest $request): RedirectResponse
     {
-        // dd('a');
         $request->authenticate();
         $request->session()->regenerate();
 
-        // Generate JWT token
         $user = Auth::user();
         $token = JWTAuth::fromUser($user);
+        session()->flash('jwt_token', $token);
 
-        // Pass token to frontend via flash message
-        return redirect()->intended(route('dashboard'),false)->with('jwt_token', $token);
-    }
+        return redirect()->intended(route('dashboard'));    }
 
     /**
      * Destroy an authenticated session.

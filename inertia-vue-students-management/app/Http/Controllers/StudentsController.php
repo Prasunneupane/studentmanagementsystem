@@ -8,6 +8,7 @@ use Inertia\Inertia;
 use Illuminate\Http\JsonResponse;
 use App\Contracts\StudentServiceInterface;
 use Tymon\JWTAuth\Facades\JWTAuth;
+use Illuminate\Support\Facades\Redirect;
 
 class StudentsController extends Controller
 {
@@ -39,20 +40,22 @@ class StudentsController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request): JsonResponse
-    {
+    public function store(Request $request)
+{
+    try {
+        $userId = JWTAuth::user()->id; // Get authenticated user ID
+        $this->studentService->createStudent($request->all(), $userId);
 
-        // dd($request->all());
-        try {
-            $userId = JWTAuth::user()->id;
-            // dd($userId);
-            $this->studentService->createStudent($request->all(), $userId);
-            return response()->json(['message' => 'Student created successfully'], 201);
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json(['errors' => $e->errors()], 422);
-        } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
-        }
+        // Return an Inertia redirect with a flash message
+        return Redirect::route('students.create') // Replace 'dashboard' with your target route
+            ->with('success', 'Student registered successfully');
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        // Return validation errors to Inertia
+        return Redirect::back()->withErrors($e->errors())->withInput();
+    } catch (\Exception $e) {
+        // Return error message to Inertia
+        return Redirect::back()->with('error', $e->getMessage());
+    }
     }
 
     /**
