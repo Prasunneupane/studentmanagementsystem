@@ -8,6 +8,9 @@ import { useFormValidation } from '@/composables/useFormValidation';
 import { useLocationData } from '@/composables/useLocationData';
 import { useAcademicData } from '@/composables/useAcademicData';
 
+import { Toaster } from '@/components/ui/sonner'
+import 'vue-sonner/style.css'
+
 // Import components
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -118,6 +121,7 @@ const handlePhotoChange = (event: Event) => {
 
   <Head title="Student Register" />
   <AppLayout :breadcrumbs="breadcrumbs">
+    <Toaster />
     <div class="flex h-full w-full flex-1 flex-col gap-4 rounded-xl p-4 overflow-x-auto">
       <Card class="w-full shadow-lg rounded-2xl">
         <CardHeader>

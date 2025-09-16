@@ -1,7 +1,10 @@
 // composables/useStudentForm.ts
 import { ref } from 'vue';
-import { toast } from "vue-sonner"
+
 import { Button } from "@/components/ui/button"
+import { useToast } from './useToast';
+
+const { toast } = useToast();
 
 export function useStudentForm(form: any, validateAllFields: () => boolean, validationErrors: any, showValidation: any) {
   const dateOfBirthValue = ref<Date | null>(null);
@@ -55,11 +58,11 @@ export function useStudentForm(form: any, validateAllFields: () => boolean, vali
         console.log(toast,"toast");
           console.log('Form submitted successfully');
           toast.success("Student registered successfully!", {
-            duration: 5000,
+            duration: 3000,
             action: {
-                text: 'Close',
+                label: 'Close',
                 onClick: (e) => {
-                    toast.dismiss();
+                    
                 }
             }
           });
@@ -75,15 +78,19 @@ export function useStudentForm(form: any, validateAllFields: () => boolean, vali
           console.error('Form submission errors:', errors);
           
           
-          toast({
-            title: "Student registered successfully!",
-            description: "",
+          toast.error("Failed to register student. Please check the form and try again.", {
             duration: 5000,
+            position: 'top-right',
+            description: Object.keys(errors).length > 0 
+              ? `Found ${Object.keys(errors).length} error(s)`
+              : "An unexpected error occurred",
             action: {
-                text: "Close",
-                onClick: () => toast.dismiss(), // dismiss all
-            },
-            });
+              label: "Close",
+              onClick: (e) => {
+                    
+                }
+            }
+          });
           validationErrors.value = { ...validationErrors.value, ...errors };
         }
       });
