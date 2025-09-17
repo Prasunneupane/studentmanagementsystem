@@ -17,19 +17,22 @@ Route::get('/', function () {
 // })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    // Existing dashboard route...
+    // Dashboard (kept as is)
     Route::get('/dashboard', function () {
         return Inertia::render('Dashboard');
     })->name('dashboard');
 
-    // Student Management routes
-    Route::get('/students', [StudentsController::class, 'index'])->name('students.index');
-    Route::get('/students/create', [StudentsController::class, 'create'])->name('students.create');
-    Route::post('/students/store', [StudentsController::class, 'store'])->name('students.store');
-    Route::get('/students/{student}', [StudentsController::class, 'show'])->name('students.show');
-    Route::get('/students/{student}/edit', [StudentsController::class, 'edit'])->name('students.edit');
-    Route::put('/students/{student}', [StudentsController::class, 'update'])->name('students.update');
-    Route::delete('/students/{student}', [StudentsController::class, 'destroy'])->name('students.destroy');
+    // Student Management routes with prefix + name
+    Route::prefix('students')->name('students.')->group(function () {
+        Route::get('/', [StudentsController::class, 'index'])->name('index');
+        Route::get('/create', [StudentsController::class, 'create'])->name('create');
+        Route::post('/store', [StudentsController::class, 'store'])->name('store');
+        Route::get('/{student}', [StudentsController::class, 'show'])->name('show');
+        Route::get('/{student}/edit', [StudentsController::class, 'edit'])->name('edit');
+        Route::put('/{student}', [StudentsController::class, 'update'])->name('update');
+        Route::delete('/{student}', [StudentsController::class, 'destroy'])->name('destroy');
+        Route::get('/student-list', [StudentsController::class, 'student_list'])->name('student_list');
+    });
 });
 
 Route::get('/getListOfStates', [StateDistricMunController::class,'getAllStates'])->name('statelist');

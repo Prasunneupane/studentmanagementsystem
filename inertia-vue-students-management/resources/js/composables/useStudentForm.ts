@@ -3,9 +3,10 @@ import { ref } from 'vue';
 
 import { Button } from "@/components/ui/button"
 import { useToast } from './useToast';
+import { useLocationData } from './useLocationData';
 
 const { toast } = useToast();
-
+const { initialize } = useLocationData(form);
 export function useStudentForm(form: any, validateAllFields: () => boolean, validationErrors: any, showValidation: any) {
   const dateOfBirthValue = ref<Date | null>(null);
   const joinedDateValue = ref<Date | null>(new Date());
@@ -92,12 +93,16 @@ export function useStudentForm(form: any, validateAllFields: () => boolean, vali
             }
           });
           validationErrors.value = { ...validationErrors.value, ...errors };
+        },onFinish: () => {
+           useLocationData.initialize()
+          isSubmitting.value = false; // Reset in onFinish
         }
       });
     } catch (error) {
       console.error('Form submission failed:', error);
     } finally {
-      isSubmitting.value = false;
+      // useLocationData.initialize()
+      // isSubmitting.value = false;
     }
   };
 

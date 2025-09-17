@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import SelectSearch from "@/components/ui/select/Select-Search.vue";
 import DatePicker from "@/components/ui/datepicker/DatePicker.vue";
+import { LoaderCircle } from 'lucide-vue-next';
 
 interface Props {
   form: any;
@@ -309,22 +310,10 @@ const FormField = defineComponent({
     </div>
 
     <!-- Submit Button -->
-    <div class="flex justify-end pt-6">
-      <Button 
-        type="submit" 
-        :disabled="isSubmitting"
-        class="px-8 py-2 flex items-center justify-center"
-      >
-        <span v-if="isSubmitting" class="flex items-center">
-          <svg class="animate-spin h-5 w-5 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-          Submitting...
-        </span>
-        <span v-else>Submit Registration</span>
-      </Button>
-    </div>
+   <Button type="submit" class="mt-4 float-right" :tabindex="4" :disabled="form.processing">
+      <LoaderCircle v-if="form.processing" class="h-4 w-4 animate-spin" />
+      Submit
+  </Button>
   </form>
 </template>
 
