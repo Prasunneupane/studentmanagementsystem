@@ -219,6 +219,7 @@ const FormField = defineComponent({
           :class="{ 'border-red-500 focus:border-red-500': validationErrors.guardianName }"
           @blur="$emit('field-blur', 'guardianName')"
         />
+        <!-- Yea bet he can hear me  -->
         <p v-if="validationErrors.guardianName" class="text-sm text-red-600 mt-1">
           {{ validationErrors.guardianName }}
         </p>
