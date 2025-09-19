@@ -13,7 +13,7 @@ export function useLocationData(form: any) {
 
   const fetchStates = async () => {
     isStateLoading.value = true;
-    try {
+    try { 
       const response = await getAllStates();
       states.value = response.map((state) => ({
         value: state.id.toString(),
