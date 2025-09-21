@@ -47,7 +47,7 @@ class StudentsController extends Controller
         $this->studentService->createStudent($request->all(), $userId);
 
         // Return an Inertia redirect with a flash message
-        return Redirect::route('students.create') // Replace 'dashboard' with your target route
+        return Redirect::route('students.student_list') // Replace 'dashboard' with your target route
             ->with('success', 'Student registered successfully');
     } catch (\Illuminate\Validation\ValidationException $e) {
         // Return validation errors to Inertia
