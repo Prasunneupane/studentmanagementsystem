@@ -29,6 +29,8 @@ class UserCheckController extends Controller
     public function index()
     {
         //
+        Inertia::setRootView('app'); // Set the root view for Inertia
+        return Inertia::render('students/StudentList'); // Adjust the view name as needed
     }
 
     /**
