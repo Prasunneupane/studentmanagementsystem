@@ -27,6 +27,7 @@ class StudentsController extends Controller
     public function index()
     {
         //
+         return Inertia::render('students/StudentList'); // Adjust the view name as needed
     }
 
     /**
@@ -94,6 +95,12 @@ class StudentsController extends Controller
     {
        $students->attach($students->student_id);
        return redirect()->route('students.index')->with('success', 'Student registered successfully.');
+    }
+
+    public function student_list()
+    {
+        // Inertia::setRootView('app'); // Set the root view for Inertia
+        return Inertia::render('students/StudentList'); // Adjust the view name as needed
     }
 
 
