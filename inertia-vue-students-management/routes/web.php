@@ -31,7 +31,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/{student}/edit', [StudentsController::class, 'edit'])->name('edit');
         Route::put('/{student}', [StudentsController::class, 'update'])->name('update');
         Route::delete('/{student}', [StudentsController::class, 'destroy'])->name('destroy');
-        Route::get('/student-list', [StudentsController::class, 'student_list'])->name('student_list');
+        Route::get('/getStudentListByDateRange', [StudentsController::class, 'student_list_by_date_range'])->name('student_list_by_date_range');
     });
 });
 

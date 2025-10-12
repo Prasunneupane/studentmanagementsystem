@@ -23,3 +23,6 @@ export const createStudent = (formData: FormData) =>
     message: string;
     student: any;
   }>(apiMethods.createStudent(formData));
+
+export const getStudentsListByDateRange = (fromDate:string ,toDate:string) =>
+  executeApiMethod<{studentsList:any[]}>(apiMethods.getStudentsListByDateRange(fromDate,toDate));

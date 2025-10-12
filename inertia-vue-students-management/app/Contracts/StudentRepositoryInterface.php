@@ -7,5 +7,7 @@ use App\Models\Students;
 interface StudentRepositoryInterface
 {
     public function create(array $data): Students;
+
+    public function getStudentsByDateRange(string $fromDate, string $toDate): array;
 }
 

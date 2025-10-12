@@ -4,7 +4,8 @@ import {
   VITE_API_DISTRICTS,
   VITE_API_MUNICIPALITIES,
   VITE_API_CLASSES, 
-  VITE_API_SECTIONS
+  VITE_API_SECTIONS,
+  VITE_API_STUDENTS_LIST_BY_DATE_RANGE,
  } from '@/constant/services';
 
 // Update LocationItem to reflect actual response
@@ -54,7 +55,13 @@ export const apiMethods = {
     endpoint: import.meta.env.VITE_API_STUDENTS,
     method: 'POST',
     data: formData
-  })
+  }),
+
+  getStudentsListByDateRange: (fromDate:string ,toDate:string): ApiMethodConfig => ({
+    endpoint: VITE_API_STUDENTS_LIST_BY_DATE_RANGE,
+    method: 'GET',
+    params: { fromDate:fromDate,toDate:toDate }
+  }),
 };
 
 export const executeApiMethod = async <T>(

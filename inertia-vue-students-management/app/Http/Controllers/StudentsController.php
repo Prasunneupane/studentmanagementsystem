@@ -97,10 +97,11 @@ class StudentsController extends Controller
        return redirect()->route('students.index')->with('success', 'Student registered successfully.');
     }
 
-    public function student_list()
+    public function student_list_by_date_range()
     {
+        dd('s');
         // Inertia::setRootView('app'); // Set the root view for Inertia
-        return Inertia::render('students/StudentList'); // Adjust the view name as needed
+        
     }
 
 

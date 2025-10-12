@@ -81,4 +81,15 @@ class StudentService implements StudentServiceInterface
        // dd($studentData);
        return  $this->studentRepository->create($studentData);
     }
+
+    public function getStudentsByDateRange(string $fromDate, string $toDate): array
+    {
+        // Validate date formats
+        $dateRegex = '/^\d{4}-\d{2}-\d{2}$/';
+        if (!preg_match($dateRegex, $fromDate) || !preg_match($dateRegex, $toDate)) {
+            throw ValidationException::withMessages(['date' => 'Invalid date format']);
+        }
+
+        return $this->studentRepository->getStudentsByDateRange($fromDate, $toDate);
+    }
 }
