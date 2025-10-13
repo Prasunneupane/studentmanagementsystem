@@ -25,4 +25,4 @@ export const createStudent = (formData: FormData) =>
   }>(apiMethods.createStudent(formData));
 
 export const getStudentsListByDateRange = (fromDate:string ,toDate:string) =>
-  executeApiMethod<{studentsList:any[]}>(apiMethods.getStudentsListByDateRange(fromDate,toDate));
+  executeApiMethod<{}>(apiMethods.getStudentsListByDateRange(fromDate,toDate));

@@ -1,6 +1,6 @@
 // composables/useLocationData.ts
 import { ref, watch } from 'vue';
-import { getAllStates, getDistrictsByStateId, getMunicipalitiesByDistrictId } from '@/constant/apiservice/callService';
+import { getAllStates, getDistrictsByStateId, getMunicipalitiesByDistrictId,getStudentsListByDateRange } from '@/constant/apiservice/callService';
 
 export function useLocationData(form: any) {
   const states = ref<{ value: string; label: string }[]>([]);
@@ -29,6 +29,21 @@ export function useLocationData(form: any) {
       console.error('Failed to fetch states:', error);
     } finally {
       isStateLoading.value = false;
+    }
+  };
+
+  const fetchStudentListByDateRange = async () => {
+    
+    try { 
+      const response = await getStudentsListByDateRange('2023-01-01','2024-01-01');
+      return response;
+      
+      // Set default state if available
+      
+    } catch (error) {
+      console.error('Failed to fetch states:', error);
+    } finally {
+     
     }
   };
 
@@ -110,6 +125,8 @@ export function useLocationData(form: any) {
       }
     }
   };
+
+
 
   // Auto-initialize
   initialize();

@@ -99,9 +99,20 @@ class StudentsController extends Controller
 
     public function student_list_by_date_range()
     {
-        dd('s');
-        // Inertia::setRootView('app'); // Set the root view for Inertia
-        
+        echo '{
+            "data": [
+                {
+                "id": 1,
+                "first_name": "John",
+                "last_name": "Doe",
+                "email": "john@example.com",
+                "phone": "9876543210",
+                "age": 20,
+                "class_name": "10A",
+                "joined_date": "2023-10-10"
+                }
+            ]
+            }';
     }
 
 

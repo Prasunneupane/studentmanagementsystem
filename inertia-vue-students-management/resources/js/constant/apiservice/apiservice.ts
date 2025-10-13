@@ -18,7 +18,8 @@ class ApiService {
     method: Method,
     endpoint: string,
     data: any = null,
-    params: any = null
+    params: any = null,
+    withCredentials: true,
   ): Promise<ApiResponse<T>> {
     try {
       const config: AxiosRequestConfig = {
