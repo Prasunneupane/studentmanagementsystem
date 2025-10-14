@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Inertia\Response;
+use Log;
 use Tymon\JWTAuth\Facades\JWTAuth;
 class AuthenticatedSessionController extends Controller
 {
@@ -35,17 +36,37 @@ class AuthenticatedSessionController extends Controller
 
         $user = Auth::user();
         $token = JWTAuth::fromUser($user);
-        session()->flash('jwt_token', $token);
+        
+        // Store token in session (NOT flash)
+        session(['jwt_token' => $token]);
+        
+        // Debug: Log that token was stored
+        Log::info('JWT token stored in session', [
+            'user_id' => $user->id,
+            'token_length' => strlen($token),
+            'session_id' => session()->getId(),
+        ]);
 
-        return redirect()->intended(route('dashboard'));    }
+        return redirect()->intended(route('dashboard'));   
+    }
 
     /**
      * Destroy an authenticated session.
      */
     public function destroy(Request $request): RedirectResponse
     {
-        Auth::guard('web')->logout();
+    // Invalidate the JWT token
+        try {
+            JWTAuth::invalidate(JWTAuth::getToken());
+        } catch (\Exception $e) {
+            // Token already invalid or doesn't exist
+        }
         
+        // Remove from session
+        session()->forget('jwt_token');
+        
+        Auth::guard('web')->logout();
+
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 

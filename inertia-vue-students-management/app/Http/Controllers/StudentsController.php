@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Http\JsonResponse;
 use App\Contracts\StudentServiceInterface;
+use Log;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Illuminate\Support\Facades\Redirect;
 
@@ -97,22 +98,22 @@ class StudentsController extends Controller
        return redirect()->route('students.index')->with('success', 'Student registered successfully.');
     }
 
-    public function student_list_by_date_range()
+    public function student_list_by_date_range(Request $request)
     {
-        echo '{
-            "data": [
-                {
-                "id": 1,
-                "first_name": "John",
-                "last_name": "Doe",
-                "email": "john@example.com",
-                "phone": "9876543210",
-                "age": 20,
-                "class_name": "10A",
-                "joined_date": "2023-10-10"
-                }
-            ]
-            }';
+        // dd('here');
+        $startDate = $request->input('fromDate');
+        $endDate = $request->input('toDate');
+       
+
+        try {
+            $students = $this->studentService->getStudentsByDateRange($startDate, $endDate);
+            Log::info('Fetched students:', ['count' => count($students)]);
+            return response()->json(['students' => $students], 200);
+        } catch (\Exception $e) {
+            Log::error('Error fetching students by date range: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            return response()->json(['error' => 'Failed to fetch students'], 500);
+        }
+        
     }
 
 
