@@ -23,7 +23,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     })->name('dashboard');
 
     // Student Management routes with prefix + name
-    Route::prefix('students')->name('students.')->group(function () {
+        Route::prefix('students')->name('students.')->group(function () {
         Route::get('/', [StudentsController::class, 'index'])->name('index');
         Route::get('/create', [StudentsController::class, 'create'])->name('create');
         Route::post('/store', [StudentsController::class, 'store'])->name('store');
@@ -34,19 +34,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 });
 
-Route::middleware(['jwt.verify'])->group(function () {
-        Log::info('Inside jwt.verify middleware group');
-    //   Route::prefix('students')->name('students.')->group(function () {
-         Log::info('inside route group');
-        Route::get('/getStudentListByDateRange', [StudentsController::class, 'student_list_by_date_range'])->name('student_list_by_date_range');
-    // });
-});
-
-Route::get('/getListOfStates', [StateDistricMunController::class,'getAllStates'])->name('statelist');
-Route::get('/getListOfDistrictByStateId', [StateDistricMunController::class,'getDistrictsByStateId'])->name('districtlist');
-Route::get('/getListOfMunicipalitiesByDistrictId', [StateDistricMunController::class,'getMunicipalitiesByDistrictId'])->name('municipalitylist');
-Route::get('/getClassesList', [ClassSectionController::class,'getAllClasses'])->name('classeslist');
-Route::get('/getSectionList', [ClassSectionController::class,'getAllSection'])->name('sectionlist');
 // Route::get('/registerStudent', [ClassSectionController::class,'registerStudent'])->name('registerStudent');
 
 require __DIR__.'/settings.php';
