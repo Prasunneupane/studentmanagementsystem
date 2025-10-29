@@ -1,178 +1,179 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { h, computed } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, useForm } from '@inertiajs/vue3';
-import { Toaster, toast } from 'vue-sonner';
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Toaster } from 'vue-sonner';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-vue-next';
-import 'vue-sonner/style.css';
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { useLocationData, type Student } from '@/composables/fetchData';
+import DataTable from '../students/Datatable.vue';
+import DatePicker from '@/components/ui/datepicker/DatePicker.vue'; // Adjust path if needed
+import type { ColumnDef } from '@tanstack/vue-table';
 
 // Breadcrumbs
 const breadcrumbs = [{ title: 'View Students', href: '/students' }];
 
-// State variables
+// Form (only dates)
 const form = useForm({
-  fromDate: '',
+  fromDate: new Date().toISOString().split('T')[0],
   toDate: new Date().toISOString().split('T')[0],
 });
-const students = ref<any[]>([]);
-const loading = ref(false);
-const errorMessage = ref('');
 
-// Table columns
-const columns = [
-  { key: 'id', label: 'ID' },
-  { key: 'first_name', label: 'First Name' },
-  { key: 'last_name', label: 'Last Name' },
-  { key: 'email', label: 'Email' },
-  { key: 'phone', label: 'Phone' },
-  { key: 'age', label: 'Age' },
-  { key: 'class_name', label: 'Class' },
-  { key: 'joined_date', label: 'Joined Date' },
-];
+// Use composable
+const {
+  students,
+  loading,
+  errorMessage,
+  fetchStudentListByDateRange,
+} = useLocationData(form);
 
-// Fetch students by date range using Inertia
-const fetchStudentListByDateRange = () => {
-  if (!form.fromDate || !form.toDate) {
-    toast.error('Please select both From Date and To Date');
+// Computed values for DatePicker (needs Date object or undefined)
+const fromDateValue = computed(() => {
+  if (!form.fromDate) return undefined;
+  // Create date at noon UTC to avoid timezone issues
+  const [year, month, day] = form.fromDate.split('-').map(Number);
+  return new Date(year, month - 1, day);
+});
+
+const toDateValue = computed(() => {
+  if (!form.toDate) return new Date();
+  // Create date at noon UTC to avoid timezone issues
+  const [year, month, day] = form.toDate.split('-').map(Number);
+  return new Date(year, month - 1, day);
+});
+
+// Handlers for date updates
+const handleFromDateUpdate = (date: Date | undefined) => {
+  if (!date) {
+    form.fromDate = '';
     return;
   }
-
-  loading.value = true;
-  errorMessage.value = '';
-  students.value = [];
-
-  const token = localStorage.getItem('jwt_token');
-  if (!token) {
-    toast.error('Session expired. Please log in again.');
-    errorMessage.value = 'Authentication failed. Please log in again.';
-    loading.value = false;
-    return;
-  }
-
-  form.get(route('student_list_by_date_range'), {
-    preserveState: true,
-    preserveScroll: true,
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-    onSuccess: (page) => {
-      const response = page.props.students || [];
-      students.value = response.map((student: any) => ({
-        ...student,
-        class_name: student.class ? student.class.name : null,
-      }));
-      if (students.value.length === 0) {
-        errorMessage.value = 'No data found. Please select another date range.';
-      }
-    },
-    onError: (errors) => {
-      console.error('Error fetching data:', errors);
-      if (errors.auth || errors.error?.includes('Unauthorized')) {
-        errorMessage.value = 'Authentication failed. Please log in again.';
-        toast.error('Session expired. Please log in again.');
-      } else if (errors.date) {
-        errorMessage.value = errors.date;
-        toast.error(errors.date);
-      } else {
-        errorMessage.value = 'Server error. Please try again later.';
-        toast.error('Failed to load students. Please try again.');
-      }
-    },
-    onFinish: () => {
-      loading.value = false;
-    },
-  });
+  // Format date as YYYY-MM-DD in local timezone
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  form.fromDate = `${year}-${month}-${day}`;
 };
+
+const handleToDateUpdate = (date: Date | undefined) => {
+  if (!date) {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    form.toDate = `${year}-${month}-${day}`;
+    return;
+  }
+  // Format date as YYYY-MM-DD in local timezone
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  form.toDate = `${year}-${month}-${day}`;
+};
+
+// Define columns for DataTable
+const columns: ColumnDef<Student>[] = [
+  {
+    accessorKey: 'id',
+    header: 'ID',
+    cell: ({ row }) => h('div', { class: 'font-medium' }, row.getValue('id')),
+  },
+  {
+    accessorKey: 'first_name',
+    header: 'First Name',
+    cell: ({ row }) => h('div', {}, row.getValue('first_name')),
+  },
+  {
+    accessorKey: 'last_name',
+    header: 'Last Name',
+    cell: ({ row }) => h('div', {}, row.getValue('last_name')),
+  },
+  {
+    accessorKey: 'email',
+    header: 'Email',
+    cell: ({ row }) => h('div', { class: 'lowercase' }, row.getValue('email')),
+  },
+  {
+    accessorKey: 'phone',
+    header: 'Phone',
+    cell: ({ row }) => h('div', {}, row.getValue('phone')),
+  },
+  {
+    accessorKey: 'age',
+    header: 'Age',
+    cell: ({ row }) => h('div', { class: 'text-center' }, row.getValue('age')),
+  },
+  {
+    accessorKey: 'class_name',
+    header: 'Class',
+    cell: ({ row }) => h('div', {}, row.getValue('class_name')),
+  },
+  {
+    accessorKey: 'joined_date',
+    header: 'Joined Date',
+    cell: ({ row }) => h('div', {}, row.getValue('joined_date')),
+  },
+];
 </script>
 
 <template>
   <Head title="View Students" />
   <AppLayout :breadcrumbs="breadcrumbs">
     <Toaster />
-    <div class="flex h-full w-full flex-1 flex-col gap-4 rounded-xl p-4 overflow-x-auto">
+
+    <div class="flex h-full w-full flex-1 flex-col gap-4 rounded-xl p-4">
+      <!-- Date Picker Card -->
       <Card class="w-full shadow-lg rounded-2xl">
         <CardHeader>
           <CardTitle class="text-xl font-bold">Student List</CardTitle>
         </CardHeader>
-        <CardContent class="w-full">
+        <CardContent>
           <div class="flex flex-col sm:flex-row items-end gap-4 mb-6">
-            <div class="flex flex-col">
-              <label for="fromDate" class="text-sm font-medium text-gray-700 mb-1">From Date</label>
-              <Input id="fromDate" type="date" v-model="form.fromDate" />
+            <div class="space-y-2 flex-1 sm:max-w-[250px]">
+              <Label for="fromDate">From Date</Label>
+              <DatePicker
+                id="fromDate"
+                :model-value="fromDateValue"
+                @update:model-value="handleFromDateUpdate"
+                month-year-selector
+                placeholder="Select from date"
+                class="datepicker-input"
+              />
             </div>
-            <div class="flex flex-col">
-              <label for="toDate" class="text-sm font-medium text-gray-700 mb-1">To Date</label>
-              <Input id="toDate" type="date" v-model="form.toDate" />
+
+            <div class="space-y-2 flex-1 sm:max-w-[250px]">
+              <Label for="toDate">To Date</Label>
+              <DatePicker
+                id="toDate"
+                :model-value="toDateValue"
+                @update:model-value="handleToDateUpdate"
+                month-year-selector
+                placeholder="Select to date"
+                class="datepicker-input"
+              />
             </div>
+
             <Button
-              :disabled="loading || form.processing"
-              class="h-[38px]"
-              :class="{ 'opacity-50 cursor-not-allowed': loading || form.processing }"
+              :disabled="loading"
+              class="h-10"
+              :class="{ 'opacity-50 cursor-not-allowed': loading }"
               @click="fetchStudentListByDateRange"
             >
-              <Loader2 v-if="loading || form.processing" class="mr-2 h-4 w-4 animate-spin" />
-              {{ loading || form.processing ? 'Loading...' : 'Load' }}
+              <Loader2 v-if="loading" class="mr-2 h-4 w-4 animate-spin" />
+              {{ loading ? 'Loading...' : 'Load' }}
             </Button>
           </div>
         </CardContent>
       </Card>
 
+      <!-- DataTable Card -->
       <Card class="w-full shadow-lg rounded-2xl">
-        <CardContent class="w-full">
-          <div class="relative border rounded-2xl shadow-sm p-4 bg-white">
-            <!-- Loader -->
-            <div
-              v-if="loading || form.processing"
-              class="absolute inset-0 flex items-center justify-center bg-white bg-opacity-70 z-10 rounded-2xl"
-            >
-              <Loader2 class="h-8 w-8 animate-spin text-gray-700" />
-            </div>
-
-            <!-- Error or Empty Message -->
-            <div v-if="!loading && !form.processing && errorMessage" class="text-center py-8 text-gray-600">
-              {{ errorMessage }}
-            </div>
-
-            <!-- Table -->
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead v-for="column in columns" :key="column.key">
-                    {{ column.label }}
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                <TableRow v-for="student in students" :key="student.id">
-                  <TableCell>{{ student.id }}</TableCell>
-                  <TableCell>{{ student.first_name }}</TableCell>
-                  <TableCell>{{ student.last_name }}</TableCell>
-                  <TableCell>{{ student.email }}</TableCell>
-                  <TableCell>{{ student.phone }}</TableCell>
-                  <TableCell>{{ student.age }}</TableCell>
-                  <TableCell>{{ student.class_name }}</TableCell>
-                  <TableCell>{{ student.joined_date }}</TableCell>
-                </TableRow>
-                <TableRow v-if="!loading && !form.processing && !errorMessage && students.length === 0">
-                  <TableCell colspan="8" class="text-center py-8 text-gray-600">
-                    No data found. Please select a date range and click Load.
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </div>
+        <CardContent class="pt-6">
+          <!-- Error State -->
+          
+            <DataTable :columns="columns" :data="students" :loading="loading" />
         </CardContent>
       </Card>
     </div>
@@ -180,7 +181,13 @@ const fetchStudentListByDateRange = () => {
 </template>
 
 <style scoped>
-input[type="date"]::-webkit-calendar-picker-indicator {
-  filter: invert(0.5);
+/* Fix DatePicker cursor to show text cursor instead of pointer */
+
+button  {
+  cursor: pointer !important;
+}
+
+button:hover {
+  cursor: pointer !important;
 }
 </style>
