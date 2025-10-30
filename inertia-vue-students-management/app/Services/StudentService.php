@@ -89,7 +89,7 @@ class StudentService implements StudentServiceInterface
         if (!preg_match($dateRegex, $fromDate) || !preg_match($dateRegex, $toDate)) {
             throw ValidationException::withMessages(['date' => 'Invalid date format']);
         }
-
+        
         return $this->studentRepository->getStudentsByDateRange($fromDate, $toDate);
     }
 }

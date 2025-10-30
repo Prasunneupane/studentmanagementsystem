@@ -6,6 +6,7 @@ import {
   VITE_API_CLASSES, 
   VITE_API_SECTIONS,
   VITE_API_STUDENTS_LIST_BY_DATE_RANGE,
+  VITE_API_DELETE_STUDENT
  } from '@/constant/services';
 
 // Update LocationItem to reflect actual response
@@ -62,6 +63,10 @@ export const apiMethods = {
     method: 'GET',
     params: { fromDate:fromDate,toDate:toDate }
   }),
+  deleteStudent: (studentId: number): ApiMethodConfig => ({
+  endpoint: `${VITE_API_DELETE_STUDENT}/${studentId}`, // ← /api/deleteStudent/5
+  method: 'DELETE',
+}),
 };
 
 export const executeApiMethod = async <T>(

@@ -87,10 +87,27 @@ class StudentsController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Students $students)
-    {
-        //
+    public function destroy($id): JsonResponse
+{
+    try {
+        $student = Students::findOrFail($id);
+        $student->delete(); // Soft delete (if SoftDeletes is used)
+
+        return response()->json([
+            'message' => 'Student deleted successfully.',
+            'student_id' => $student->id,
+        ], 200);
+    } catch (\Exception $e) {
+        Log::error('Error deleting student ID ' . $id . ': ' . $e->getMessage(), [
+            'trace' => $e->getTraceAsString()
+        ]);
+
+        return response()->json([
+            'error' => 'Failed to delete student.',
+            'details' => $e->getMessage()
+        ], 500);
     }
+}
 
     public function registerStudent(Students $students)
     {
@@ -107,7 +124,7 @@ class StudentsController extends Controller
 
         try {
             $students = $this->studentService->getStudentsByDateRange($startDate, $endDate);
-            Log::info('Fetched students:', ['count' => count($students)]);
+            // Log::info('Fetched students:', ['count' => count($students)]);
             return response()->json(['students' => $students], 200);
         } catch (\Exception $e) {
             Log::error('Error fetching students by date range: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);

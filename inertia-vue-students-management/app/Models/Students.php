@@ -3,11 +3,13 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Students extends Model
 {
+    use SoftDeletes;
     protected $table = "students";
-    protected $primaryKey = "student_id";
+    protected $primaryKey = "id";
     public $timestamps = true;
 
     protected $fillable = [
@@ -65,5 +67,15 @@ class Students extends Model
     public function getPhotoUrlAttribute()
     {
         return $this->photo ? asset('storage/' . $this->photo) : asset('images/default-avatar.png');
+    }
+
+    public function getClassNameAttribute(): ?string
+    {
+        return $this->class?->name;
+    }
+
+    public function getSectionNameAttribute(): ?string
+    {
+        return $this->section?->name;
     }
 }

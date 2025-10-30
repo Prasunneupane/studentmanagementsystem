@@ -26,3 +26,6 @@ export const createStudent = (formData: FormData) =>
 
 export const getStudentsListByDateRange = (fromDate:string ,toDate:string) =>
   executeApiMethod<{}>(apiMethods.getStudentsListByDateRange(fromDate,toDate));
+
+export const deleteStudent = (studentId: number) =>
+  executeApiMethod<void>(apiMethods.deleteStudent(studentId));
