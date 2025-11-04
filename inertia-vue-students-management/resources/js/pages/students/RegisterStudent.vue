@@ -27,9 +27,18 @@ const breadcrumbs = [{ title: 'Add Student', href: '/student/create' }];
 const today = new Date();
 const form = useForm({
   // Personal Info
-  fName: '', mName: '', lName: '', email: '', phone: '', age: '',
-  dateOfBirth: '', motherName: '', fatherName: '', guardianName: '',
-  contactNumber: '', photo: null as File | null,
+  fName: '', 
+  mName: '', 
+  lName: '', 
+  email: '', 
+  phone: '', 
+  age: '',
+  dateOfBirth: '', 
+  motherName: '', 
+  fatherName: '', 
+  guardianName: '',
+  contactNumber: '', 
+  photo: null as File | null,
 
   // Academic Info
   classId: null as { value: string; label: string } | null,
@@ -40,11 +49,21 @@ const form = useForm({
   address: '',
   stateId: null as { value: string; label: string } | null,
   districtId: null as { value: string; label: string } | null,
-  municipalityId: null as { value: string; label: string } | null
+  municipalityId: null as { value: string; label: string } | null,
+
+  // Guardian Info (Array)
+  guardians: [] as any[]
 });
 
 // Use composables
-const { validationErrors, showValidation, validateField, validateAllFields } = useFormValidation(form);
+const { 
+  validationErrors, 
+  showValidation, 
+  validateField, 
+  validateGuardianField, 
+  validateAllFields 
+} = useFormValidation(form);
+
 const { states, districts, municipalities, ...locationHandlers } = useLocationData(form);
 const { classes, sections, ...academicHandlers } = useAcademicData();
 const { dateOfBirthValue, joinedDateValue, isSubmitting, handleSubmit } = useStudentForm(form, validateAllFields, validationErrors, showValidation);
@@ -115,10 +134,16 @@ const handlePhotoChange = (event: Event) => {
   const input = event.target as HTMLInputElement;
   form.photo = input.files?.[0] || null;
 };
+
+// Guardian validation handler
+const handleGuardianValidation = (index: number, field: string) => {
+  if (showValidation.value) {
+    validateGuardianField(index, field);
+  }
+};
 </script>
 
 <template>
-
   <Head title="Student Register" />
   <AppLayout :breadcrumbs="breadcrumbs">
     <Toaster />
@@ -128,13 +153,26 @@ const handlePhotoChange = (event: Event) => {
           <CardTitle class="text-xl font-bold">Student Registration Form</CardTitle>
         </CardHeader>
         <CardContent class="w-full">
-          <StudentFormSections :form="form" :validation-errors="validationErrors" :show-validation="showValidation"
-            :states="states" :districts="districts" :municipalities="municipalities" :classes="classes"
-            :sections="sections" :date-of-birth-value="dateOfBirthValue" :joined-date-value="joinedDateValue"
-            :is-submitting="isSubmitting" @field-blur="handleFieldBlur" @phone-input="handlePhoneInput"
-            @photo-change="handlePhotoChange" @submit="handleSubmit"
+          <StudentFormSections 
+            :form="form" 
+            :validation-errors="validationErrors" 
+            :show-validation="showValidation"
+            :states="states" 
+            :districts="districts" 
+            :municipalities="municipalities" 
+            :classes="classes"
+            :sections="sections" 
+            :date-of-birth-value="dateOfBirthValue" 
+            :joined-date-value="joinedDateValue"
+            :is-submitting="isSubmitting" 
+            @field-blur="handleFieldBlur" 
+            @phone-input="handlePhoneInput"
+            @photo-change="handlePhotoChange" 
+            @submit="handleSubmit"
             @update:date-of-birth="(val: Date | null) => dateOfBirthValue = val"
-            @update:joined-date="(val: Date | null) => joinedDateValue = val" />
+            @update:joined-date="(val: Date | null) => joinedDateValue = val"
+            @validate-guardian="handleGuardianValidation"
+          />
         </CardContent>
       </Card>
     </div>

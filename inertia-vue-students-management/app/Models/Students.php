@@ -78,4 +78,10 @@ class Students extends Model
     {
         return $this->section?->name;
     }
+
+    public function primaryGuardian()
+    {
+        return $this->hasOne(Guardian::class, 'student_id')
+            ->where('is_primary_contact', true);
+    }
 }

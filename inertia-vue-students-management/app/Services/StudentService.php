@@ -5,15 +5,21 @@ namespace App\Services;
 use App\Contracts\StudentRepositoryInterface;
 use App\Contracts\StudentServiceInterface;
 use App\Models\Students;
+use App\Repositories\GuardianRepository;
+use DB;
 use Illuminate\Validation\ValidationException;
 
 class StudentService implements StudentServiceInterface
 {
     protected $studentRepository;
+    protected $guardianRepository;
 
-    public function __construct(StudentRepositoryInterface $studentRepository)
+    public function __construct(
+        StudentRepositoryInterface $studentRepository,
+        GuardianRepository $guardianRepository)
     {
         $this->studentRepository = $studentRepository;
+        $this->guardianRepository = $guardianRepository;
     }
 
     public function createStudent(array $data, int $userId): Students
@@ -26,8 +32,8 @@ class StudentService implements StudentServiceInterface
             'age' => 'Age is required',
             'dateOfBirth' => 'Date of birth is required',
             'classId' => 'Class is required',
-            'fatherName' => 'Father name is required',
-            'guardianName' => 'Guardian name is required',
+            // 'fatherName' => 'Father name is required',
+            // 'guardianName' => 'Guardian name is required',
             'joinedDate' => 'Joined date is required',
             'stateId' => 'State is required',
         ];
@@ -67,8 +73,8 @@ class StudentService implements StudentServiceInterface
             'class_id' => $data['classId'],
             'section_id' => $data['sectionId'] ?? null,
             'mother_name' => $data['motherName'] ?? null,
-            'father_name' => $data['fatherName'],
-            'guardian_name' => $data['guardianName'],
+            'father_name' => $data['fatherName'] ?? null,
+            'guardian_name' => $data['guardianName'] ?? null,
             'contact_number' => $data['contactNumber'] ?? null,
             'photo' => $data['photo'] ?? null,
             'joined_date' => $data['joinedDate'],
@@ -79,7 +85,34 @@ class StudentService implements StudentServiceInterface
             'created_by' => $userId,
         ];
        // dd($studentData);
-       return  $this->studentRepository->create($studentData);
+       // Use database transaction to ensure both student and guardians are created
+        DB::beginTransaction();
+        try {
+            // Create student
+            $student = $this->studentRepository->create($studentData);
+            // dd($data['guardians']);
+            // Create guardians
+            foreach ($data['guardians'] as $guardianData) {
+                $this->guardianRepository->create([
+                    'student_id' => $student->id,
+                    'name' => $guardianData['guardianname'],
+                    'relation' => $guardianData['relation'],
+                    'phone' => $guardianData['phone'],
+                    'email' => $guardianData['email'] ?? null,
+                    'occupation' => $guardianData['occupation'] ?? null,
+                    'address' => $guardianData['address'] ?? null,
+                    'is_primary_contact' => $guardianData['is_primary_contact'] ?? false,
+                    'created_by' => $userId,
+                ]);
+            }
+
+            DB::commit();
+            return $student;
+            
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
     }
 
     public function getStudentsByDateRange(string $fromDate, string $toDate): array

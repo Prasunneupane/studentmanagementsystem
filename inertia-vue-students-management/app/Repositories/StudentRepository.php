@@ -21,12 +21,13 @@ class StudentRepository implements StudentRepositoryInterface
 
     public function getStudentsByDateRange(string $fromDate, string $toDate): array
     {
-        $students = Students::whereBetween('created_at', [$fromDate, $toDate])
+        $students = Students::whereRaw('DATE(created_at) BETWEEN ? AND ?', [$fromDate, $toDate])
         ->with([
-                'class:id,name',
-                'section:id,name',
-            ])
+            'class:id,name',
+            'section:id,name',
+        ])
         ->get();
+
         return $students->toArray();
     }
 }

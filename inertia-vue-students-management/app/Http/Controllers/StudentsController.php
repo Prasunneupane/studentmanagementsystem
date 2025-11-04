@@ -44,6 +44,7 @@ class StudentsController extends Controller
      */
     public function store(Request $request)
 {
+    // dd($request->all());
     try {
         $userId = JWTAuth::user()->id; // Get authenticated user ID
         $this->studentService->createStudent($request->all(), $userId);

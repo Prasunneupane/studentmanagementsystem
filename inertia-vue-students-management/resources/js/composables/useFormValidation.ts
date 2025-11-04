@@ -30,10 +30,22 @@ const validationRules: Record<string, ValidationRule> = {
   },
   dateOfBirth: { required: true, message: 'Date of birth is required' },
   classId: { required: true, message: 'Please select a class' },
-  fatherName: { required: true, message: 'Father name is required' },
-  guardianName: { required: true, message: 'Guardian name is required' },
   joinedDate: { required: true, message: 'Joined date is required' },
-  stateId: { required: true, message: 'Please select a state' }
+  stateId: { required: true, message: 'Please select a state' },
+  
+  // Guardian validation rules
+  'guardian.guardianname': { required: true, message: 'Guardian name is required' },
+  'guardian.relation': { required: true, message: 'Relation is required' },
+  'guardian.phone': { 
+    required: true, 
+    pattern: /^\d{10,15}$/,
+    message: 'Please enter a valid phone number (10-15 digits)'
+  },
+  'guardian.email': { 
+    required: false, 
+    pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+    message: 'Please enter a valid email address'
+  },
 };
 
 export function useFormValidation(form: any) {
@@ -89,13 +101,75 @@ export function useFormValidation(form: any) {
     return true;
   };
 
+  const validateGuardianField = (index: number, field: string): boolean => {
+    const guardians = form.guardians || [];
+    if (!guardians[index]) return true;
+
+    const rule = validationRules[`guardian.${field}`];
+    if (!rule) return true;
+
+    const value = guardians[index][field];
+    const errorKey = `guardians.${index}.${field}`;
+
+    // Required validation
+    if (rule.required) {
+      if (!value || (typeof value === 'string' && value.trim() === '')) {
+        if (showValidation.value) {
+          validationErrors.value[errorKey] = rule.message;
+        }
+        return false;
+      } else {
+        delete validationErrors.value[errorKey];
+      }
+    }
+
+    // Pattern validation
+    if (rule.pattern && value && typeof value === 'string') {
+      if (!rule.pattern.test(value)) {
+        if (showValidation.value) {
+          validationErrors.value[errorKey] = rule.message;
+        }
+        return false;
+      } else {
+        delete validationErrors.value[errorKey];
+      }
+    }
+
+    return true;
+  };
+
+  const validateAllGuardians = (): boolean => {
+    const guardians = form.guardians || [];
+    let isValid = true;
+
+    guardians.forEach((guardian: any, index: number) => {
+      ['guardianname', 'relation', 'phone', 'email'].forEach(field => {
+        if (!validateGuardianField(index, field)) {
+          isValid = false;
+        }
+      });
+    });
+
+    return isValid;
+  };
+
   const validateAllFields = (): boolean => {
     let isValid = true;
+    
+    // Validate basic fields
     Object.keys(validationRules).forEach((field) => {
-      if (!validateField(field)) {
-        isValid = false;
+      if (!field.startsWith('guardian.')) {
+        if (!validateField(field)) {
+          isValid = false;
+        }
       }
     });
+
+    // Validate guardians
+    if (!validateAllGuardians()) {
+      isValid = false;
+    }
+
     return isValid;
   };
 
@@ -103,6 +177,8 @@ export function useFormValidation(form: any) {
     validationErrors,
     showValidation,
     validateField,
+    validateGuardianField,
+    validateAllGuardians,
     validateAllFields
   };
 }
