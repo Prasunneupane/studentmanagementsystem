@@ -23,6 +23,9 @@ import StudentFormSections from "@/components/forms/StudentFormSections.vue";
 // Breadcrumbs
 const breadcrumbs = [{ title: 'Add Student', href: '/student/create' }];
 
+// Reference to the form component
+const studentFormRef = ref<InstanceType<typeof StudentFormSections> | null>(null);
+
 // Initialize form with defaults
 const today = new Date();
 const form = useForm({
@@ -66,7 +69,7 @@ const {
 
 const { states, districts, municipalities, ...locationHandlers } = useLocationData(form);
 const { classes, sections, ...academicHandlers } = useAcademicData();
-const { dateOfBirthValue, joinedDateValue, isSubmitting, handleSubmit } = useStudentForm(form, validateAllFields, validationErrors, showValidation);
+const { dateOfBirthValue, joinedDateValue, isSubmitting, handleSubmit } = useStudentForm(form, validateAllFields, validationErrors, showValidation,studentFormRef);
 
 // Auto-sync age and date of birth
 const isUpdating = ref({ age: false, dateOfBirth: false });
@@ -154,6 +157,7 @@ const handleGuardianValidation = (index: number, field: string) => {
         </CardHeader>
         <CardContent class="w-full">
           <StudentFormSections 
+           ref="studentFormRef"
             :form="form" 
             :validation-errors="validationErrors" 
             :show-validation="showValidation"

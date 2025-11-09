@@ -66,7 +66,27 @@ export const apiMethods = {
   deleteStudent: (studentId: number): ApiMethodConfig => ({
   endpoint: `${VITE_API_DELETE_STUDENT}/${studentId}`, // ← /api/deleteStudent/5
   method: 'DELETE',
-}),
+  }),
+
+  getGuardiansByStudent: (studentId: number): ApiMethodConfig => ({
+    endpoint: `/api/students/${studentId}/guardians`,
+    method: 'GET',
+  }),
+
+  createGuardian: (studentId: number): ApiMethodConfig => ({
+    endpoint: `/api/students/${studentId}/guardians`,
+    method: 'POST',
+  }),
+
+  updateGuardian: (guardianId: number): ApiMethodConfig => ({
+    endpoint: `/api/guardians/${guardianId}`,
+    method: 'PUT',
+  }),
+
+  deleteGuardian: (guardianId: number): ApiMethodConfig => ({
+    endpoint: `/api/guardians/${guardianId}`,
+    method: 'DELETE',
+  }),
 };
 
 export const executeApiMethod = async <T>(

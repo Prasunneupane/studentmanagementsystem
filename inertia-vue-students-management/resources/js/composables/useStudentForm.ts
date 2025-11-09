@@ -1,13 +1,17 @@
 // composables/useStudentForm.ts
-import { ref } from 'vue';
-
+import { ref, Ref, nextTick } from 'vue';
 import { Button } from "@/components/ui/button"
 import { useToast } from './useToast';
-import { useLocationData } from './useLocationData';
 
 const { toast } = useToast();
-// const { initialize } = useLocationData(form);
-export function useStudentForm(form: any, validateAllFields: () => boolean, validationErrors: any, showValidation: any) {
+
+export function useStudentForm(
+  form: any, 
+  validateAllFields: () => boolean, 
+  validationErrors: any, 
+  showValidation: any,
+  studentFormRef?: Ref<any>
+) {
   const dateOfBirthValue = ref<Date | null>(null);
   const joinedDateValue = ref<Date | null>(new Date());
   const isSubmitting = ref(false);
@@ -24,6 +28,7 @@ export function useStudentForm(form: any, validateAllFields: () => boolean, vali
           errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
           errorElement.focus();
         }
+        isSubmitting.value = false;
         return;
       }
       
@@ -46,6 +51,9 @@ export function useStudentForm(form: any, validateAllFields: () => boolean, vali
               transformedData[key] = value;
             } else if (key === 'photo' && (typeof value === 'object' && Object.keys(value).length === 0)) {
               continue; // Skip empty photo object
+            } else if (key === 'guardians' && Array.isArray(value)) {
+              // Include guardians array as-is
+              transformedData[key] = value;
             } else {
               transformedData[key] = value;
             }
@@ -55,29 +63,43 @@ export function useStudentForm(form: any, validateAllFields: () => boolean, vali
         console.log('Transformed data:', transformedData);
         return transformedData;
       }).post(route('students.store'), {
-        onSuccess: () => {
-        console.log(toast,"toast");
+        onSuccess: async () => {
           console.log('Form submitted successfully');
           toast.success("Student registered successfully!", {
             duration: 3000,
             action: {
-                label: 'Close',
-                onClick: (e) => {
-                    
-                }
+              label: 'Close',
+              onClick: (e) => {
+                // Close action
+              }
             }
           });
+          
           // Reset form and states
           dateOfBirthValue.value = null;
           joinedDateValue.value = new Date();
           showValidation.value = false;
           validationErrors.value = {};
+          
+          // Reset the main form first
           form.reset();
+          
+          // Wait for next tick to ensure DOM is updated, then reset guardians
+          await nextTick();
+          
+          console.log('studentFormRef:', studentFormRef);
+          console.log('studentFormRef?.value:', studentFormRef?.value);
+          
+          // Reset guardians using the exposed method
+          if (studentFormRef?.value && typeof studentFormRef.value.resetGuardians === 'function') {
+            console.log('Calling resetGuardians...');
+            studentFormRef.value.resetGuardians();
+          } else {
+            console.warn('resetGuardians method not found on studentFormRef');
+          }
         },
         onError: (errors: any) => {
-          
           console.error('Form submission errors:', errors);
-          
           
           toast.error("Failed to register student. Please check the form and try again.", {
             duration: 5000,
@@ -88,21 +110,20 @@ export function useStudentForm(form: any, validateAllFields: () => boolean, vali
             action: {
               label: "Close",
               onClick: (e) => {
-                    
-                }
+                // Close action
+              }
             }
           });
+          
           validationErrors.value = { ...validationErrors.value, ...errors };
-        },onFinish: () => {
-          //  useLocationData.initialize()
-          isSubmitting.value = false; // Reset in onFinish
+        },
+        onFinish: () => {
+          isSubmitting.value = false;
         }
       });
     } catch (error) {
       console.error('Form submission failed:', error);
-    } finally {
-      // useLocationData.initialize()
-      // isSubmitting.value = false;
+      isSubmitting.value = false;
     }
   };
 

@@ -31,6 +31,7 @@ const emit = defineEmits<{
   'update:date-of-birth': [value: Date | null];
   'update:joined-date': [value: Date | null];
   'validate-guardian': [index: number, field: string];
+  'update:guardians': [guardians: Guardian[]];
 }>();
 
 interface Guardian {
@@ -81,7 +82,29 @@ const removeGuardian = (index: number) => {
 // Watch guardians and sync with form
 watch(guardians, (newGuardians) => {
   props.form.guardians = newGuardians;
+  emit('update:guardians', newGuardians);
 }, { deep: true });
+
+// Method to reset guardians (called from parent)
+const resetGuardians = () => {
+  guardians.value = [
+    {
+      guardianname: '',
+      relation: '',
+      phone: '',
+      email: '',
+      occupation: '',
+      address: '',
+      is_primary_contact: false,
+    },
+  ];
+  props.form.guardians = guardians.value;
+};
+
+// Expose reset method to parent
+defineExpose({
+  resetGuardians
+});
 
 // Handle guardian field blur
 const handleGuardianBlur = (index: number, field: string) => {

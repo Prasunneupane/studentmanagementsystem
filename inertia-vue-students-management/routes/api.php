@@ -18,4 +18,5 @@ Route::middleware(['jwt.verify'])->group(function () {
     Route::get('/getListOfMunicipalitiesByDistrictId', [StateDistricMunController::class,'getMunicipalitiesByDistrictId'])->name('municipalitylist');
     Route::get('/getClassesList', [ClassSectionController::class,'getAllClasses'])->name('classeslist');
     Route::get('/getSectionList', [ClassSectionController::class,'getAllSection'])->name('sectionlist');
+    Route::get('/guardian/getGuardainByStudentId', [GuardianController::class,'getAllSection']);
 });
