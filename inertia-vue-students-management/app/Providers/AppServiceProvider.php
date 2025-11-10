@@ -2,8 +2,11 @@
 
 namespace App\Providers;
 
+use App\Interface\GuardianInterface;
+use App\Repositories\GuardianRepository;
 use App\Repositories\LocationInterface;
 use App\Repositories\LocationRepository;
+use App\Services\GuardianService;
 use Illuminate\Support\ServiceProvider;
 use App\Contracts\StudentRepositoryInterface;
 use App\Contracts\StudentServiceInterface;
@@ -22,6 +25,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(LocationInterface::class, LocationRepository::class);
         $this->app->bind(StudentRepositoryInterface::class, StudentRepository::class);
         $this->app->bind(StudentServiceInterface::class, StudentService::class);
+        $this->app->bind(GuardianInterface::class, GuardianService::class);
     }
 
     /**

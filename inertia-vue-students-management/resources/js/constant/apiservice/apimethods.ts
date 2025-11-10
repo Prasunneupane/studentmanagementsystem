@@ -6,7 +6,8 @@ import {
   VITE_API_CLASSES, 
   VITE_API_SECTIONS,
   VITE_API_STUDENTS_LIST_BY_DATE_RANGE,
-  VITE_API_DELETE_STUDENT
+  VITE_API_DELETE_STUDENT,
+  VITE_GET_GUARDIANS_LIST_BY_STUDENTID
  } from '@/constant/services';
 
 // Update LocationItem to reflect actual response
@@ -69,7 +70,7 @@ export const apiMethods = {
   }),
 
   getGuardiansByStudent: (studentId: number): ApiMethodConfig => ({
-    endpoint: `/api/students/${studentId}/guardians`,
+    endpoint: `${VITE_GET_GUARDIANS_LIST_BY_STUDENTID}/${studentId}`,
     method: 'GET',
   }),
 

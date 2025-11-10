@@ -29,3 +29,6 @@ export const getStudentsListByDateRange = (fromDate:string ,toDate:string) =>
 
 export const deleteStudent = (studentId: number) =>
   executeApiMethod<void>(apiMethods.deleteStudent(studentId));
+
+export const getGuardiansByStudent = (studentId: number) =>
+  executeApiMethod<{guardians: any[]}>(apiMethods.getGuardiansByStudent(studentId));

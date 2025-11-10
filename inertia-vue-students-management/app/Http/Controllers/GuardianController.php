@@ -2,18 +2,19 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Guardian;
-use App\Models\Students;
+use App\Interface\GuardianInterface;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
 use Illuminate\Http\JsonResponse;
-use App\Contracts\StudentServiceInterface;
 use Log;
-use Tymon\JWTAuth\Facades\JWTAuth;
-use Illuminate\Support\Facades\Redirect;
+
 
 class GuardianController extends Controller
 {
+    private $guardianService;
+    public function __construct(GuardianInterface $guardianService)
+    {
+        $this->guardianService = $guardianService;
+    }
     public function getGuardiansByStudentId(Request $request,$studentId): JsonResponse
     {
         try {
@@ -23,7 +24,7 @@ class GuardianController extends Controller
                 return response()->json(['error' => 'Student ID is required'], 400);
             }
 
-            $guardians = Guardian::where('student_id', $studentId)->get();
+            $guardians = $this->guardianService->getGuardiansByStudentId((int)$studentId);
 
             return response()->json(['guardians' => $guardians], 200);
         } catch (\Exception $e) {

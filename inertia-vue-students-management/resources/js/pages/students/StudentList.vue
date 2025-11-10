@@ -1,34 +1,28 @@
 <script setup lang="ts">
-import { h,ref, computed } from 'vue';
-import AppLayout from '@/layouts/AppLayout.vue';
-import { Head, useForm } from '@inertiajs/vue3';
+import { h, ref, computed, watch } from 'vue'
+import AppLayout from '@/layouts/AppLayout.vue'
+import { Head, useForm } from '@inertiajs/vue3'
 import { Toaster } from '@/components/ui/sonner'
 import 'vue-sonner/style.css'
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Loader2, Edit, Trash2, Eye, MoreHorizontal } from 'lucide-vue-next';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { useLocationData, type Student } from '@/composables/fetchData';
-import DataTable from '../students/Datatable.vue';
-import DatePicker from '@/components/ui/datepicker/DatePicker.vue';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import type { ColumnDef } from '@tanstack/vue-table';
-
+import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
+import { Loader2, Edit, Trash2, Eye, Plus, Pencil } from 'lucide-vue-next'
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
+import { useLocationData, type Student } from '@/composables/fetchData'
+import DataTable from '../students/Datatable.vue'
+import DatePicker from '@/components/ui/datepicker/DatePicker.vue'
+import type { ColumnDef } from '@tanstack/vue-table'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from '@/components/ui/dialog';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-// import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
+  DialogFooter,
+} from '@/components/ui/dialog'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
+import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,228 +32,199 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-// Breadcrumbs
-const breadcrumbs = [{ title: 'View Students', href: '/students' }];
+} from '@/components/ui/alert-dialog'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
-// Form (only dates)
+// Breadcrumbs
+const breadcrumbs = [{ title: 'View Students', href: '/students' }]
+
+// Date form
 const form = useForm({
   fromDate: new Date().toISOString().split('T')[0],
   toDate: new Date().toISOString().split('T')[0],
-});
+})
 
-const selectedStudent = ref<Student | null>(null);
-const isDialogOpen = ref(false);
-const studentToDelete = ref<Student | null>(null);
-const isDeleteDialogOpen = ref(false);
-// Use composable
+const selectedStudent = ref<Student | null>(null)
+const isDialogOpen = ref(false)
+const studentToDelete = ref<Student | null>(null)
+const isDeleteDialogOpen = ref(false)
+
+// Guardian state
+const guardians = ref<any[]>([])
+const loadingGuardians = ref(false)
+const isGuardianModalOpen = ref(false)
+const editingGuardian = ref<any | null>(null)
+const guardianFormProcessing = ref(false)
+const guardianErrors = ref<Record<string, string>>({})
+
+// Tabs
+const activeTab = ref<'student' | 'guardians'>('student')
+
+// Composable
 const {
   students,
   loading,
-  errorMessage,
   fetchStudentListByDateRange,
   removeStudent,
-  deletingId,
-} = useLocationData(form);
+  getGuardiansByStudentId,
+  createGuardian,
+  updateGuardian,
+  deleteGuardian,
+} = useLocationData(form)
 
-// Computed values for DatePicker (needs Date object or undefined)
+// DatePicker
 const fromDateValue = computed(() => {
-  if (!form.fromDate) return undefined;
-  const [year, month, day] = form.fromDate.split('-').map(Number);
-  return new Date(year, month - 1, day);
-});
+  if (!form.fromDate) return undefined
+  const [y, m, d] = form.fromDate.split('-').map(Number)
+  return new Date(y, m - 1, d)
+})
 
 const toDateValue = computed(() => {
-  if (!form.toDate) return new Date();
-  const [year, month, day] = form.toDate.split('-').map(Number);
-  return new Date(year, month - 1, day);
-});
+  if (!form.toDate) return new Date()
+  const [y, m, d] = form.toDate.split('-').map(Number)
+  return new Date(y, m - 1, d)
+})
 
-// Handlers for date updates
 const handleFromDateUpdate = (date: Date | undefined) => {
-  if (!date) {
-    form.fromDate = '';
-    return;
-  }
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  form.fromDate = `${year}-${month}-${day}`;
-};
+  form.fromDate = date ? date.toISOString().split('T')[0] : ''
+}
 
 const handleToDateUpdate = (date: Date | undefined) => {
-  if (!date) {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
-    form.toDate = `${year}-${month}-${day}`;
-    return;
-  }
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  form.toDate = `${year}-${month}-${day}`;
-};
+  form.toDate = date ? date.toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
+}
 
-const confirmDelete = async () => {
-  if (!studentToDelete.value) return;
-  const success = await removeStudent(studentToDelete.value.id);
-  if (success) {
-    isDeleteDialogOpen.value = false;
-    studentToDelete.value = null;
+// Load guardians
+watch(isDialogOpen, async (open) => {
+  if (open && selectedStudent.value) {
+    activeTab.value = 'student'
+    await loadGuardians(selectedStudent.value.id)
+  } else {
+    guardians.value = []
   }
-};
+})
 
-// Action Handlers
+const loadGuardians = async (studentId: number) => {
+  loadingGuardians.value = true
+  try {
+    const response = await getGuardiansByStudentId(studentId)
+    guardians.value = response.guardians || []
+  } catch {
+    toast.error('Failed to load guardians')
+  } finally {
+    loadingGuardians.value = false
+  }
+}
+
+// Guardian Modal
+const openGuardianModal = (guardian?: any) => {
+  editingGuardian.value = guardian
+    ? { ...guardian }
+    : {
+        name: '',
+        relation: '',
+        phone: '',
+        email: '',
+        occupation: '',
+        address: '',
+        is_primary_contact: false,
+      }
+  guardianErrors.value = {}
+  isGuardianModalOpen.value = true
+}
+
+const closeGuardianModal = () => {
+  isGuardianModalOpen.value = false
+  editingGuardian.value = null
+}
+
+const validateGuardian = () => {
+  guardianErrors.value = {}
+  if (!editingGuardian.value?.name?.trim()) {
+    guardianErrors.value.name = 'Name is required'
+  }
+  return Object.keys(guardianErrors.value).length === 0
+}
+
+const submitGuardian = async () => {
+  if (!validateGuardian() || !selectedStudent.value) return
+
+  guardianFormProcessing.value = true
+  try {
+    if (editingGuardian.value.id) {
+      await updateGuardian(editingGuardian.value.id, editingGuardian.value)
+      toast.success('Guardian updated successfully')
+    } else {
+      await createGuardian(selectedStudent.value.id, editingGuardian.value)
+      toast.success('Guardian added successfully')
+    }
+    await loadGuardians(selectedStudent.value.id)
+    closeGuardianModal()
+  } catch {
+    toast.error('Failed to save guardian')
+  } finally {
+    guardianFormProcessing.value = false
+  }
+}
+
+const removeGuardian = async (id: number) => {
+  if (!confirm('Delete this guardian?')) return
+  try {
+    await deleteGuardian(id)
+    guardians.value = guardians.value.filter(g => g.id !== id)
+    toast.success('Guardian deleted')
+  } catch {
+    toast.error('Failed to delete')
+  }
+}
+
+// Student actions
 const handleView = (student: Student) => {
-  console.log('View student:', student);
-  selectedStudent.value = student;
-  isDialogOpen.value = true;
-  // alert(`Viewing details for: ${student.first_name} ${student.last_name}`);
-  // Implement your view logic here
-  // Example: router.push(`/students/${student.id}`)
-};
+  selectedStudent.value = student
+  isDialogOpen.value = true
+}
 
-const handleEdit = (student: Student) => {
-  console.log('Edit student:', student);
-  alert(`Editing: ${student.first_name} ${student.last_name}`);
-  // Implement your edit logic here
-  // Example: router.push(`/students/${student.id}/edit`)
-};
+const handleEdit = () => {
+  alert('Edit student functionality')
+}
 
 const handleDelete = (student: Student) => {
-  console.log('Delete student:', student);
-  // if (confirm(`Are you sure you want to delete ${student.first_name} ${student.last_name}?`)) {
-  //   // Call your delete API here
-  //   alert(`Deleted: ${student.first_name} ${student.last_name}`);
-  //   // Example: deleteStudent(student.id);
-  // }
-  studentToDelete.value = student;
-  isDeleteDialogOpen.value = true;
-};
+  studentToDelete.value = student
+  isDeleteDialogOpen.value = true
+}
 
-const handleSendEmail = (student: Student) => {
-  console.log('Send email to:', student.email);
-  alert(`Sending email to: ${student.email}`);
-};
+const confirmDelete = async () => {
+  if (!studentToDelete.value) return
+  const success = await removeStudent(studentToDelete.value.id)
+  if (success) {
+    isDeleteDialogOpen.value = false
+    studentToDelete.value = null
+  }
+}
 
-const handleDownloadReport = (student: Student) => {
-  console.log('Download report for:', student.id);
-  alert(`Downloading report for: ${student.first_name} ${student.last_name}`);
-};
-
-const handleChangeStatus = (student: Student) => {
-  console.log('Change status for:', student.id);
-  alert(`Changing status for: ${student.first_name} ${student.last_name}`);
-};
-
-// Define columns for DataTable with Actions
+// Table columns
 const columns: ColumnDef<Student>[] = [
-  {
-    accessorKey: 'id',
-    header: 'ID',
-    cell: ({ row }) => h('div', { class: 'font-medium' }, row.getValue('id')),
-  },
-  {
-    accessorKey: 'first_name',
-    header: 'First Name',
-    cell: ({ row }) => h('div', {}, row.getValue('first_name')),
-  },
-  {
-    accessorKey: 'last_name',
-    header: 'Last Name',
-    cell: ({ row }) => h('div', {}, row.getValue('last_name')),
-  },
-  {
-    accessorKey: 'email',
-    header: 'Email',
-    cell: ({ row }) => h('div', { class: 'lowercase' }, row.getValue('email')),
-  },
-  {
-    accessorKey: 'phone',
-    header: 'Phone',
-    cell: ({ row }) => h('div', {}, row.getValue('phone')),
-  },
-  {
-    accessorKey: 'age',
-    header: 'Age',
-    cell: ({ row }) => h('div', { class: 'text-center' }, row.getValue('age')),
-  },
-  {
-    accessorKey: 'class_name',
-    header: 'Class',
-    cell: ({ row }) => h('div', {}, row.getValue('class_name')),
-  },
-  {
-    accessorKey: 'joined_date',
-    header: 'Joined Date',
-    cell: ({ row }) => h('div', {}, row.getValue('joined_date')),
-  },
-  // ACTION COLUMN
+  { accessorKey: 'id', header: 'ID', cell: ({ row }) => h('div', { class: 'font-medium' }, row.getValue('id')) },
+  { accessorKey: 'first_name', header: 'First Name' },
+  { accessorKey: 'last_name', header: 'Last Name' },
+  { accessorKey: 'email', header: 'Email', cell: ({ row }) => h('div', { class: 'lowercase' }, row.getValue('email')) },
+  { accessorKey: 'phone', header: 'Phone' },
+  { accessorKey: 'age', header: 'Age', cell: ({ row }) => h('div', { class: 'text-center' }, row.getValue('age')) },
+  { accessorKey: 'class_name', header: 'Class' },
+  { accessorKey: 'joined_date', header: 'Joined Date' },
   {
     id: 'actions',
     header: 'Actions',
     enableSorting: false,
     cell: ({ row }) => {
-      const student = row.original;
-      
+      const student = row.original
       return h('div', { class: 'flex items-center gap-2' }, [
-        // View Button
-        h(Button, {
-          variant: 'ghost',
-          size: 'sm',
-          class: 'h-8 w-8 p-0',
-          title: 'View Details',
-          onClick: () => handleView(student),
-        }, () => h(Eye, { class: 'h-4 w-4' })),
-        
-        // Edit Button
-        h(Button, {
-          variant: 'ghost',
-          size: 'sm',
-          class: 'h-8 w-8 p-0',
-          title: 'Edit Student',
-          onClick: () => handleEdit(student),
-        }, () => h(Edit, { class: 'h-4 w-4' })),
-        
-        // Delete Button
-        h(Button, {
-          variant: 'ghost',
-          size: 'sm',
-          class: 'h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50',
-          title: 'Delete Student',
-          onClick: () => handleDelete(student),
-        }, () => h(Trash2, { class: 'h-4 w-4' })),
-        
-        // More Options Dropdown
-        // h(DropdownMenu, {}, {
-        //   default: () => [
-        //     h(DropdownMenuTrigger, { asChild: true }, () =>
-        //       h(Button, {
-        //         variant: 'ghost',
-        //         size: 'sm',
-        //         class: 'h-8 w-8 p-0',
-        //         title: 'More Options',
-        //       }, () => h(MoreHorizontal, { class: 'h-4 w-4' }))
-        //     ),
-        //     h(DropdownMenuContent, { align: 'end' }, () => [
-        //       h(DropdownMenuItem, {
-        //         onClick: () => handleSendEmail(student),
-        //       }, () => 'Send Email'),
-        //       h(DropdownMenuItem, {
-        //         onClick: () => handleDownloadReport(student),
-        //       }, () => 'Download Report'),
-        //       h(DropdownMenuItem, {
-        //         onClick: () => handleChangeStatus(student),
-        //       }, () => 'Change Status'),
-        //     ]),
-        //   ],
-        // }),
-      ]);
+        h(Button, { variant: 'ghost', size: 'sm', class: 'h-8 w-8 p-0', title: 'View', onClick: () => handleView(student) }, () => h(Eye, { class: 'h-4 w-4' })),
+        h(Button, { variant: 'ghost', size: 'sm', class: 'h-8 w-8 p-0', title: 'Edit', onClick: () => handleEdit() }, () => h(Edit, { class: 'h-4 w-4' })),
+        h(Button, { variant: 'ghost', size: 'sm', class: 'h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50', title: 'Delete', onClick: () => handleDelete(student) }, () => h(Trash2, { class: 'h-4 w-4' })),
+      ])
     },
   },
-];
+]
 </script>
 
 <template>
@@ -268,7 +233,7 @@ const columns: ColumnDef<Student>[] = [
     <Toaster />
 
     <div class="flex h-full w-full flex-1 flex-col gap-4 rounded-xl p-4">
-      <!-- Date Picker Card -->
+      <!-- Date Picker -->
       <Card class="w-full shadow-lg rounded-2xl">
         <CardHeader>
           <CardTitle class="text-xl font-bold">Student List</CardTitle>
@@ -276,35 +241,14 @@ const columns: ColumnDef<Student>[] = [
         <CardContent>
           <div class="flex flex-col sm:flex-row items-end gap-4 mb-6">
             <div class="space-y-2 flex-1 sm:max-w-[250px]">
-              <Label for="fromDate">From Date</Label>
-              <DatePicker
-                id="fromDate"
-                :model-value="fromDateValue"
-                @update:model-value="handleFromDateUpdate"
-                month-year-selector
-                placeholder="Select from date"
-                class="datepicker-input"
-              />
+              <Label>From Date</Label>
+              <DatePicker :model-value="fromDateValue" @update:model-value="handleFromDateUpdate" month-year-selector placeholder="From" />
             </div>
-
             <div class="space-y-2 flex-1 sm:max-w-[250px]">
-              <Label for="toDate">To Date</Label>
-              <DatePicker
-                id="toDate"
-                :model-value="toDateValue"
-                @update:model-value="handleToDateUpdate"
-                month-year-selector
-                placeholder="Select to date"
-                class="datepicker-input"
-              />
+              <Label>To Date</Label>
+              <DatePicker :model-value="toDateValue" @update:model-value="handleToDateUpdate" month-year-selector placeholder="To" />
             </div>
-
-            <Button
-              :disabled="loading"
-              class="h-10"
-              :class="{ 'opacity-50 cursor-not-allowed': loading }"
-              @click="fetchStudentListByDateRange"
-            >
+            <Button :disabled="loading" @click="fetchStudentListByDateRange">
               <Loader2 v-if="loading" class="mr-2 h-4 w-4 animate-spin" />
               {{ loading ? 'Loading...' : 'Load' }}
             </Button>
@@ -312,207 +256,199 @@ const columns: ColumnDef<Student>[] = [
         </CardContent>
       </Card>
 
-      <!-- DataTable Card -->
+      <!-- Students Table -->
       <Card class="w-full shadow-lg rounded-2xl">
         <CardContent class="pt-6">
-          <DataTable 
-            :columns="columns" 
-            :data="students" 
-            :loading="loading" 
-            title="Student List Report" 
-          />
+          <DataTable :columns="columns" :data="students" :loading="loading" title="Student List Report" />
         </CardContent>
       </Card>
     </div>
   </AppLayout>
 
-  <!-- Student Details Dialog – Modern & Spacious -->
-<Dialog v-model:open="isDialogOpen">
-  <DialogContent
-    class="max-w-4xl w-full max-h-[92vh] overflow-hidden p-0"
-    :class="{ 'sm:max-w-3xl': true }"
-  >
-    <!-- Header (sticky) -->
-    <DialogHeader class="sticky top-0 z-10 bg-white border-b p-6 pb-4">
-      <DialogTitle class="text-2xl font-bold text-gray-900">
-        Student Details
-      </DialogTitle>
-      <DialogDescription class="text-sm text-gray-600 mt-1">
-        {{ selectedStudent?.first_name }} {{ selectedStudent?.last_name }}
-      </DialogDescription>
-    </DialogHeader>
+  <!-- LARGE MODAL (Bootstrap modal-lg style) -->
+  <Dialog v-model:open="isDialogOpen">
+    <DialogContent class="max-w-5xl max-h-[90vh] p-0 overflow-hidden">
+      <DialogHeader class="sticky top-0 z-10 bg-white border-b p-6">
+        <DialogTitle class="text-2xl font-bold">Student Profile</DialogTitle>
+        <DialogDescription class="text-lg">
+          {{ selectedStudent?.first_name }} {{ selectedStudent?.last_name }}
+        </DialogDescription>
+      </DialogHeader>
 
-    <!-- Scrollable Body -->
-    <div class="overflow-y-auto px-6 pt-4 pb-6 space-y-8">
-      <!-- ==== Profile Card ==== -->
-      <div class="flex flex-col sm:flex-row items-center gap-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6">
-        <Avatar class="h-28 w-28 ring-4 ring-white shadow-lg">
-          <AvatarImage :src="selectedStudent?.photo_url" />
-          <AvatarFallback class="text-3xl font-bold bg-gradient-to-br from-blue-600 to-indigo-700 text-white">
-            {{ selectedStudent?.first_name[0] }}{{ selectedStudent?.last_name[0] }}
-          </AvatarFallback>
-        </Avatar>
+      <Tabs v-model="activeTab" class="flex flex-col h-full">
+        <TabsList class="grid w-full grid-cols-2 rounded-none border-b">
+          <TabsTrigger value="student">Student Information</TabsTrigger>
+          <TabsTrigger value="guardians">Guardians</TabsTrigger>
+        </TabsList>
 
-        <div class="text-center sm:text-left flex-1">
-          <h3 class="text-2xl font-semibold text-gray-900">
-            {{ selectedStudent?.first_name }}
-            {{ selectedStudent?.middle_name ? selectedStudent?.middle_name + ' ' : '' }}
-            {{ selectedStudent?.last_name }}
-          </h3>
-          <div class="flex flex-wrap gap-2 mt-3 justify-center sm:justify-start">
-            <Badge variant="secondary" class="px-3 py-1 text-sm">
-              {{ selectedStudent?.class_name ?? '—' }}
-            </Badge>
-            <Badge variant="outline" class="px-3 py-1 text-sm">
-              {{ selectedStudent?.section_name ?? '—' }}
-            </Badge>
+        <div class="flex-1 overflow-y-auto p-6 space-y-8">
+          <!-- Student Tab -->
+          <TabsContent value="student" class="space-y-8">
+            <div class="flex items-center gap-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6">
+              <Avatar class="h-24 w-24">
+                <AvatarImage :src="selectedStudent?.photo_url" />
+                <AvatarFallback class="text-2xl font-bold">
+                  {{ selectedStudent?.first_name?.[0] }}{{ selectedStudent?.last_name?.[0] }}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <h3 class="text-2xl font-bold">
+                  {{ selectedStudent?.first_name }}
+                  {{ selectedStudent?.middle_name ? ' ' + selectedStudent.middle_name : '' }}
+                  {{ selectedStudent?.last_name }}
+                </h3>
+                <div class="flex gap-3 mt-2">
+                  <Badge>{{ selectedStudent?.class_name ?? '—' }}</Badge>
+                  <Badge variant="outline">{{ selectedStudent?.section_name ?? '—' }}</Badge>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div>
+                <h4 class="font-semibold text-gray-700 mb-3">Personal Details</h4>
+                <dl class="space-y-2 text-sm">
+                  <div class="flex justify-between"><dt class="text-gray-600">ID</dt><dd>#{{ selectedStudent?.id }}</dd></div>
+                  <div class="flex justify-between"><dt class="text-gray-600">Email</dt><dd class="lowercase">{{ selectedStudent?.email ?? '—' }}</dd></div>
+                  <div class="flex justify-between"><dt class="text-gray-600">Phone</dt><dd>{{ selectedStudent?.phone ?? '—' }}</dd></div>
+                  <div class="flex justify-between"><dt class="text-gray-600">Age</dt><dd>{{ selectedStudent?.age ?? '—' }} yrs</dd></div>
+                  <div class="flex justify-between"><dt class="text-gray-600">DOB</dt><dd>{{ selectedStudent?.date_of_birth ?? '—' }}</dd></div>
+                  <div class="flex justify-between"><dt class="text-gray-600">Joined</dt><dd>{{ selectedStudent?.joined_date ?? '—' }}</dd></div>
+                </dl>
+              </div>
+              <div>
+                <h4 class="font-semibold text-gray-700 mb-3">Address</h4>
+                <p class="text-sm">{{ selectedStudent?.address || 'No address provided' }}</p>
+                <div class="flex flex-wrap gap-2 mt-3">
+                  <Badge v-if="selectedStudent?.state_name" variant="outline">{{ selectedStudent.state_name }}</Badge>
+                  <Badge v-if="selectedStudent?.district_name" variant="outline">{{ selectedStudent.district_name }}</Badge>
+                  <Badge v-if="selectedStudent?.municipality_name" variant="outline">{{ selectedStudent.municipality_name }}</Badge>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+
+          <!-- Guardians Tab -->
+          <TabsContent value="guardians">
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="text-xl font-semibold">Guardians</h3>
+              <Button size="sm" @click="openGuardianModal()">
+                <Plus class="h-4 w-4 mr-1" /> Add Guardian
+              </Button>
+            </div>
+
+            <div class="border rounded-lg overflow-hidden">
+              <table class="w-full text-sm">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th class="px-4 py-3 text-left">Name</th>
+                    <th class="px-4 py-3 text-left">Relation</th>
+                    <th class="px-4 py-3 text-left">Phone</th>
+                    <th class="px-4 py-3 text-left">Primary</th>
+                    <th class="px-4 py-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-if="loadingGuardians">
+                    <td colspan="5" class="text-center py-10">
+                      <Loader2 class="h-8 w-8 animate-spin mx-auto" />
+                    </td>
+                  </tr>
+                  <tr v-else-if="guardians.length === 0">
+                    <td colspan="5" class="text-center py-10 text-gray-500">No guardians added</td>
+                  </tr>
+                  <tr v-for="g in guardians" :key="g.id" class="border-t hover:bg-gray-50">
+                    <td class="px-4 py-3 font-medium">{{ g.name }}</td>
+                    <td class="px-4 py-3">{{ g.relation || '—' }}</td>
+                    <td class="px-4 py-3">{{ g.phone || '—' }}</td>
+                    <td class="px-4 py-3">
+                      <span v-if="g.is_primary_contact" class="text-green-600 font-medium">Yes</span>
+                      <span v-else>—</span>
+                    </td>
+                    <td class="px-4 py-3 text-right">
+                      <Button variant="ghost" size="icon" @click="openGuardianModal(g)">
+                        <Pencil class="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" @click="removeGuardian(g.id)" class="text-red-600">
+                        <Trash2 class="h-4 w-4" />
+                      </Button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </TabsContent>
+        </div>
+      </Tabs>
+
+      <div class="sticky bottom-0 bg-white border-t p-4 flex justify-end gap-3">
+        <Button variant="outline" @click="isDialogOpen = false">Close</Button>
+        <Button @click="handleEdit">
+          <Edit class="mr-2 h-4 w-4" /> Edit Student
+        </Button>
+      </div>
+    </DialogContent>
+  </Dialog>
+
+  <!-- LARGE Guardian Form Modal (Bootstrap modal-lg) -->
+  <Dialog v-model:open="isGuardianModalOpen">
+    <DialogContent class="max-w-3xl">
+      <DialogHeader>
+        <DialogTitle class="text-2xl">{{ editingGuardian?.id ? 'Edit' : 'Add' }} Guardian</DialogTitle>
+      </DialogHeader>
+      <form @submit.prevent="submitGuardian" class="space-y-6">
+        <div>
+          <Label>Name <span class="text-red-500">*</span></Label>
+          <Input v-model="editingGuardian.name" placeholder="Full name" />
+          <p v-if="guardianErrors.name" class="text-sm text-red-600 mt-1">{{ guardianErrors.name }}</p>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div><Label>Relation</Label><Input v-model="editingGuardian.relation" placeholder="Father, Mother..." /></div>
+          <div><Label>Phone</Label><Input v-model="editingGuardian.phone" placeholder="98xxxxxxxx" /></div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div><Label>Email</Label><Input v-model="editingGuardian.email" type="email" /></div>
+          <div><Label>Occupation</Label><Input v-model="editingGuardian.occupation" /></div>
+        </div>
+        <div><Label>Address</Label><Input v-model="editingGuardian.address" placeholder="Full address" /></div>
+        <div class="flex items-center gap-3">
+          <input type="checkbox" v-model="editingGuardian.is_primary_contact" class="h-4 w-4" />
+          <Label class="font-normal cursor-pointer">Primary Contact</Label>
+        </div>
+        <DialogFooter>
+          <Button type="button" variant="outline" @click="closeGuardianModal">Cancel</Button>
+          <Button type="submit" :disabled="guardianFormProcessing">
+            <Loader2 v-if="guardianFormProcessing" class="mr-2 h-4 w-4 animate-spin" />
+            Save Guardian
+          </Button>
+        </DialogFooter>
+      </form>
+    </DialogContent>
+  </Dialog>
+
+  <!-- Delete Confirmation -->
+  <AlertDialog v-model:open="isDeleteDialogOpen">
+    <AlertDialogContent>
+      <AlertDialogHeader>
+        <AlertDialogTitle>Delete Student?</AlertDialogTitle>
+        <AlertDialogDescription>
+          This action cannot be undone.
+          <div class="mt-3 p-3 bg-red-50 border border-red-200 rounded-md text-sm">
+            <strong>{{ studentToDelete?.first_name }} {{ studentToDelete?.last_name }}</strong><br />
+            ID: #{{ studentToDelete?.id }}
           </div>
-        </div>
-      </div>
-
-      <!-- ==== Two-Column Info ==== -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <!-- Personal -->
-        <section class="space-y-4">
-          <h4 class="text-sm font-medium text-gray-500 uppercase tracking-wider">
-            Personal Information
-          </h4>
-          <dl class="space-y-3 text-sm">
-            <div class="flex justify-between">
-              <dt class="text-gray-600">Student ID</dt>
-              <dd class="font-medium text-gray-900">#{{ selectedStudent?.id }}</dd>
-            </div>
-            <div class="flex justify-between">
-              <dt class="text-gray-600">Email</dt>
-              <dd class="font-medium lowercase text-gray-900">
-                {{ selectedStudent?.email ?? '—' }}
-              </dd>
-            </div>
-            <div class="flex justify-between">
-              <dt class="text-gray-600">Phone</dt>
-              <dd class="font-medium text-gray-900">{{ selectedStudent?.phone ?? '—' }}</dd>
-            </div>
-            <div class="flex justify-between">
-              <dt class="text-gray-600">Age</dt>
-              <dd class="font-medium text-gray-900">{{ selectedStudent?.age ?? '—' }} years</dd>
-            </div>
-            <div class="flex justify-between">
-              <dt class="text-gray-600">Date of Birth</dt>
-              <dd class="font-medium text-gray-900">
-                {{ selectedStudent?.date_of_birth ?? '—' }}
-              </dd>
-            </div>
-            <div class="flex justify-between">
-              <dt class="text-gray-600">Joined Date</dt>
-              <dd class="font-medium text-gray-900">
-                {{ selectedStudent?.joined_date ??'—' }}
-              </dd>
-            </div>
-          </dl>
-        </section>
-
-        <!-- Guardian -->
-        <section class="space-y-4">
-          <h4 class="text-sm font-medium text-gray-500 uppercase tracking-wider">
-            Guardian & Contact
-          </h4>
-          <dl class="space-y-3 text-sm">
-            <div class="flex justify-between">
-              <dt class="text-gray-600">Father</dt>
-              <dd class="font-medium text-gray-900">{{ selectedStudent?.father_name ?? '—' }}</dd>
-            </div>
-            <div class="flex justify-between">
-              <dt class="text-gray-600">Mother</dt>
-              <dd class="font-medium text-gray-900">{{ selectedStudent?.mother_name ?? '—' }}</dd>
-            </div>
-            <div class="flex justify-between">
-              <dt class="text-gray-600">Guardian</dt>
-              <dd class="font-medium text-gray-900">{{ selectedStudent?.guardian_name ?? '—' }}</dd>
-            </div>
-            <div class="flex justify-between">
-              <dt class="text-gray-600">Contact No.</dt>
-              <dd class="font-medium text-gray-900">{{ selectedStudent?.contact_number ?? '—' }}</dd>
-            </div>
-          </dl>
-        </section>
-      </div>
-
-      <!-- ==== Address ==== -->
-      <section class="space-y-4">
-        <h4 class="text-sm font-medium text-gray-500 uppercase tracking-wider">
-          Address
-        </h4>
-        <p class="text-sm text-gray-700 leading-relaxed">
-          {{ selectedStudent?.address || 'No address provided' }}
-        </p>
-        <div class="flex flex-wrap gap-2 mt-3">
-          <Badge v-if="selectedStudent?.state_name" variant="outline" class="px-3 py-1">
-            {{ selectedStudent?.state_name }}
-          </Badge>
-          <Badge v-if="selectedStudent?.district_name" variant="outline" class="px-3 py-1">
-            {{ selectedStudent?.district_name }}
-          </Badge>
-          <Badge v-if="selectedStudent?.municipality_name" variant="outline" class="px-3 py-1">
-            {{ selectedStudent?.municipality_name }}
-          </Badge>
-        </div>
-      </section>
-    </div>
-
-    <!-- Footer (sticky) -->
-    <div class="sticky bottom-0 bg-white border-t p-4 flex justify-end gap-3">
-      <Button variant="outline" @click="isDialogOpen = false">
-        Close
-      </Button>
-      <Button @click="handleEdit(selectedStudent)">
-        <Edit class="mr-2 h-4 w-4" /> Edit Student
-      </Button>
-    </div>
-  </DialogContent>
-</Dialog>
-
-<AlertDialog v-model:open="isDeleteDialogOpen">
-  <AlertDialogContent>
-    <AlertDialogHeader>
-      <AlertDialogTitle class="text-xl">
-        Are you sure you want to delete this student?
-      </AlertDialogTitle>
-      <AlertDialogDescription class="text-base mt-3">
-        This action <span class="font-semibold text-red-600">cannot be undone</span>. 
-        You are about to permanently delete:
-        <div class="mt-3 p-3 bg-red-50 border border-red-200 rounded-md text-sm">
-          <strong>
-            {{ studentToDelete?.first_name }}
-            {{ studentToDelete?.middle_name ? studentToDelete.middle_name + ' ' : '' }}
-            {{ studentToDelete?.last_name }}
-          </strong>
-          <br />
-          <span class="text-gray-600">ID: #{{ studentToDelete?.id }}</span>
-        </div>
-      </AlertDialogDescription>
-    </AlertDialogHeader>
-    <AlertDialogFooter class="mt-6">
-      <AlertDialogCancel @click="isDeleteDialogOpen = false">
-        Cancel
-      </AlertDialogCancel>
-      <AlertDialogAction
-        @click="confirmDelete"
-        class="bg-red-600 hover:bg-red-700 text-white"
-      >
-        <Trash2 class="mr-2 h-4 w-4" />
-        Delete Student
-      </AlertDialogAction>
-    </AlertDialogFooter>
-  </AlertDialogContent>
-</AlertDialog>
+        </AlertDialogDescription>
+      </AlertDialogHeader>
+      <AlertDialogFooter>
+        <AlertDialogCancel @click="isDeleteDialogOpen = false">Cancel</AlertDialogCancel>
+        <AlertDialogAction @click="confirmDelete" class="bg-red-600 hover:bg-red-700">
+          <Trash2 class="mr-2 h-4 w-4" /> Delete
+        </AlertDialogAction>
+      </AlertDialogFooter>
+    </AlertDialogContent>
+  </AlertDialog>
 </template>
 
 <style scoped>
-button {
-  cursor: pointer !important;
-}
-
-button:hover {
-  cursor: pointer !important;
-}
+button { cursor: pointer !important; }
 </style>

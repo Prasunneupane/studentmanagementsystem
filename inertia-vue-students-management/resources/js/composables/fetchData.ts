@@ -1,12 +1,13 @@
 // composables/useLocationData.ts
 import { ref } from 'vue';
-import { getStudentsListByDateRange,deleteStudent } from '@/constant/apiservice/callService';
+import { getStudentsListByDateRange,deleteStudent,getGuardiansByStudent } from '@/constant/apiservice/callService';
 import { useToast } from './useToast';
 const { toast } = useToast();
 
 export interface Student {
   id: number;
   first_name: string;
+  middle_name: string;
   last_name: string;
   email: string;
   phone: string;
@@ -21,6 +22,7 @@ export function useLocationData(form: any) {
   const loading = ref(false);
   const errorMessage = ref('');
   const deletingId = ref<number | null>(null);
+  const guardians = ref<any[]>([]);
 
   const fetchStudentListByDateRange = async () => {
     if (!form.fromDate || !form.toDate) {
@@ -125,6 +127,69 @@ export function useLocationData(form: any) {
     }
   };
 
+const getGuardiansByStudentId = async (studentId: number): Promise<{ guardians: any[] }> => {
+  try {
+    const response = await getGuardiansByStudent(studentId);
+    console.log(response, "guardiannames");
+
+    // Ensure consistent shape: always return { guardians: [...] }
+    if (response && Array.isArray(response.guardians)) {
+      return { guardians: response.guardians };
+    } else {
+      return { guardians: [] };
+    }
+  } catch (err: any) {
+    console.error("Fetch guardians failed:", err);
+    toast.error("Failed to fetch guardians. Please try again.", {
+      duration: 3000,
+      action: { label: "Close", onClick: () => {} },
+    });
+    return { guardians: [] };
+  }
+};
+
+
+const createGuardian = async (studentId: number): Promise<{ guardians: any[] }> => {
+  try {
+    const response = await getGuardiansByStudent(studentId);
+    return response; // ✅ returns { guardians: [...] }
+  } catch (err: any) {
+    console.error('Fetch guardians failed:', err);
+    toast.error('Failed to fetch guardians. Please try again.', {
+      duration: 3000,
+      action: { label: 'Close', onClick: () => {} },
+    });
+    return { guardians: [] }; // ✅ fallback value with same shape
+  }
+};
+const updateGuardian = async (studentId: number): Promise<{ guardians: any[] }> => {
+  try {
+    const response = await getGuardiansByStudent(studentId);
+    return response; // ✅ returns { guardians: [...] }
+  } catch (err: any) {
+    console.error('Fetch guardians failed:', err);
+    toast.error('Failed to fetch guardians. Please try again.', {
+      duration: 3000,
+      action: { label: 'Close', onClick: () => {} },
+    });
+    return { guardians: [] }; // ✅ fallback value with same shape
+  }
+};
+
+const deleteGuardian = async (studentId: number): Promise<{ guardians: any[] }> => {
+  try {
+    const response = await getGuardiansByStudent(studentId);
+    return response; // ✅ returns { guardians: [...] }
+  } catch (err: any) {
+    console.error('Fetch guardians failed:', err);
+    toast.error('Failed to fetch guardians. Please try again.', {
+      duration: 3000,
+      action: { label: 'Close', onClick: () => {} },
+    });
+    return { guardians: [] }; // ✅ fallback value with same shape
+  }
+};
+
   return {
     students,
     loading,
@@ -132,5 +197,10 @@ export function useLocationData(form: any) {
     deletingId,
     fetchStudentListByDateRange,
     removeStudent,
+    getGuardiansByStudentId,
+    createGuardian,
+    updateGuardian,
+    deleteGuardian,
+    guardians
   };
 }
