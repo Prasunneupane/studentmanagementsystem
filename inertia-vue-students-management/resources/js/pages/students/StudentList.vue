@@ -265,9 +265,9 @@ const columns: ColumnDef<Student>[] = [
     </div>
   </AppLayout>
 
-  <!-- LARGE MODAL (Bootstrap modal-lg style) -->
+  <!-- EXTRA WIDE MODAL (Bootstrap modal-xl style) -->
   <Dialog v-model:open="isDialogOpen">
-    <DialogContent class="max-w-5xl max-h-[90vh] p-0 overflow-hidden">
+    <DialogContent class="max-w-[95vw] lg:max-w-[1100px] max-h-[95vh] p-0 overflow-hidden">
       <DialogHeader class="sticky top-0 z-10 bg-white border-b p-6">
         <DialogTitle class="text-2xl font-bold">Student Profile</DialogTitle>
         <DialogDescription class="text-lg">
@@ -337,41 +337,52 @@ const columns: ColumnDef<Student>[] = [
               </Button>
             </div>
 
-            <div class="border rounded-lg overflow-hidden">
-              <table class="w-full text-sm">
+            <!-- Wider table with horizontal scroll support -->
+            <div class="border rounded-lg overflow-x-auto">
+              <table class="w-full text-sm min-w-[400px]">
                 <thead class="bg-gray-50">
                   <tr>
-                    <th class="px-4 py-3 text-left">Name</th>
-                    <th class="px-4 py-3 text-left">Relation</th>
-                    <th class="px-4 py-3 text-left">Phone</th>
-                    <th class="px-4 py-3 text-left">Primary</th>
-                    <th class="px-4 py-3 text-right">Actions</th>
+                    <th class="px-4 py-3 text-left font-semibold">Name</th>
+                    <th class="px-4 py-3 text-left font-semibold">Relation</th>
+                    <th class="px-4 py-3 text-left font-semibold">Phone</th>
+                    <th class="px-4 py-3 text-left font-semibold">Email</th>
+                    <th class="px-4 py-3 text-left font-semibold">Occupation</th>
+                    <th class="px-4 py-3 text-left font-semibold">Address</th>
+                    <th class="px-4 py-3 text-left font-semibold">Primary</th>
+                    <th class="px-4 py-3 text-right font-semibold">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr v-if="loadingGuardians">
-                    <td colspan="5" class="text-center py-10">
+                    <td colspan="8" class="text-center py-10">
                       <Loader2 class="h-8 w-8 animate-spin mx-auto" />
                     </td>
                   </tr>
                   <tr v-else-if="guardians.length === 0">
-                    <td colspan="5" class="text-center py-10 text-gray-500">No guardians added</td>
+                    <td colspan="8" class="text-center py-10 text-gray-500">No guardians added</td>
                   </tr>
                   <tr v-for="g in guardians" :key="g.id" class="border-t hover:bg-gray-50">
                     <td class="px-4 py-3 font-medium">{{ g.name }}</td>
                     <td class="px-4 py-3">{{ g.relation || '—' }}</td>
                     <td class="px-4 py-3">{{ g.phone || '—' }}</td>
+                    <td class="px-4 py-3 text-sm lowercase">{{ g.email || '—' }}</td>
+                    <td class="px-4 py-3">{{ g.occupation || '—' }}</td>
+                    <td class="px-4 py-3 max-w-[200px] truncate" :title="g.address">{{ g.address || '—' }}</td>
                     <td class="px-4 py-3">
-                      <span v-if="g.is_primary_contact" class="text-green-600 font-medium">Yes</span>
-                      <span v-else>—</span>
+                      <span v-if="g.is_primary_contact" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        Primary
+                      </span>
+                      <span v-else class="text-gray-400">—</span>
                     </td>
                     <td class="px-4 py-3 text-right">
-                      <Button variant="ghost" size="icon" @click="openGuardianModal(g)">
-                        <Pencil class="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" @click="removeGuardian(g.id)" class="text-red-600">
-                        <Trash2 class="h-4 w-4" />
-                      </Button>
+                      <div class="flex items-center justify-end gap-1">
+                        <Button variant="ghost" size="icon" class="h-8 w-8" @click="openGuardianModal(g)">
+                          <Pencil class="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" class="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50" @click="removeGuardian(g.id)">
+                          <Trash2 class="h-4 w-4" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 </tbody>
@@ -392,7 +403,7 @@ const columns: ColumnDef<Student>[] = [
 
   <!-- LARGE Guardian Form Modal (Bootstrap modal-lg) -->
   <Dialog v-model:open="isGuardianModalOpen">
-    <DialogContent class="max-w-3xl">
+    <DialogContent class="max-w-4xl">
       <DialogHeader>
         <DialogTitle class="text-2xl">{{ editingGuardian?.id ? 'Edit' : 'Add' }} Guardian</DialogTitle>
       </DialogHeader>
