@@ -32,3 +32,12 @@ export const deleteStudent = (studentId: number) =>
 
 export const getGuardiansByStudent = (studentId: number) =>
   executeApiMethod<{guardians: any[]}>(apiMethods.getGuardiansByStudent(studentId));
+
+export const updateGuardian = (guardianId: number,formData: FormData) =>
+  executeApiMethod<{
+    message: string;
+    guardian: any;
+  }>(apiMethods.updateGuardian(guardianId,formData));
+
+  export const deleteGuardianByGuardianId = (guardianId: number) =>
+  executeApiMethod<void>(apiMethods.deleteGuardian(guardianId));

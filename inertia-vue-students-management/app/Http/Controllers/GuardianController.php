@@ -32,4 +32,40 @@ class GuardianController extends Controller
             return response()->json(['error' => 'An error occurred while fetching guardians'], 500);
         }
     }
+
+    public function update_guardian_by_guardian_id(Request $request,$guardianId): JsonResponse
+    {
+        try {
+            $guardianId = $guardianId ?? $request->query('id');
+
+            if (!$guardianId) {
+                return response()->json(['error' => 'Guardian Id is required'], 400);
+            }
+
+            $guardians = $this->guardianService->updateGuardianByGuardianId((int)$guardianId,$request->all());
+
+            return response()->json( $guardians, 200);
+        } catch (\Exception $e) {
+            Log::error('Error fetching guardians: ' . $e->getMessage());
+            return response()->json(['error' => 'An error occurred while fetching guardians'], 500);
+        }
+    }
+
+    public function delete_guardian_by_guardian_id(Request $request,$guardianId): JsonResponse
+    {
+        try {
+            $guardianId = $guardianId ?? $request->query('id');
+
+            if (!$guardianId) {
+                return response()->json(['error' => 'Guardian Id is required'], 400);
+            }
+
+            $guardians = $this->guardianService->deleteGuardianByGuardianId((int)$guardianId);
+
+            return response()->json( $guardians, 200);
+        } catch (\Exception $e) {
+            Log::error('Error fetching guardians: ' . $e->getMessage());
+            return response()->json(['error' => 'An error occurred while fetching guardians'], 500);
+        }
+    }
 }

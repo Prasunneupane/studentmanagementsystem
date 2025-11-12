@@ -7,7 +7,9 @@ import {
   VITE_API_SECTIONS,
   VITE_API_STUDENTS_LIST_BY_DATE_RANGE,
   VITE_API_DELETE_STUDENT,
-  VITE_GET_GUARDIANS_LIST_BY_STUDENTID
+  VITE_GET_GUARDIANS_LIST_BY_STUDENTID,
+  VITE_UPDATE_GUARDIANS_BY_GUARDIANID,
+  VITE_DELETE_GUARDIANS_BY_GUARDIANID
  } from '@/constant/services';
 
 // Update LocationItem to reflect actual response
@@ -79,13 +81,15 @@ export const apiMethods = {
     method: 'POST',
   }),
 
-  updateGuardian: (guardianId: number): ApiMethodConfig => ({
-    endpoint: `/api/guardians/${guardianId}`,
+  updateGuardian: (guardianId: number,formData: FormData): ApiMethodConfig => ({
+    endpoint: `${VITE_UPDATE_GUARDIANS_BY_GUARDIANID}/${guardianId}`,
     method: 'PUT',
+    data: formData
   }),
 
+
   deleteGuardian: (guardianId: number): ApiMethodConfig => ({
-    endpoint: `/api/guardians/${guardianId}`,
+    endpoint: `${VITE_DELETE_GUARDIANS_BY_GUARDIANID}/${guardianId}`,
     method: 'DELETE',
   }),
 };

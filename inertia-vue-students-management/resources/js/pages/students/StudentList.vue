@@ -48,6 +48,7 @@ const selectedStudent = ref<Student | null>(null)
 const isDialogOpen = ref(false)
 const studentToDelete = ref<Student | null>(null)
 const isDeleteDialogOpen = ref(false)
+const isDeleteGuardianOpen = ref(false)
 
 // Guardian state
 const guardians = ref<any[]>([])
@@ -68,11 +69,11 @@ const {
   removeStudent,
   getGuardiansByStudentId,
   createGuardian,
-  updateGuardian,
+  updateGuardianByGuardianId,
   deleteGuardian,
 } = useLocationData(form)
 
-// DatePicker
+// DatePicker - Fixed date offset issue
 const fromDateValue = computed(() => {
   if (!form.fromDate) return undefined
   const [y, m, d] = form.fromDate.split('-').map(Number)
@@ -86,11 +87,27 @@ const toDateValue = computed(() => {
 })
 
 const handleFromDateUpdate = (date: Date | undefined) => {
-  form.fromDate = date ? date.toISOString().split('T')[0] : ''
+  if (!date) {
+    form.fromDate = ''
+    return
+  }
+  // Fix timezone offset issue by using local date components
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  form.fromDate = `${year}-${month}-${day}`
 }
 
 const handleToDateUpdate = (date: Date | undefined) => {
-  form.toDate = date ? date.toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
+  if (!date) {
+    form.toDate = new Date().toISOString().split('T')[0]
+    return
+  }
+  // Fix timezone offset issue by using local date components
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  form.toDate = `${year}-${month}-${day}`
 }
 
 // Load guardians
@@ -109,7 +126,7 @@ const loadGuardians = async (studentId: number) => {
     const response = await getGuardiansByStudentId(studentId)
     guardians.value = response.guardians || []
   } catch {
-    toast.error('Failed to load guardians')
+    // toast.error('Failed to load guardians')
   } finally {
     loadingGuardians.value = false
   }
@@ -118,7 +135,9 @@ const loadGuardians = async (studentId: number) => {
 // Guardian Modal
 const openGuardianModal = (guardian?: any) => {
   editingGuardian.value = guardian
-    ? { ...guardian }
+    ? { 
+      ...guardian,
+      is_primary_contact: Boolean(Number(guardian.is_primary_contact)) }
     : {
         name: '',
         relation: '',
@@ -150,30 +169,50 @@ const submitGuardian = async () => {
 
   guardianFormProcessing.value = true
   try {
+    let result;
     if (editingGuardian.value.id) {
-      await updateGuardian(editingGuardian.value.id, editingGuardian.value)
-      toast.success('Guardian updated successfully')
+     result =  await updateGuardianByGuardianId(editingGuardian.value.id, editingGuardian.value)
+      // toast.success('Guardian updated successfully')
     } else {
-      await createGuardian(selectedStudent.value.id, editingGuardian.value)
-      toast.success('Guardian added successfully')
+    result = await createGuardian(selectedStudent.value.id, editingGuardian.value)
+      // toast.success('Guardian added successfully')
     }
-    await loadGuardians(selectedStudent.value.id)
-    closeGuardianModal()
+    if(result && result){
+      await loadGuardians(selectedStudent.value.id)
+    }
+    setTimeout(() => {
+      closeGuardianModal()
+    }, 100);
+    
   } catch {
-    toast.error('Failed to save guardian')
+    // toast.error('Failed to save guardian')
   } finally {
     guardianFormProcessing.value = false
   }
 }
 
+const handleGuardianDelete = (guardian?: any) => {
+  editingGuardian.value = guardian; 
+  isDeleteGuardianOpen.value = true;
+  console.log(editingGuardian.value,"handleGuardianDelete");
+  
+}
+
 const removeGuardian = async (id: number) => {
-  if (!confirm('Delete this guardian?')) return
+  // isDeleteDialogOpen.value = true
+  // if (!confirm('Delete this guardian?')) return
   try {
-    await deleteGuardian(id)
-    guardians.value = guardians.value.filter(g => g.id !== id)
-    toast.success('Guardian deleted')
+    let success;
+    success =await deleteGuardian(id)
+    if(success){
+      editingGuardian.value = null; 
+      isDeleteGuardianOpen.value = false;
+      guardians.value = guardians.value.filter(g => g.id !== id)
+    } 
+    
+    
   } catch {
-    toast.error('Failed to delete')
+   
   }
 }
 
@@ -267,23 +306,23 @@ const columns: ColumnDef<Student>[] = [
 
   <!-- EXTRA WIDE MODAL (Bootstrap modal-xl style) -->
   <Dialog v-model:open="isDialogOpen">
-    <DialogContent class="max-w-[95vw] lg:max-w-[1100px] max-h-[95vh] p-0 overflow-hidden">
-      <DialogHeader class="sticky top-0 z-10 bg-white border-b p-6">
+    <DialogContent class="max-w-[95vw] lg:max-w-[1100px] w-full p-0 overflow-hidden flex flex-col" style="height: 85vh;">
+      <DialogHeader class="flex-shrink-0 bg-white border-b p-6">
         <DialogTitle class="text-2xl font-bold">Student Profile</DialogTitle>
         <DialogDescription class="text-lg">
           {{ selectedStudent?.first_name }} {{ selectedStudent?.last_name }}
         </DialogDescription>
       </DialogHeader>
 
-      <Tabs v-model="activeTab" class="flex flex-col h-full">
-        <TabsList class="grid w-full grid-cols-2 rounded-none border-b">
+      <Tabs v-model="activeTab" class="flex flex-col flex-1 overflow-hidden">
+        <TabsList class="flex-shrink-0 grid w-full grid-cols-2 rounded-none border-b">
           <TabsTrigger value="student">Student Information</TabsTrigger>
           <TabsTrigger value="guardians">Guardians</TabsTrigger>
         </TabsList>
 
-        <div class="flex-1 overflow-y-auto p-6 space-y-8">
+        <div class="flex-1 overflow-y-auto p-6">
           <!-- Student Tab -->
-          <TabsContent value="student" class="space-y-8">
+          <TabsContent value="student" class="space-y-6 mt-0">
             <div class="flex items-center gap-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6">
               <Avatar class="h-24 w-24">
                 <AvatarImage :src="selectedStudent?.photo_url" />
@@ -304,7 +343,7 @@ const columns: ColumnDef<Student>[] = [
               </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <h4 class="font-semibold text-gray-700 mb-3">Personal Details</h4>
                 <dl class="space-y-2 text-sm">
@@ -329,7 +368,7 @@ const columns: ColumnDef<Student>[] = [
           </TabsContent>
 
           <!-- Guardians Tab -->
-          <TabsContent value="guardians">
+          <TabsContent value="guardians" class="mt-0">
             <div class="flex justify-between items-center mb-4">
               <h3 class="text-xl font-semibold">Guardians</h3>
               <Button size="sm" @click="openGuardianModal()">
@@ -339,7 +378,7 @@ const columns: ColumnDef<Student>[] = [
 
             <!-- Wider table with horizontal scroll support -->
             <div class="border rounded-lg overflow-x-auto">
-              <table class="w-full text-sm min-w-[400px]">
+              <table class="w-full text-sm min-w-[800px]">
                 <thead class="bg-gray-50">
                   <tr>
                     <th class="px-4 py-3 text-left font-semibold">Name</th>
@@ -379,7 +418,7 @@ const columns: ColumnDef<Student>[] = [
                         <Button variant="ghost" size="icon" class="h-8 w-8" @click="openGuardianModal(g)">
                           <Pencil class="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" class="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50" @click="removeGuardian(g.id)">
+                        <Button variant="ghost" size="icon" class="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50" @click="handleGuardianDelete(g)">
                           <Trash2 class="h-4 w-4" />
                         </Button>
                       </div>
@@ -407,7 +446,7 @@ const columns: ColumnDef<Student>[] = [
       <DialogHeader>
         <DialogTitle class="text-2xl">{{ editingGuardian?.id ? 'Edit' : 'Add' }} Guardian</DialogTitle>
       </DialogHeader>
-      <form @submit.prevent="submitGuardian" class="space-y-6">
+      <form v-if="editingGuardian" @submit.prevent="submitGuardian" class="space-y-6">
         <div>
           <Label>Name <span class="text-red-500">*</span></Label>
           <Input v-model="editingGuardian.name" placeholder="Full name" />
@@ -453,6 +492,28 @@ const columns: ColumnDef<Student>[] = [
       <AlertDialogFooter>
         <AlertDialogCancel @click="isDeleteDialogOpen = false">Cancel</AlertDialogCancel>
         <AlertDialogAction @click="confirmDelete" class="bg-red-600 hover:bg-red-700">
+          <Trash2 class="mr-2 h-4 w-4" /> Delete
+        </AlertDialogAction>
+      </AlertDialogFooter>
+    </AlertDialogContent>
+  </AlertDialog>
+
+   <!-- Delete Confirmation -->
+  <AlertDialog v-model:open="isDeleteGuardianOpen">
+    <AlertDialogContent>
+      <AlertDialogHeader>
+        <AlertDialogTitle>Delete Guardian?</AlertDialogTitle>
+        <AlertDialogDescription>
+          This action cannot be undone.
+          <div class="mt-3 p-3 bg-red-50 border border-red-200 rounded-md text-sm">
+            <strong>{{ editingGuardian.value?.name }} </strong><br />
+            ID: #{{ editingGuardian.value?.id }}
+          </div>
+        </AlertDialogDescription>
+      </AlertDialogHeader>
+      <AlertDialogFooter>
+        <AlertDialogCancel @click="isDeleteGuardianOpen = false">Cancel</AlertDialogCancel>
+        <AlertDialogAction @click="removeGuardian(editingGuardian.value?.id)" class="bg-red-600 hover:bg-red-700">
           <Trash2 class="mr-2 h-4 w-4" /> Delete
         </AlertDialogAction>
       </AlertDialogFooter>
