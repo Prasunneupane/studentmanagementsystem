@@ -17,7 +17,7 @@ export interface Student {
   // add more fields if needed
 }
 
-export function useLocationData(form: any) {
+export function useStudentData(form: any) {
   const students = ref<Student[]>([]);
   const loading = ref(false);
   const errorMessage = ref('');
