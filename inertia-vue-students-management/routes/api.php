@@ -20,6 +20,8 @@ Route::middleware(['jwt.verify'])->group(function () {
     Route::get('/getClassesList', [ClassSectionController::class,'getAllClasses'])->name('classeslist');
     Route::get('/getSectionList', [ClassSectionController::class,'getAllSection'])->name('sectionlist');
     Route::get('/guardian/getGuardiansByStudentId/{student_id}', [GuardianController::class,'getGuardiansByStudentId'])->name('getGuardiansByStudentId');
-    Route::put('/guardian/updateGuardianByGuardianId/{student_id}', [GuardianController::class,'update_guardian_by_guardian_id'])->name('updateGuardianByGuardianId');
-    Route::delete('/guardian/deleteGuardianByGuardianId/{student_id}', [GuardianController::class,'delete_guardian_by_guardian_id'])->name('deleteGuardianByGuardianId');
+    Route::put('/guardian/updateGuardianByGuardianId/{guardian_id}', [GuardianController::class,'update_guardian_by_guardian_id'])->name('updateGuardianByGuardianId');
+    Route::delete('/guardian/deleteGuardianByGuardianId/{guardian_id}', [GuardianController::class,'delete_guardian_by_guardian_id'])->name('deleteGuardianByGuardianId');
+    Route::put('/updateStudent/{student_id}', [StudentsController::class,'update_student_by_student_id'])->name('update_student');
+
 });

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Check, ChevronsUpDown, Loader2 } from "lucide-vue-next"
-import { computed } from "vue"
+import { computed, ref } from "vue"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -19,7 +19,7 @@ interface Option {
   value: string
   label: string
 }
-
+const query = ref("");
 const props = defineProps<{
   options: Option[]
   modelValue?: Option | null
@@ -101,9 +101,10 @@ const handleBlur = () => {
         <div class="relative w-full">
           <div class="flex items-center px-3 border rounded-md bg-background">
             <ComboboxInput
-              class="w-full p-2 focus-visible:ring-0 focus-visible:outline-none border-0 bg-transparent"
-              placeholder="Search..."
-            />
+                v-model="query"
+                class="w-full p-2 focus-visible:ring-0 focus-visible:outline-none border-0 bg-transparent"
+                placeholder="Search..."
+              />
           </div>
         </div>
 

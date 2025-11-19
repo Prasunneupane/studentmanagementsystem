@@ -9,7 +9,8 @@ import {
   VITE_API_DELETE_STUDENT,
   VITE_GET_GUARDIANS_LIST_BY_STUDENTID,
   VITE_UPDATE_GUARDIANS_BY_GUARDIANID,
-  VITE_DELETE_GUARDIANS_BY_GUARDIANID
+  VITE_DELETE_GUARDIANS_BY_GUARDIANID,
+  VITE_API_UPDATE_STUDENT
  } from '@/constant/services';
 
 // Update LocationItem to reflect actual response
@@ -92,6 +93,17 @@ export const apiMethods = {
     endpoint: `${VITE_DELETE_GUARDIANS_BY_GUARDIANID}/${guardianId}`,
     method: 'DELETE',
   }),
+  
+ updateStudent: (studentId: number, formData: FormData): ApiMethodConfig => {
+    formData.append('_method', 'PUT'); // append first
+
+    return {
+        endpoint: `${VITE_API_UPDATE_STUDENT}/${studentId}`,
+        method: 'POST',
+        data: formData
+    };
+},
+
 };
 
 export const executeApiMethod = async <T>(

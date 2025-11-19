@@ -30,4 +30,22 @@ class StudentRepository implements StudentRepositoryInterface
 
         return $students->toArray();
     }
+
+    public function updateStudentById(int $studentId, array $data): Students
+    {
+        $student = Students::findOrFail($studentId);
+
+        // Handle photo upload if present
+        if (isset($data['photo']) && $data['photo'] instanceof \Illuminate\Http\UploadedFile) {
+            // Delete old photo if exists
+            if ($student->photo) {
+                Storage::disk('public')->delete($student->photo);
+            }
+            $data['photo'] = $data['photo']->store('photos', 'public');
+        }
+
+        $student->update($data);
+
+        return $student;
+    }
 }

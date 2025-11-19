@@ -28,7 +28,7 @@ class StudentsController extends Controller
     public function index()
     {
         //
-         return Inertia::render('students/StudentList'); // Adjust the view name as needed
+        return Inertia::render('students/StudentList'); // Adjust the view name as needed
     }
 
     /**
@@ -36,29 +36,29 @@ class StudentsController extends Controller
      */
     public function create()
     {
-          return Inertia::render('students/RegisterStudent'); // Adjust the view name as needed
+        return Inertia::render('students/RegisterStudent'); // Adjust the view name as needed
     }
 
     /**
      * Store a newly created resource in storage.
      */
     public function store(Request $request)
-{
-    // dd($request->all());
-    try {
-        $userId = JWTAuth::user()->id; // Get authenticated user ID
-        $this->studentService->createStudent($request->all(), $userId);
+    {
+        // dd($request->all());
+        try {
+            $userId = JWTAuth::user()->id; // Get authenticated user ID
+            $this->studentService->createStudent($request->all(), $userId);
 
-        // Return an Inertia redirect with a flash message
-        return Redirect::route('students.student_list') // Replace 'dashboard' with your target route
-            ->with('success', 'Student registered successfully');
-    } catch (\Illuminate\Validation\ValidationException $e) {
-        // Return validation errors to Inertia
-        return Redirect::back()->withErrors($e->errors())->withInput();
-    } catch (\Exception $e) {
-        // Return error message to Inertia
-        return Redirect::back()->with('error', $e->getMessage());
-    }
+            // Return an Inertia redirect with a flash message
+            return Redirect::route('students.student_list') // Replace 'dashboard' with your target route
+                ->with('success', 'Student registered successfully');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Return validation errors to Inertia
+            return Redirect::back()->withErrors($e->errors())->withInput();
+        } catch (\Exception $e) {
+            // Return error message to Inertia
+            return Redirect::back()->with('error', $e->getMessage());
+        }
     }
 
     /**
@@ -80,40 +80,75 @@ class StudentsController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Students $students)
+    public function update_student_by_student_id(Request $request, $student_id)
     {
-        //
+        // dd( JWTAuth::user()->id );
+        try {
+            $userId = JWTAuth::user()->id; // Get authenticated user ID
+            $student= $this->studentService->updateStudentById($student_id, $request->all(), $userId);
+
+            // Return an Inertia redirect with a flash message
+           return response()->json([
+                'message' => 'Student Updated successfully.',
+                'student_id' => $student->id,
+                'success' => true,
+            ], 200);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Return validation errors to Inertia
+             Log::error('Error Updating student ID ' . $student_id . ': ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'error' => 'Failed to update student.',
+                'details' => $e->getMessage(),
+                'success' => false,
+            ], 500);
+        } catch (\Exception $e) {
+            // Return error message to Inertia
+            Log::error('Error updating student ID ' . $student_id . ': ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'error' => 'Failed to update student.',
+                'details' => $e->getMessage(),
+                'success' => false,
+
+            ], 500);
+
+        }
     }
 
     /**
      * Remove the specified resource from storage.
      */
     public function destroy($id): JsonResponse
-{
-    try {
-        $student = Students::findOrFail($id);
-        $student->delete(); // Soft delete (if SoftDeletes is used)
+    {
+        try {
+            $student = Students::findOrFail($id);
+            $student->delete(); // Soft delete (if SoftDeletes is used)
 
-        return response()->json([
-            'message' => 'Student deleted successfully.',
-            'student_id' => $student->id,
-        ], 200);
-    } catch (\Exception $e) {
-        Log::error('Error deleting student ID ' . $id . ': ' . $e->getMessage(), [
-            'trace' => $e->getTraceAsString()
-        ]);
+            return response()->json([
+                'message' => 'Student deleted successfully.',
+                'student_id' => $student->id,
+            ], 200);
+        } catch (\Exception $e) {
+            Log::error('Error deleting student ID ' . $id . ': ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
 
-        return response()->json([
-            'error' => 'Failed to delete student.',
-            'details' => $e->getMessage()
-        ], 500);
+            return response()->json([
+                'error' => 'Failed to delete student.',
+                'details' => $e->getMessage()
+            ], 500);
+        }
     }
-}
 
     public function registerStudent(Students $students)
     {
-       $students->attach($students->student_id);
-       return redirect()->route('students.index')->with('success', 'Student registered successfully.');
+        $students->attach($students->student_id);
+        return redirect()->route('students.index')->with('success', 'Student registered successfully.');
     }
 
     public function student_list_by_date_range(Request $request)
@@ -121,7 +156,7 @@ class StudentsController extends Controller
         // dd('here');
         $startDate = $request->input('fromDate');
         $endDate = $request->input('toDate');
-       
+
 
         try {
             $students = $this->studentService->getStudentsByDateRange($startDate, $endDate);
@@ -131,7 +166,7 @@ class StudentsController extends Controller
             Log::error('Error fetching students by date range: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
             return response()->json(['error' => 'Failed to fetch students'], 500);
         }
-        
+
     }
 
 

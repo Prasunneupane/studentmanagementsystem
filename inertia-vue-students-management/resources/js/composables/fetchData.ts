@@ -1,6 +1,13 @@
 // composables/useLocationData.ts
 import { ref } from 'vue';
-import { getStudentsListByDateRange,deleteStudent,getGuardiansByStudent,updateGuardian } from '@/constant/apiservice/callService';
+import { 
+  getStudentsListByDateRange,
+  deleteStudent,
+  getGuardiansByStudent,
+  updateGuardian,
+  updateStudentByStudentId 
+
+} from '@/constant/apiservice/callService';
 import { useToast } from './useToast';
 const { toast } = useToast();
 
@@ -203,6 +210,35 @@ const deleteGuardian = async (studentId: number): Promise<{ guardians: any[] }> 
   }
 };
 
+const updateStudent = async (studentId: number,formData:any)=> {
+  try {
+    const response = await updateStudentByStudentId(studentId,formData);
+    console.log(response,"updatestudents");
+    
+    if (response) {
+     toast.success('Student Updated Succesfully', {
+      duration: 3000,
+      action: { label: 'Close', onClick: () => {} },
+      });
+      return response;
+    }else{
+       toast.error('Failed to update student', {
+      duration: 3000,
+      action: { label: 'Close', onClick: () => {} },
+      });
+      return response;
+    }
+     // ✅ returns { guardians: [...] }
+  } catch (err: any) {
+    // console.error('Fetch guardians failed:', err);
+    toast.error('Failed to Update Student. Please try again.', {
+      duration: 3000,
+      action: { label: 'Close', onClick: () => {} },
+    });
+    // return { stud: [] }; // ✅ fallback value with same shape
+  }
+}
+
   return {
     students,
     loading,
@@ -214,6 +250,7 @@ const deleteGuardian = async (studentId: number): Promise<{ guardians: any[] }> 
     createGuardian,
     updateGuardianByGuardianId,
     deleteGuardian,
+    updateStudent,
     guardians
   };
 }

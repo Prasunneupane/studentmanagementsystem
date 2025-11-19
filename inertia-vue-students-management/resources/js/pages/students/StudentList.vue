@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { h, ref, computed, watch } from 'vue'
+import { h, ref, computed, watch, nextTick } from 'vue'
 import AppLayout from '@/layouts/AppLayout.vue'
 import { Head, useForm } from '@inertiajs/vue3'
 import { Toaster } from '@/components/ui/sonner'
@@ -14,6 +14,9 @@ import { useAcademicData } from '@/composables/useAcademicData'
 import DataTable from '../students/Datatable.vue'
 import DatePicker from '@/components/ui/datepicker/DatePicker.vue'
 import type { ColumnDef } from '@tanstack/vue-table'
+import { useToast } from '../../composables/useToast';
+import CustomSelect from '../CustomSelect.vue'
+const { toast } = useToast();
 import {
   Dialog,
   DialogContent,
@@ -63,7 +66,7 @@ const guardianErrors = ref<Record<string, string>>({})
 
 // Edit Student Modal
 const isEditModalOpen = ref(false)
-const loadingEdit = ref(false)                     // <-- NEW
+const loadingEdit = ref(false)
 const editForm = ref<any>({
   id: null,
   fName: '',
@@ -99,6 +102,7 @@ const {
   createGuardian,
   updateGuardianByGuardianId,
   deleteGuardian,
+  updateStudent,
 } = useStudentData(form)
 
 const {
@@ -111,9 +115,7 @@ const {
 
 const { classes, sections } = useAcademicData()
 
-// -------------------------------------------------------------------
-// DatePicker helpers (unchanged)
-// -------------------------------------------------------------------
+// DatePicker helpers
 const fromDateValue = computed(() => {
   if (!form.fromDate) return undefined
   const [y, m, d] = form.fromDate.split('-').map(Number)
@@ -165,21 +167,57 @@ const handleEditJoinedDateUpdate = (date: Date | null) => {
   editForm.value.joinedDate = `${year}-${month}-${day}`
 }
 
-// -------------------------------------------------------------------
-// Location & academic watchers (unchanged)
-// -------------------------------------------------------------------
-watch(() => editForm.value.stateId, async (newId) => {
-  if (newId) await fetchDistricts(newId)
-  else { editForm.value.districtId = ''; editForm.value.municipalityId = '' }
-})
-watch(() => editForm.value.districtId, async (newId) => {
-  if (newId) await fetchMunicipalities(newId)
-  else editForm.value.municipalityId = ''
+// Flag to prevent watch loops during initialization
+const isInitializing = ref(false)
+
+// Location & academic watchers - FIXED to prevent infinite loops and handle object values
+watch(() => editForm.value.stateId, async (newVal, oldVal) => {
+  // Skip if initializing or value hasn't really changed
+  if (isInitializing.value) return
+  
+  // Compare the actual values (objects have .value property)
+  const newId = newVal?.value || null
+  const oldId = oldVal?.value || null
+  
+  if (newId === oldId) return
+  
+  if (newId) {
+    editForm.value.districtId = null
+    editForm.value.municipalityId = null
+    try { 
+      await fetchDistricts(String(newId)) 
+    } catch { 
+      toast.error('Failed to load districts') 
+    }
+  } else {
+    editForm.value.districtId = null
+    editForm.value.municipalityId = null
+  }
 })
 
-// -------------------------------------------------------------------
-// Guardian loading (unchanged)
-// -------------------------------------------------------------------
+watch(() => editForm.value.districtId, async (newVal, oldVal) => {
+  // Skip if initializing or value hasn't really changed
+  if (isInitializing.value) return
+  
+  // Compare the actual values (objects have .value property)
+  const newId = newVal?.value || null
+  const oldId = oldVal?.value || null
+  
+  if (newId === oldId) return
+  
+  if (newId) {
+    editForm.value.municipalityId = null
+    try { 
+      await fetchMunicipalities(String(newId)) 
+    } catch { 
+      toast.error('Failed to load municipalities') 
+    }
+  } else {
+    editForm.value.municipalityId = null
+  }
+})
+
+// Guardian loading
 watch(isDialogOpen, async (open) => {
   if (open && selectedStudent.value) {
     activeTab.value = 'student'
@@ -191,12 +229,14 @@ const loadGuardians = async (studentId: number) => {
   try {
     const { guardians: g } = await getGuardiansByStudentId(studentId)
     guardians.value = g || []
-  } finally { loadingGuardians.value = false }
+  } catch { 
+    toast.error('Failed to load guardians') 
+  } finally { 
+    loadingGuardians.value = false 
+  }
 }
 
-// -------------------------------------------------------------------
-// Guardian CRUD (unchanged)
-// -------------------------------------------------------------------
+// Guardian CRUD
 const openGuardianModal = (guardian?: any) => {
   editingGuardian.value = guardian
     ? { ...guardian, is_primary_contact: Boolean(Number(guardian.is_primary_contact)) }
@@ -204,7 +244,10 @@ const openGuardianModal = (guardian?: any) => {
   guardianErrors.value = {}
   isGuardianModalOpen.value = true
 }
-const closeGuardianModal = () => { isGuardianModalOpen.value = false; editingGuardian.value = null }
+const closeGuardianModal = () => { 
+  isGuardianModalOpen.value = false
+  editingGuardian.value = null 
+}
 const validateGuardian = () => {
   guardianErrors.value = {}
   if (!editingGuardian.value?.name?.trim()) guardianErrors.value.name = 'Name is required'
@@ -217,48 +260,101 @@ const submitGuardian = async () => {
     let result
     if (editingGuardian.value.id) {
       result = await updateGuardianByGuardianId(editingGuardian.value.id, editingGuardian.value)
+      if (result) toast.success('Guardian updated successfully')
     } else {
       result = await createGuardian(selectedStudent.value.id, editingGuardian.value)
+      if (result) toast.success('Guardian added successfully')
     }
     if (result) {
       await loadGuardians(selectedStudent.value.id)
       setTimeout(closeGuardianModal, 100)
-    }
-  } finally { guardianFormProcessing.value = false }
+    } else toast.error('Failed to save guardian')
+  } catch {
+    toast.error('Failed to save guardian')
+  } finally { 
+    guardianFormProcessing.value = false 
+  }
 }
-const handleGuardianDelete = (g: any) => { editingGuardian.value = g; isDeleteGuardianOpen.value = true }
+const handleGuardianDelete = (g: any) => { 
+  editingGuardian.value = g
+  isDeleteGuardianOpen.value = true 
+}
 const removeGuardian = async () => {
   if (!editingGuardian.value?.id) return
-  const ok = await deleteGuardian(editingGuardian.value.id)
-  if (ok) {
-    guardians.value = guardians.value.filter(g => g.id !== editingGuardian.value.id)
-    isDeleteGuardianOpen.value = false
-    editingGuardian.value = null
+  try {
+    const ok = await deleteGuardian(editingGuardian.value.id)
+    if (ok) {
+      guardians.value = guardians.value.filter(g => g.id !== editingGuardian.value.id)
+      toast.success('Guardian deleted')
+      isDeleteGuardianOpen.value = false
+      editingGuardian.value = null
+    } else toast.error('Failed to delete guardian')
+  } catch { 
+    toast.error('Failed to delete guardian') 
   }
 }
 
-// -------------------------------------------------------------------
 // Student actions
-// -------------------------------------------------------------------
 const handleView = (student: Student) => {
   selectedStudent.value = student
   isDialogOpen.value = true
 }
 
-/* ----------  EDIT MODAL – LAZY LOAD ---------- */
+// Edit Modal – FIXED to properly load and set values with option objects
 const startEdit = async (student: Student) => {
-  selectedStudent.value = student               // keep reference for view modal
-  isEditModalOpen.value = true                  // show modal **immediately**
+  selectedStudent.value = student
+  isEditModalOpen.value = true
   loadingEdit.value = true
-  editForm.value = {                            // reset form
-    id: null, fName: '', mName: '', lName: '', email: '', phone: '',
-    age: '', dateOfBirth: '', classId: '', sectionId: '', contactNumber: '',
-    joinedDate: '', address: '', stateId: '', districtId: '', municipalityId: '',
+  isInitializing.value = true // Prevent watchers from firing
+
+  // Reset form first
+  editForm.value = {
+    id: null, 
+    fName: '', 
+    mName: '', 
+    lName: '', 
+    email: '', 
+    phone: '',
+    age: '', 
+    dateOfBirth: '', 
+    classId: null, 
+    sectionId: null, 
+    contactNumber: '',
+    joinedDate: '', 
+    address: '', 
+    stateId: null, 
+    districtId: null, 
+    municipalityId: null,
     photo: null
   }
 
   try {
-    // Populate form
+    // Convert IDs to strings for consistency
+    const stateId = student.state_id ? String(student.state_id) : null
+    const districtId = student.district_id ? String(student.district_id) : null
+    const municipalityId = student.municipality_id ? String(student.municipality_id) : null
+    const classId = student.class_id ? String(student.class_id) : null
+    const sectionId = student.section_id ? String(student.section_id) : null
+
+    // Load dependent dropdowns FIRST before setting form values
+    if (stateId) {
+      await fetchDistricts(stateId)
+    }
+    if (districtId) {
+      await fetchMunicipalities(districtId)
+    }
+
+    // Wait for next tick to ensure dropdowns are populated
+    await nextTick()
+
+    // Find the actual option objects from the arrays
+    const classOption = classId ? classes.value.find(c => String(c.value) === classId) || null : null
+    const sectionOption = sectionId ? sections.value.find(s => String(s.value) === sectionId) || null : null
+    const stateOption = stateId ? states.value.find(st => String(st.value) === stateId) || null : null
+    const districtOption = districtId ? districts.value.find(d => String(d.value) === districtId) || null : null
+    const municipalityOption = municipalityId ? municipalities.value.find(m => String(m.value) === municipalityId) || null : null
+
+    // Now populate form with option objects
     editForm.value = {
       id: student.id,
       fName: student.first_name || '',
@@ -268,30 +364,40 @@ const startEdit = async (student: Student) => {
       phone: student.phone || '',
       age: student.age || '',
       dateOfBirth: student.date_of_birth || '',
-      classId: student.class_id || '',
-      sectionId: student.section_id || '',
+      classId: classOption,
+      sectionId: sectionOption,
       contactNumber: student.contact_number || '',
       joinedDate: student.joined_date || '',
       address: student.address || '',
-      stateId: student.state_id || '',
-      districtId: student.district_id || '',
-      municipalityId: student.municipality_id || '',
+      stateId: stateOption,
+      districtId: districtOption,
+      municipalityId: municipalityOption,
       photo: null,
     }
 
-    // Load dependent dropdowns
-    if (student.state_id) await fetchDistricts(student.state_id)
-    if (student.district_id) await fetchMunicipalities(student.district_id)
+    // Wait for form to update
+    await nextTick()
+    
+  } catch (e) {
+    console.error('Failed to load edit data:', e)
+    toast.error('Failed to load student data')
   } finally {
     loadingEdit.value = false
+    // Re-enable watchers after a delay
+    setTimeout(() => {
+      isInitializing.value = false
+    }, 500)
   }
 }
+
 const handleEdit = (student?: Student) => {
   const s = student || selectedStudent.value
+  console.log(s,"studentdetails");
+  
   if (s) startEdit(s)
 }
 
-/* ----------  FORM VALIDATION & SUBMIT ---------- */
+// Form Validation & Submit - Updated to handle object values
 const validateEditForm = () => {
   editValidationErrors.value = {}
   if (!editForm.value.fName?.trim()) editValidationErrors.value.fName = 'First name is required'
@@ -307,7 +413,10 @@ const validateEditForm = () => {
 }
 
 const submitEditForm = async () => {
-  if (!validateEditForm()) { toast.error('Please fill all required fields'); return }
+  if (!validateEditForm()) { 
+    toast.error('Please fill all required fields')
+    return 
+  }
   editFormProcessing.value = true
   try {
     const fd = new FormData()
@@ -318,36 +427,42 @@ const submitEditForm = async () => {
     fd.append('phone', editForm.value.phone)
     fd.append('age', editForm.value.age.toString())
     fd.append('date_of_birth', editForm.value.dateOfBirth)
-    fd.append('class_id', editForm.value.classId)
-    fd.append('section_id', editForm.value.sectionId || '')
+    
+    // Extract value from option objects
+    fd.append('class_id', editForm.value.classId?.value || '')
+    fd.append('section_id', editForm.value.sectionId?.value || '')
     fd.append('contact_number', editForm.value.contactNumber || '')
     fd.append('joined_date', editForm.value.joinedDate)
     fd.append('address', editForm.value.address || '')
-    fd.append('state_id', editForm.value.stateId)
-    fd.append('district_id', editForm.value.districtId || '')
-    fd.append('municipality_id', editForm.value.municipalityId || '')
+    fd.append('state_id', editForm.value.stateId?.value || '')
+    fd.append('district_id', editForm.value.districtId?.value || '')
+    fd.append('municipality_id', editForm.value.municipalityId?.value || '')
+    
     if (editForm.value.photo) fd.append('photo', editForm.value.photo)
 
     const ok = await updateStudent(editForm.value.id, fd)
-    if (ok) {
-      toast.success('Student updated successfully')
+    console.log(ok,"updateStudent");
+    
+    if (ok.success) {
+      // toast.success('Student updated successfully')
       isEditModalOpen.value = false
       await fetchStudentListByDateRange()
     } else toast.error('Failed to update student')
   } catch (e) {
-    console.error(e)
+    console.error('Update student error:', e)
     toast.error('Failed to update student')
-  } finally { editFormProcessing.value = false }
+  } finally { 
+    editFormProcessing.value = false 
+  }
 }
 
-/* ----------  PHOTO HELPERS ---------- */
+// Photo Helpers
 const photoPreview = computed(() => {
   if (editForm.value.photo) return URL.createObjectURL(editForm.value.photo)
   if (selectedStudent.value?.photo_url) return selectedStudent.value.photo_url
   return null
 })
 const removePhoto = () => { editForm.value.photo = null }
-
 const handlePhoneInput = (e: Event) => {
   const inp = e.target as HTMLInputElement
   inp.value = inp.value.replace(/\D/g, '').slice(0, 10)
@@ -358,13 +473,29 @@ const handlePhotoChange = (e: Event) => {
   if (inp.files?.[0]) editForm.value.photo = inp.files[0]
 }
 
-/* ----------  CLOSE / DELETE ---------- */
+// Close / Delete - Updated to reset with null values
 const closeEditModal = () => {
   isEditModalOpen.value = false
-  editForm.value = { id: null, fName: '', mName: '', lName: '', email: '', phone: '',
-    age: '', dateOfBirth: '', classId: '', sectionId: '', contactNumber: '',
-    joinedDate: '', address: '', stateId: '', districtId: '', municipalityId: '',
-    photo: null }
+  isInitializing.value = false
+  editForm.value = {
+    id: null, 
+    fName: '', 
+    mName: '', 
+    lName: '', 
+    email: '', 
+    phone: '',
+    age: '', 
+    dateOfBirth: '', 
+    classId: null, 
+    sectionId: null, 
+    contactNumber: '',
+    joinedDate: '', 
+    address: '', 
+    stateId: null, 
+    districtId: null, 
+    municipalityId: null,
+    photo: null
+  }
   editValidationErrors.value = {}
 }
 const handleDelete = (student: Student) => {
@@ -373,13 +504,19 @@ const handleDelete = (student: Student) => {
 }
 const confirmDelete = async () => {
   if (!studentToDelete.value) return
-  const ok = await removeStudent(studentToDelete.value.id)
-  if (ok) { isDeleteDialogOpen.value = false; studentToDelete.value = null }
+  try {
+    const ok = await removeStudent(studentToDelete.value.id)
+    if (ok) {
+      toast.success('Student deleted successfully')
+      isDeleteDialogOpen.value = false
+      studentToDelete.value = null
+    } else toast.error('Failed to delete student')
+  } catch { 
+    toast.error('Failed to delete student') 
+  }
 }
 
-// -------------------------------------------------------------------
-// Table columns (unchanged)
-// -------------------------------------------------------------------
+// Table columns
 const columns: ColumnDef<Student>[] = [
   { accessorKey: 'id', header: 'ID', cell: ({ row }) => h('div', { class: 'font-medium' }, row.getValue('id')) },
   { accessorKey: 'first_name', header: 'First Name' },
@@ -443,10 +580,9 @@ const columns: ColumnDef<Student>[] = [
     </div>
   </AppLayout>
 
-  <!-- VIEW MODAL (unchanged) -->
+  <!-- VIEW MODAL -->
   <Dialog v-model:open="isDialogOpen">
     <DialogContent class="max-w-[95vw] lg:max-w-[1100px] w-full p-0 overflow-hidden flex flex-col" style="height: 85vh;">
-      <!-- ... view modal content unchanged ... -->
       <DialogHeader class="flex-shrink-0 bg-white border-b p-6">
         <DialogTitle class="text-2xl font-bold">Student Profile</DialogTitle>
         <DialogDescription class="text-lg">
@@ -461,14 +597,104 @@ const columns: ColumnDef<Student>[] = [
         </TabsList>
 
         <div class="flex-1 overflow-y-auto p-6">
-          <!-- Student Tab (unchanged) -->
           <TabsContent value="student" class="space-y-6 mt-0">
-            <!-- ... unchanged ... -->
+            <div class="flex items-center gap-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6">
+              <Avatar class="h-24 w-24">
+                <AvatarImage :src="selectedStudent?.photo_url" />
+                <AvatarFallback class="text-2xl font-bold">
+                  {{ selectedStudent?.first_name?.[0] }}{{ selectedStudent?.last_name?.[0] }}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <h3 class="text-2xl font-bold">
+                  {{ selectedStudent?.first_name }}
+                  {{ selectedStudent?.middle_name ? ' ' + selectedStudent.middle_name : '' }}
+                  {{ selectedStudent?.last_name }}
+                </h3>
+                <div class="flex gap-3 mt-2">
+                  <Badge>{{ selectedStudent?.class_name ?? '—' }}</Badge>
+                  <Badge variant="outline">{{ selectedStudent?.section_name ?? '—' }}</Badge>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h4 class="font-semibold text-gray-700 mb-3">Personal Details</h4>
+                <dl class="space-y-2 text-sm">
+                  <div class="flex justify-between"><dt class="text-gray-600">ID</dt><dd>#{{ selectedStudent?.id }}</dd></div>
+                  <div class="flex justify-between"><dt class="text-gray-600">Email</dt><dd class="lowercase">{{ selectedStudent?.email ?? '—' }}</dd></div>
+                  <div class="flex justify-between"><dt class="text-gray-600">Phone</dt><dd>{{ selectedStudent?.phone ?? '—' }}</dd></div>
+                  <div class="flex justify-between"><dt class="text-gray-600">Age</dt><dd>{{ selectedStudent?.age ?? '—' }} yrs</dd></div>
+                  <div class="flex justify-between"><dt class="text-gray-600">DOB</dt><dd>{{ selectedStudent?.date_of_birth ?? '—' }}</dd></div>
+                  <div class="flex justify-between"><dt class="text-gray-600">Joined</dt><dd>{{ selectedStudent?.joined_date ?? '—' }}</dd></div>
+                </dl>
+              </div>
+              <div>
+                <h4 class="font-semibold text-gray-700 mb-3">Address</h4>
+                <p class="text-sm">{{ selectedStudent?.address || 'No address provided' }}</p>
+                <div class="flex flex-wrap gap-2 mt-3">
+                  <Badge v-if="selectedStudent?.state_name" variant="outline">{{ selectedStudent.state_name }}</Badge>
+                  <Badge v-if="selectedStudent?.district_name" variant="outline">{{ selectedStudent.district_name }}</Badge>
+                  <Badge v-if="selectedStudent?.municipality_name" variant="outline">{{ selectedStudent.municipality_name }}</Badge>
+                </div>
+              </div>
+            </div>
           </TabsContent>
 
-          <!-- Guardians Tab (unchanged) -->
           <TabsContent value="guardians" class="mt-0">
-            <!-- ... unchanged ... -->
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="text-xl font-semibold">Guardians</h3>
+              <Button size="sm" @click="openGuardianModal()">
+                <Plus class="h-4 w-4 mr-1" /> Add Guardian
+              </Button>
+            </div>
+
+            <div class="border rounded-lg overflow-x-auto">
+              <table class="w-full text-sm min-w-[800px]">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th class="px-4 py-3 text-left font-semibold">Name</th>
+                    <th class="px-4 py-3 text-left font-semibold">Relation</th>
+                    <th class="px-4 py-3 text-left font-semibold">Phone</th>
+                    <th class="px-4 py-3 text-left font-semibold">Email</th>
+                    <th class="px-4 py-3 text-left font-semibold">Occupation</th>
+                    <th class="px-4 py-3 text-left font-semibold">Address</th>
+                    <th class="px-4 py-3 text-left font-semibold">Primary</th>
+                    <th class="px-4 py-3 text-right font-semibold">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-if="loadingGuardians">
+                    <td colspan="8" class="text-center py-10">
+                      <Loader2 class="h-8 w-8 animate-spin mx-auto" />
+                    </td>
+                  </tr>
+                  <tr v-else-if="guardians.length === 0">
+                    <td colspan="8" class="text-center py-10 text-gray-500">No guardians added</td>
+                  </tr>
+                  <tr v-for="g in guardians" :key="g.id" class="border-t hover:bg-gray-50">
+                    <td class="px-4 py-3 max-w-[200px] truncate" :title="g.address">{{ g.address || '—' }}</td>
+                    <td class="px-4 py-3">
+                      <span v-if="g.is_primary_contact" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        Primary
+                      </span>
+                      <span v-else class="text-gray-400">—</span>
+                    </td>
+                    <td class="px-4 py-3 text-right">
+                      <div class="flex items-center justify-end gap-1">
+                        <Button variant="ghost" size="icon" class="h-8 w-8" @click="openGuardianModal(g)">
+                          <Pencil class="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" class="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50" @click="handleGuardianDelete(g)">
+                          <Trash2 class="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </TabsContent>
         </div>
       </Tabs>
@@ -482,36 +708,26 @@ const columns: ColumnDef<Student>[] = [
     </DialogContent>
   </Dialog>
 
-  <!-- ====================== EDIT STUDENT MODAL ====================== -->
-  <Dialog v-model:open="isEditModalOpen">
-    <DialogContent
-      class="max-w-[95vw] lg:max-w-[700px] w-full p-0 overflow-hidden flex flex-col"
-      style="height: 85vh;"
-    >
-      <!-- Header -->
+  <!-- EDIT STUDENT MODAL -->
+  <Dialog :forceMount="true" v-model:open="isEditModalOpen">
+    <DialogContent class="max-w-[95vw] lg:max-w-[1400px] w-full p-0 overflow-hidden flex flex-col max-h-[85vh]">
       <DialogHeader class="flex-shrink-0 bg-white border-b p-6">
         <DialogTitle class="text-2xl font-bold">Edit Student</DialogTitle>
-        <DialogDescription class="text-lg">
-          Update student information
-        </DialogDescription>
+        <DialogDescription class="text-lg">Update student information</DialogDescription>
       </DialogHeader>
 
-      <!-- Scrollable body -->
-      <div class="flex-1 overflow-y-auto p-6">
-        <!-- Loading spinner while data is fetched -->
+      <div class="flex-1 overflow-y-auto p-6 min-h-0 max-h-[calc(85vh-140px)]">
         <div v-if="loadingEdit" class="flex flex-col items-center justify-center h-full">
           <Loader2 class="h-12 w-12 animate-spin text-primary" />
           <p class="mt-3 text-muted-foreground">Loading student data…</p>
         </div>
 
-        <!-- Form (only shown after load) -->
-        <form v-else @submit.prevent="submitEditForm" class="space-y-6">
-          <!-- Photo -->
-          <div class="flex items-center gap-6 bg-gray-50 rounded-lg p-4">
+        <form v-else @submit.prevent="submitEditForm" class="space-y-4">
+          <div class="flex items-center gap-4 bg-gray-50 rounded-lg p-4">
             <div class="relative">
-              <Avatar class="h-24 w-24">
-                <AvatarImage :src="photoPreview || undefined" />
-                <AvatarFallback class="text-2xl font-bold">
+              <Avatar class="h-20 w-20">
+                <AvatarImage v-if="photoPreview" :src="photoPreview" />
+                <AvatarFallback class="text-xl font-bold">
                   {{ editForm.fName?.[0] || 'S' }}{{ editForm.lName?.[0] || 'T' }}
                 </AvatarFallback>
               </Avatar>
@@ -526,130 +742,128 @@ const columns: ColumnDef<Student>[] = [
             </div>
             <div class="flex-1">
               <Label for="edit-photo">Profile Photo</Label>
-              <Input id="edit-photo" type="file" accept="image/*" @change="handlePhotoChange" class="mt-2" />
+              <Input id="edit-photo" type="file" accept="image/*" @change="handlePhotoChange" class="mt-1" />
               <p class="text-xs text-gray-500 mt-1">Upload a new photo or keep existing one</p>
             </div>
           </div>
-
-          <!-- Personal Information -->
-          <div>
-            <h3 class="text-lg font-semibold mb-3 pb-2 border-b">Personal Information</h3>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div class="space-y-2">
-                <Label for="edit-fName">First Name <span class="text-red-500">*</span></Label>
-                <Input id="edit-fName" v-model="editForm.fName" placeholder="First name"
-                       :class="{ 'border-red-500': editValidationErrors.fName }" />
-                <p v-if="editValidationErrors.fName" class="text-sm text-red-600">{{ editValidationErrors.fName }}</p>
-              </div>
-              <div class="space-y-2">
-                <Label for="edit-mName">Middle Name</Label>
-                <Input id="edit-mName" v-model="editForm.mName" placeholder="Middle name" />
-              </div>
-              <div class="space-y-2">
-                <Label for="edit-lName">Last Name <span class="text-red-500">*</span></Label>
-                <Input id="edit-lName" v-model="editForm.lName" placeholder="Last name"
-                       :class="{ 'border-red-500': editValidationErrors.lName }" />
-                <p v-if="editValidationErrors.lName" class="text-sm text-red-600">{{ editValidationErrors.lName }}</p>
-              </div>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="space-y-2">
+              <Label for="edit-fName">First Name <span class="text-red-500">*</span></Label>
+              <Input id="edit-fName" v-model="editForm.fName" placeholder="First name" :class="{ 'border-red-500': editValidationErrors.fName }" />
+              <p v-if="editValidationErrors.fName" class="text-sm text-red-600">{{ editValidationErrors.fName }}</p>
             </div>
-          </div>
 
-          <!-- Contact Information -->
-          <div>
-            <h3 class="text-lg font-semibold mb-3 pb-2 border-b">Contact Information</h3>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div class="space-y-2">
-                <Label for="edit-email">Email</Label>
-                <Input id="edit-email" v-model="editForm.email" type="email" placeholder="Email" />
-              </div>
-              <div class="space-y-2">
-                <Label for="edit-phone">Phone <span class="text-red-500">*</span></Label>
-                <Input id="edit-phone" v-model="editForm.phone" placeholder="10-digit number"
-                       :class="{ 'border-red-500': editValidationErrors.phone }"
-                       @input="handlePhoneInput" maxlength="10" />
-                <p v-if="editValidationErrors.phone" class="text-sm text-red-600">{{ editValidationErrors.phone }}</p>
-              </div>
-              <div class="space-y-2">
-                <Label for="edit-age">Age <span class="text-red-500">*</span></Label>
-                <Input id="edit-age" v-model="editForm.age" type="number" min="1" max="100"
-                       :class="{ 'border-red-500': editValidationErrors.age }" />
-                <p v-if="editValidationErrors.age" class="text-sm text-red-600">{{ editValidationErrors.age }}</p>
-              </div>
+            <div class="space-y-2">
+              <Label for="edit-mName">Middle Name</Label>
+              <Input id="edit-mName" v-model="editForm.mName" placeholder="Middle name" />
             </div>
-          </div>
-
-          <!-- Academic Information -->
-          <div>
-            <h3 class="text-lg font-semibold mb-3 pb-2 border-b">Academic Information</h3>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div class="space-y-2">
-                <Label for="edit-dateOfBirth">Date of Birth <span class="text-red-500">*</span></Label>
-                <DatePicker id="edit-dateOfBirth"
-                            :model-value="editDateOfBirthValue"
-                            @update:model-value="handleEditDateOfBirthUpdate"
-                            month-year-selector />
-                <p v-if="editValidationErrors.dateOfBirth" class="text-sm text-red-600">{{ editValidationErrors.dateOfBirth }}</p>
-              </div>
-              <div class="space-y-2">
-                <Label for="edit-classId">Class <span class="text-red-500">*</span></Label>
-                <SelectSearch id="edit-classId" v-model="editForm.classId"
-                              :options="classes" placeholder="Select Class" />
-                <p v-if="editValidationErrors.classId" class="text-sm text-red-600">{{ editValidationErrors.classId }}</p>
-              </div>
-              <div class="space-y-2">
-                <Label for="edit-sectionId">Section</Label>
-                <SelectSearch id="edit-sectionId" v-model="editForm.sectionId"
-                              :options="sections" placeholder="Select Section" />
-              </div>
-
-              <div class="space-y-2">
-                <Label for="edit-joinedDate">Joined Date <span class="text-red-500">*</span></Label>
-                <DatePicker id="edit-joinedDate"
-                            :model-value="editJoinedDateValue"
-                            @update:model-value="handleEditJoinedDateUpdate"
-                            month-year-selector />
-                <p v-if="editValidationErrors.joinedDate" class="text-sm text-red-600">{{ editValidationErrors.joinedDate }}</p>
-              </div>
-              <div class="space-y-2">
-                <Label for="edit-contactNumber">Contact Number</Label>
-                <Input id="edit-contactNumber" v-model="editForm.contactNumber" placeholder="Contact number" />
-              </div>
+            
+            <div class="space-y-2">
+              <Label for="edit-lName">Last Name <span class="text-red-500">*</span></Label>
+              <Input id="edit-lName" v-model="editForm.lName" placeholder="Last name" :class="{ 'border-red-500': editValidationErrors.lName }" />
+              <p v-if="editValidationErrors.lName" class="text-sm text-red-600">{{ editValidationErrors.lName }}</p>
             </div>
-          </div>
 
-          <!-- Address Information -->
-          <div>
-            <h3 class="text-lg font-semibold mb-3 pb-2 border-b">Address Information</h3>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div class="space-y-2 md:col-span-3">
-                <Label for="edit-address">Address</Label>
-                <Input id="edit-address" v-model="editForm.address" placeholder="Full address" />
-              </div>
+            <div class="space-y-2">
+              <Label for="edit-email">Email</Label>
+              <Input id="edit-email" v-model="editForm.email" type="email" placeholder="Email" />
+            </div>
 
-              <div class="space-y-2">
-                <Label for="edit-stateId">State <span class="text-red-500">*</span></Label>
-                <SelectSearch id="edit-stateId" v-model="editForm.stateId"
-                              :options="states" placeholder="Select State" />
-                <p v-if="editValidationErrors.stateId" class="text-sm text-red-600">{{ editValidationErrors.stateId }}</p>
-              </div>
-              <div class="space-y-2">
-                <Label for="edit-districtId">District</Label>
-                <SelectSearch id="edit-districtId" v-model="editForm.districtId"
-                              :options="districts" :disabled="!editForm.stateId"
-                              placeholder="Select District" />
-              </div>
-              <div class="space-y-2">
-                <Label for="edit-municipalityId">Municipality</Label>
-                <SelectSearch id="edit-municipalityId" v-model="editForm.municipalityId"
-                              :options="municipalities" :disabled="!editForm.districtId"
-                              placeholder="Select Municipality" />
-              </div>
+            <div class="space-y-2">
+              <Label for="edit-phone">Phone <span class="text-red-500">*</span></Label>
+              <Input id="edit-phone" v-model="editForm.phone" placeholder="10-digit number" :class="{ 'border-red-500': editValidationErrors.phone }" @input="handlePhoneInput" maxlength="10" />
+              <p v-if="editValidationErrors.phone" class="text-sm text-red-600">{{ editValidationErrors.phone }}</p>
+            </div>
+
+            <div class="space-y-2">
+              <Label for="edit-age">Age <span class="text-red-500">*</span></Label>
+              <Input id="edit-age" v-model="editForm.age" type="number" min="1" max="100" :class="{ 'border-red-500': editValidationErrors.age }" />
+              <p v-if="editValidationErrors.age" class="text-sm text-red-600">{{ editValidationErrors.age }}</p>
+            </div>
+
+            <div class="space-y-2">
+              <Label for="edit-dateOfBirth">Date of Birth <span class="text-red-500">*</span></Label>
+              <DatePicker id="edit-dateOfBirth" :model-value="editDateOfBirthValue" @update:model-value="handleEditDateOfBirthUpdate" month-year-selector />
+              <p v-if="editValidationErrors.dateOfBirth" class="text-sm text-red-600">{{ editValidationErrors.dateOfBirth }}</p>
+            </div>
+
+            <div class="space-y-2">
+              <Label for="edit-classId">Class <span class="text-red-500">*</span></Label>
+               <CustomSelect
+                v-model="editForm.classId"
+                :options="classes"
+                placeholder="Select Class"
+              />
+              <p v-if="editValidationErrors.classId" class="text-sm text-red-600">{{ editValidationErrors.classId }}</p>
+            </div>
+
+            <div class="space-y-2">
+              <Label for="edit-sectionId">Section</Label>
+              <CustomSelect 
+               
+                id="edit-sectionId" 
+                v-model="editForm.sectionId" 
+                :options="sections" 
+                placeholder="Select Section" 
+              />
+            </div>
+
+            <!-- <div class="space-y-2">
+              <Label for="edit-joinedDate">Joined Date <span class="text-red-500">*</span></Label>
+              <DatePicker id="edit-joinedDate" :model-value="editJoinedDateValue" @update:model-value="handleEditJoinedDateUpdate" month-year-selector />
+              <p v-if="editValidationErrors.joinedDate" class="text-sm text-red-600">{{ editValidationErrors.joinedDate }}</p>
+            </div> -->
+
+            <div class="space-y-2">
+              <Label for="edit-contactNumber">Contact Number</Label>
+              <Input id="edit-contactNumber" v-model="editForm.contactNumber" placeholder="Contact number" />
+            </div>
+
+            <div class="space-y-2">
+              <Label for="edit-address">Address</Label>
+              <Input id="edit-address" v-model="editForm.address" placeholder="Full address" />
+            </div>
+
+            <div class="space-y-2">
+              <Label for="edit-stateId">State <span class="text-red-500">*</span></Label>
+              <CustomSelect 
+               
+                id="edit-stateId" 
+                v-model="editForm.stateId" 
+                :options="states" 
+                placeholder="Select State" 
+              />
+              <p v-if="editValidationErrors.stateId" class="text-sm text-red-600">{{ editValidationErrors.stateId }}</p>
+            </div>
+
+            <div class="space-y-2">
+              <Label for="edit-districtId">District</Label>
+              <CustomSelect 
+              
+                id="edit-districtId" 
+                v-model="editForm.districtId" 
+                :options="districts" 
+                :disabled="!editForm.stateId" 
+                placeholder="Select District" 
+              />
+            </div>
+
+            <div class="space-y-2">
+              <Label for="edit-municipalityId">Municipality</Label>
+              <CustomSelect 
+                
+                id="edit-municipalityId" 
+                v-model="editForm.municipalityId" 
+                :options="municipalities" 
+                :disabled="!editForm.districtId" 
+                placeholder="Select Municipality" 
+              />
             </div>
           </div>
         </form>
       </div>
 
-      <!-- Footer -->
       <div class="flex-shrink-0 bg-white border-t p-4 flex justify-end gap-3">
         <Button type="button" variant="outline" @click="closeEditModal">Cancel</Button>
         <Button type="button" @click="submitEditForm" :disabled="editFormProcessing || loadingEdit">
@@ -660,19 +874,84 @@ const columns: ColumnDef<Student>[] = [
     </DialogContent>
   </Dialog>
 
-  <!-- GUARDIAN FORM MODAL (unchanged) -->
+  <!-- GUARDIAN FORM MODAL -->
   <Dialog v-model:open="isGuardianModalOpen">
-    <!-- ... unchanged ... -->
+    <DialogContent class="max-w-4xl">
+      <DialogHeader>
+        <DialogTitle class="text-2xl">{{ editingGuardian?.id ? 'Edit' : 'Add' }} Guardian</DialogTitle>
+      </DialogHeader>
+      <form v-if="editingGuardian" @submit.prevent="submitGuardian" class="space-y-6">
+        <div>
+          <Label>Name <span class="text-red-500">*</span></Label>
+          <Input v-model="editingGuardian.name" placeholder="Full name" />
+          <p v-if="guardianErrors.name" class="text-sm text-red-600 mt-1">{{ guardianErrors.name }}</p>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div><Label>Relation</Label><Input v-model="editingGuardian.relation" placeholder="Father, Mother..." /></div>
+          <div><Label>Phone</Label><Input v-model="editingGuardian.phone" placeholder="98xxxxxxxx" /></div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div><Label>Email</Label><Input v-model="editingGuardian.email" type="email" /></div>
+          <div><Label>Occupation</Label><Input v-model="editingGuardian.occupation" /></div>
+        </div>
+        <div><Label>Address</Label><Input v-model="editingGuardian.address" placeholder="Full address" /></div>
+        <div class="flex items-center gap-3">
+          <input type="checkbox" v-model="editingGuardian.is_primary_contact" class="h-4 w-4" />
+          <Label class="font-normal cursor-pointer">Primary Contact</Label>
+        </div>
+        <DialogFooter>
+          <Button type="button" variant="outline" @click="closeGuardianModal">Cancel</Button>
+          <Button type="submit" :disabled="guardianFormProcessing">
+            <Loader2 v-if="guardianFormProcessing" class="mr-2 h-4 w-4 animate-spin" />
+            Save Guardian
+          </Button>
+        </DialogFooter>
+      </form>
+    </DialogContent>
   </Dialog>
 
-  <!-- DELETE STUDENT CONFIRMATION (unchanged) -->
+  <!-- DELETE STUDENT CONFIRMATION -->
   <AlertDialog v-model:open="isDeleteDialogOpen">
-    <!-- ... unchanged ... -->
+    <AlertDialogContent>
+      <AlertDialogHeader>
+        <AlertDialogTitle>Delete Student?</AlertDialogTitle>
+        <AlertDialogDescription>
+          This action cannot be undone.
+          <div class="mt-3 p-3 bg-red-50 border border-red-200 rounded-md text-sm">
+            <strong>{{ studentToDelete?.first_name }} {{ studentToDelete?.last_name }}</strong><br />
+            ID: #{{ studentToDelete?.id }}
+          </div>
+        </AlertDialogDescription>
+      </AlertDialogHeader>
+      <AlertDialogFooter>
+        <AlertDialogCancel @click="isDeleteDialogOpen = false">Cancel</AlertDialogCancel>
+        <AlertDialogAction @click="confirmDelete" class="bg-red-600 hover:bg-red-700">
+          <Trash2 class="mr-2 h-4 w-4" /> Delete
+        </AlertDialogAction>
+      </AlertDialogFooter>
+    </AlertDialogContent>
   </AlertDialog>
 
-  <!-- DELETE GUARDIAN CONFIRMATION (unchanged) -->
+  <!-- DELETE GUARDIAN CONFIRMATION -->
   <AlertDialog v-model:open="isDeleteGuardianOpen">
-    <!-- ... unchanged ... -->
+    <AlertDialogContent>
+      <AlertDialogHeader>
+        <AlertDialogTitle>Delete Guardian?</AlertDialogTitle>
+        <AlertDialogDescription>
+          This action cannot be undone.
+          <div class="mt-3 p-3 bg-red-50 border border-red-200 rounded-md text-sm">
+            <strong>{{ editingGuardian?.name }}</strong><br />
+            ID: #{{ editingGuardian?.id }}
+          </div>
+        </AlertDialogDescription>
+      </AlertDialogHeader>
+      <AlertDialogFooter>
+        <AlertDialogCancel @click="isDeleteGuardianOpen = false">Cancel</AlertDialogCancel>
+        <AlertDialogAction @click="removeGuardian" class="bg-red-600 hover:bg-red-700">
+          <Trash2 class="mr-2 h-4 w-4" /> Delete
+        </AlertDialogAction>
+      </AlertDialogFooter>
+    </AlertDialogContent>
   </AlertDialog>
 </template>
 
@@ -680,4 +959,24 @@ const columns: ColumnDef<Student>[] = [
 button { cursor: pointer !important; }
 .border-red-500 { border-color: rgb(239 68 68) !important; }
 .border-red-500:focus { border-color: rgb(239 68 68) !important; box-shadow: 0 0 0 1px rgb(239 68 68) !important; }
-</style>
+
+/* Prevent body scroll when any dropdown (Radix/HeadlessUI/shadcn) is open */
+body:has([data-radix-popper-content-wrapper]),
+body:has([data-headlessui-popper]),
+body:has([role="listbox"][data-state="open"]) {
+  overflow: hidden !important;
+}
+
+/* Ensure the dropdown appears above everything */
+[data-radix-popper-content-wrapper],
+[role="listbox"],
+[data-headlessui-popper] {
+  z-index: 9999 !important;
+}
+body.select-dropdown-open {
+  overflow: hidden !important;
+}
+[data-radix-popper-content-wrapper] {
+  z-index: 9999 !important;
+}
+</style> 

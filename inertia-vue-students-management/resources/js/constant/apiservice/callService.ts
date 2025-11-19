@@ -41,3 +41,9 @@ export const updateGuardian = (guardianId: number,formData: FormData) =>
 
   export const deleteGuardianByGuardianId = (guardianId: number) =>
   executeApiMethod<void>(apiMethods.deleteGuardian(guardianId));
+
+  export const updateStudentByStudentId = (studentId: number,formData: FormData) =>
+  executeApiMethod<{
+    message: string;
+    student: any;
+  }>(apiMethods.updateStudent(studentId,formData));
