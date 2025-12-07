@@ -40,7 +40,7 @@ CREATE TABLE `municipals` (
 -- Dumping data for table `municipals`
 --
 
-INSERT INTO `municipals` (`id`, `district_id`, `municipal_name`, `created_at`, `updated_at`) VALUES
+INSERT INTO `municipals` (`id`, `district_id`, `name`, `created_at`, `updated_at`) VALUES
 (1, 1, 'Phungling Municipality', '2025-08-14 05:34:13', '2025-08-14 05:34:13'),
 (2, 1, 'Aatharai Triveni', '2025-08-14 05:35:23', '2025-08-14 05:35:23'),
 (3, 1, 'Sidingawa', '2025-08-14 10:04:10', '2025-08-14 10:04:10'),

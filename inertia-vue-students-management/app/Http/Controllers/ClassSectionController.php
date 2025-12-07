@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Repositories\ClassesRepository;
 use App\Transformers\ClassesTransformer;
 use App\Transformers\SectionTransformer;
+use DB;
 use Illuminate\Http\Request;
 
 class ClassSectionController extends Controller
@@ -27,6 +28,7 @@ class ClassSectionController extends Controller
     public function getAllClasses()
     {
         $classes = $this->classesRepository->getAllClasses();
+        // dd(DB::table('classes')->get());    
         $transformedClasses = $this->classesTransformer->transformClasses($classes);
         // [ $formattedMunicipalities]
         return response()->json(['classesList' =>  $transformedClasses]);

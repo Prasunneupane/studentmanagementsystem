@@ -18,7 +18,7 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        DB::table('districts')->insert([
+    DB::table('districts')->insert([
     ['name'=>'Panchthar','state_id'=>1,'created_at'=>now(),'updated_at'=>now()],
     ['name'=>'Ilam','state_id'=>1,'created_at'=>now(),'updated_at'=>now()],
     ['name'=>'Jhapa','state_id'=>1,'created_at'=>now(),'updated_at'=>now()],

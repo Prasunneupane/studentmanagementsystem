@@ -14,7 +14,7 @@ class ClassesRepository implements ClassesInterface
     
 
     public function getAllClasses(): Collection{
-         return Classes::select('id', 'name')->where('is_active',true)->orderBy('id')->get();
+         return Classes::select('id', 'name')->where('is_active',1)->orderBy('id')->get();
     }
     public function getAllSections(): Collection{
         return Section::select('id', 'name')->where('is_active',true)->orderBy('id')->get();    
