@@ -7,8 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 class Classes extends Model
 {
     //
-     protected $table = "classes";
-     protected $primaryKey = 'id';
-public $incrementing = true;
-protected $keyType = 'int';
+    protected $table = "classes";
+    protected $primaryKey = 'id';
+    public $incrementing = true;
+    protected $keyType = 'int';
 }

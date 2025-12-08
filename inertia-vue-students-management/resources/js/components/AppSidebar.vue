@@ -5,9 +5,9 @@ import NavUser from '@/components/NavUser.vue';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/vue3';
-import { BookOpen, Folder, LayoutGrid, Settings, UserPlus, Users } from 'lucide-vue-next';
+import { BookOpen, Folder, LayoutGrid,FilePlusIcon, Settings, UserPlus, Users, Book, } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
-
+// <FilePlusCorner />
 const mainNavItems: NavItem[] = [
     {
         title: 'Dashboard',
@@ -28,6 +28,23 @@ const mainNavItems: NavItem[] = [
                 title: 'View Students',
                 href: '/students',
                 icon: Users,
+            },
+        ],
+    },
+    {
+        title: 'Subject Management',
+        href: '/',
+        icon: Book,
+        items: [
+            {
+                title: 'Add Subject',
+                href: '/subjects/create',
+                icon: FilePlusIcon,
+            },
+            {
+                title: 'View Subjects',
+                href: '/subjects',
+                icon: BookOpen,
             },
         ],
     },

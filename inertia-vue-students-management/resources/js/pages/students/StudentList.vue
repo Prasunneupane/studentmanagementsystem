@@ -458,11 +458,18 @@ const submitEditForm = async () => {
 
 // Photo Helpers
 const photoPreview = computed(() => {
+  console.log(editForm.value.photo,"photo of student");
+  //console.log(URL.createObjectURL(editForm.value.photo),"photo url of student");
+  console.log(selectedStudent.value?.photo_url,"selected student photo url");
+  
   if (editForm.value.photo) return URL.createObjectURL(editForm.value.photo)
   if (selectedStudent.value?.photo_url) return selectedStudent.value.photo_url
   return null
 })
-const removePhoto = () => { editForm.value.photo = null }
+const removePhoto = () => { 
+  editForm.value.photo = null;
+  selectedStudent.value.photo_url = '/images/default-avatar.png'
+ }
 const handlePhoneInput = (e: Event) => {
   const inp = e.target as HTMLInputElement
   inp.value = inp.value.replace(/\D/g, '').slice(0, 10)
@@ -660,7 +667,7 @@ const columns: ColumnDef<Student>[] = [
                     <th class="px-4 py-3 text-left font-semibold">Email</th>
                     <th class="px-4 py-3 text-left font-semibold">Occupation</th>
                     <th class="px-4 py-3 text-left font-semibold">Address</th>
-                    <th class="px-4 py-3 text-left font-semibold">Primary</th>
+                    <th class="px-4 py-3 text-left font-semibold">Is Primary</th>
                     <th class="px-4 py-3 text-right font-semibold">Actions</th>
                   </tr>
                 </thead>
@@ -674,6 +681,11 @@ const columns: ColumnDef<Student>[] = [
                     <td colspan="8" class="text-center py-10 text-gray-500">No guardians added</td>
                   </tr>
                   <tr v-for="g in guardians" :key="g.id" class="border-t hover:bg-gray-50">
+                    <td class="px-4 py-3 max-w-[200px] truncate" :title="g.name">{{ g.name || '—' }}</td>
+                    <td class="px-4 py-3 max-w-[200px] truncate" :title="g.relation">{{ g.relation || '—' }}</td>
+                    <td class="px-4 py-3 max-w-[200px] truncate" :title="g.phone">{{ g.phone || '—' }}</td>
+                    <td class="px-4 py-3 max-w-[200px] truncate" :title="g.email">{{ g.email || '—' }}</td>
+                    <td class="px-4 py-3 max-w-[200px] truncate" :title="g.occupation">{{ g.occupation || '—' }}</td>
                     <td class="px-4 py-3 max-w-[200px] truncate" :title="g.address">{{ g.address || '—' }}</td>
                     <td class="px-4 py-3">
                       <span v-if="g.is_primary_contact" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">

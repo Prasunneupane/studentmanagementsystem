@@ -12,9 +12,9 @@ class ClassSeeder extends Seeder
      * Run the database seeds.
      */
     public function run(): void
-    {
+    {   //DB::table('classes')->truncate();
         $sections = range('1', '10'); // generates ['A','B','C',...,'H']
-        DB::table('classes')->truncate(); // Clear existing data
+         // Clear existing data
         foreach ($sections as $letter) {
             DB::table('classes')->insert([
                 'name' => "Class {$letter}",

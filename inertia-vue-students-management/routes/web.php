@@ -4,6 +4,7 @@ use App\Http\Controllers\ClassesController;
 use App\Http\Controllers\ClassSectionController;
 use App\Http\Controllers\StateDistricMunController;
 use App\Http\Controllers\StudentsController;
+use App\Http\Controllers\SubjectController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -31,6 +32,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/{student}/edit', [StudentsController::class, 'edit'])->name('edit');
         Route::put('/{student}', [StudentsController::class, 'update'])->name('update');
         Route::delete('/{student}', [StudentsController::class, 'destroy'])->name('destroy');
+    });
+
+    Route::prefix('subjects')->name('subjects.')->group(function () {
+        Route::get('/', [SubjectController::class, 'index'])->name('index');
+        Route::get('/create', [SubjectController::class, 'create'])->name('create');
+            //    Route::get('/create', [SubjectController::class, 'create'])->name('create');
+        Route::post('/store', [SubjectController::class, 'store'])->name('store');
     });
 });
 

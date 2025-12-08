@@ -12,6 +12,8 @@ class Students extends Model
     protected $primaryKey = "id";
     public $timestamps = true;
 
+    protected $appends = ['photo_url'];
+
     protected $fillable = [
         'first_name',
         'middle_name',
