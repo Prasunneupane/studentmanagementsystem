@@ -24,12 +24,25 @@ export interface Student {
   // add more fields if needed
 }
 
-export function useStudentData(form: any) {
+export interface Subject {
+  id: number;
+  name: string;
+  code: string;
+  type?: string;
+  description?: string;
+  is_active?: boolean;
+  created_at?: string;
+  updated_at?: string;
+  // add more fields if needed
+}
+
+export function useStudentData(form?: any) {
   const students = ref<Student[]>([]);
   const loading = ref(false);
   const errorMessage = ref('');
   const deletingId = ref<number | null>(null);
   const guardians = ref<any[]>([]);
+  // const subject = ref<Subject[]>([]);
 
   const fetchStudentListByDateRange = async () => {
     if (!form.fromDate || !form.toDate) {
@@ -251,6 +264,7 @@ const updateStudent = async (studentId: number,formData:any)=> {
     updateGuardianByGuardianId,
     deleteGuardian,
     updateStudent,
-    guardians
+    guardians,
+    // subject,
   };
 }

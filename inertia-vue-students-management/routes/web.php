@@ -37,7 +37,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('subjects')->name('subjects.')->group(function () {
         Route::get('/', [SubjectController::class, 'index'])->name('index');
         Route::get('/create', [SubjectController::class, 'create'])->name('create');
-            //    Route::get('/create', [SubjectController::class, 'create'])->name('create');
+        Route::put('/deletesubject/{subject}', [SubjectController::class, 'deactivate'])->name('delete');
         Route::post('/store', [SubjectController::class, 'store'])->name('store');
     });
 });

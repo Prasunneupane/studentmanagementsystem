@@ -46,7 +46,7 @@ class AuthenticatedSessionController extends Controller
             'token_length' => strlen($token),
             'session_id' => session()->getId(),
         ]);
-
+        
         return redirect()->intended(route('dashboard'));   
     }
 

@@ -40,7 +40,7 @@ const form = useForm({
 const errors = ref<Record<string, string>>({})
 let sections = [
     { value: 'core', label: 'Core' },
-    { value: 'elective', label: 'Elective' },
+    { value: 'extra_curricular', label: 'Extra Curricular' },
     { value: 'optional', label: 'Optional' },
 ];
 const submit = () => {
@@ -69,6 +69,11 @@ const submit = () => {
   }
 
   form.post(route('subjects.store'), {
+    onBefore: () => {
+        if (typeof form.type === 'object' && form.type !== null) {
+            form.type = form.type.value
+        }
+    },
     onSuccess: () => {
          toast.success("Subject added successfully.", {
             duration: 3000,
