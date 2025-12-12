@@ -15,6 +15,7 @@ import { Loader2, Eye } from 'lucide-vue-next'
 import { Link } from '@inertiajs/vue3'
 import { Toaster } from '@/components/ui/sonner'
 import { useToast } from '@/composables/useToast'
+import 'vue-sonner/style.css'
 
 const { toast } = useToast()
 

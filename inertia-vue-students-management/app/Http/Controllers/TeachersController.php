@@ -28,9 +28,9 @@ class TeachersController extends Controller
     public function create()
     {
         $statusOptions = $this->teacherServices->getEnumerationValues('status');
-        dd($statusOptions);
+        // dd($statusOptions);
         return Inertia::render('teachers/AddTeacher', [
-            'statusOptions' => $statusOptions,
+            'status' => $statusOptions,
         ]);
     }
 
@@ -39,7 +39,21 @@ class TeachersController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        // dd($request->all());
+         $validatedData = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:tbl_teachers,email',
+            'phone' => 'required|string|max:10|unique:tbl_teachers,phone',
+            'address' => 'nullable|string|max:500',
+            'subject_specializtion' => 'required|string|max:255',
+            'joining_date' => 'required|date',
+            'leaving_date' => 'nullable|date|after_or_equal:joining_date',
+            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'dob' => 'required|date',
+            'is_active' => 'required|boolean',
+            // 'status' => 'required|array|in:'.implode(',', $this->teacherServices->getEnumerationValues('status')),
+
+        ]);
     }
 
     /**

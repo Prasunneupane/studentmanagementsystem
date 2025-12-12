@@ -3,15 +3,17 @@
 namespace App\Repositories;
 
 use App\Interface\TeacherInterfacce;
+use App\Models\Teachers;
 
 class TeacherRepository implements TeacherInterfacce
 {
     /**
      * Create a new class instance.
      */
-    public function __construct()
+    private $model;
+    public function __construct(Teachers $teachers)
     {
-        //
+        $this->model = $teachers;
     }
     public function getAllTeachers()
     {
@@ -49,7 +51,7 @@ class TeacherRepository implements TeacherInterfacce
 {
     // 1. Get raw column type from database
         $type = \DB::select(
-            "SHOW COLUMNS FROM {$this->getTable()} WHERE Field = '{$columnName}'"
+            "SHOW COLUMNS FROM {$this->model->getTable()} WHERE Field = '{$columnName}'"
         )[0]->Type;
 
         // 2. Extract only the enum values from the column definition
