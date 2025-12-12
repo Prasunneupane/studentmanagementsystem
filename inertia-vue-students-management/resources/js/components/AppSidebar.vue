@@ -5,7 +5,7 @@ import NavUser from '@/components/NavUser.vue';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/vue3';
-import { BookOpen, Folder, LayoutGrid,FilePlusIcon, Settings, UserPlus, Users, Book, } from 'lucide-vue-next';
+import { BookOpen, Folder, LayoutGrid,FilePlusIcon, Settings, UserPlus, Eye, Users, Book,BookUser, UserRoundCheck, GraduationCap, UserRoundPlus   } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
 // <FilePlusCorner />
 const mainNavItems: NavItem[] = [
@@ -45,6 +45,23 @@ const mainNavItems: NavItem[] = [
                 title: 'View Subjects',
                 href: '/subjects',
                 icon: BookOpen,
+            },
+        ],
+    },
+    {
+        title: 'Teacher Management',
+        href: '/',
+        icon: BookUser,
+        items: [
+            {
+                title: 'Add Teacher',
+                href: '/teachers/create',
+                icon: UserRoundPlus,
+            },
+            {
+                title: 'View Teachers',
+                href: '/teachers',
+                icon: Eye,
             },
         ],
     },

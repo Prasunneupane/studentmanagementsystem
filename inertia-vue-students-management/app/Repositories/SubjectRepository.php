@@ -32,6 +32,9 @@ class SubjectRepository implements SubjectInterface
     public function updateSubject(int $id, array $data)
     {
         // Implementation here  
+        $subject = Subject::findOrFail($id);
+        $subject->update($data);
+        return $subject;
     }
     public function deleteSubject(int $id){
         // Implementation here  
@@ -40,6 +43,6 @@ class SubjectRepository implements SubjectInterface
 
     public function findSubjectByName(string $name):Subject|null{
         // Implementation here  
-        return Subject::where('name', $name)->first();
+        return Subject::where('name', $name)->where('is_active',1)->first();
     }
 }

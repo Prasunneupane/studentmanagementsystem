@@ -73,7 +73,10 @@ class SubjectController extends Controller
      */
     public function edit(Subject $subject)
     {
-        //
+        // dd($subject);
+        return Inertia::render('subjects/AddSubject', [
+            'subject' => $subject
+        ]);
     }
 
     /**
@@ -81,7 +84,25 @@ class SubjectController extends Controller
      */
     public function update(Request $request, Subject $subject)
     {
-        //
+        $validatedData = $request->validate([
+            'name' => 'required|string|max:255',
+            'code' => 'required|string|max:50|unique:tbl_subjects,code,'.$subject->id,
+            'is_active' => 'required|boolean',
+            'description' => 'nullable|string',
+            // 'type' => 'required|string|max:100',
+        ]);
+        // dd($validatedData);
+       $data = [
+            ...$validatedData,
+            'type' => $request->type['value'] ?? null,
+        ];
+        // dd($data);
+        try {
+            $this->subjectService->updateSubject($subject->id, $data);
+            return redirect()->route('subjects.index')->with('success', 'Subject updated successfully.');
+        } catch (\Exception $e) {
+            return redirect()->back()->withErrors(['error' => $e->getMessage()])->withInput();
+        }
     }
 
     /**

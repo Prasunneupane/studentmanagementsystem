@@ -84,6 +84,7 @@ const columns: ColumnDef<Subject>[] = [
 const handleEdit = (subject?: Subject) => {
   const s = subject 
   console.log(s,"studentdetails");
+  if (s) router.get(route('subjects.edit', s.id));
   
   // if (s) startEdit(s)
 }

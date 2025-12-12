@@ -5,6 +5,7 @@ use App\Http\Controllers\ClassSectionController;
 use App\Http\Controllers\StateDistricMunController;
 use App\Http\Controllers\StudentsController;
 use App\Http\Controllers\SubjectController;
+use App\Http\Controllers\TeachersController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -38,7 +39,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/', [SubjectController::class, 'index'])->name('index');
         Route::get('/create', [SubjectController::class, 'create'])->name('create');
         Route::put('/deletesubject/{subject}', [SubjectController::class, 'deactivate'])->name('delete');
+        Route::get('/edit/{subject}', [SubjectController::class, 'edit'])->name('edit');
+        Route::put('/update/{subject}', [SubjectController::class, 'update'])->name('update');
         Route::post('/store', [SubjectController::class, 'store'])->name('store');
+    });
+
+    Route::prefix('teachers')->name('teachers.')->group(function () {
+        Route::get('/', [TeachersController::class, 'index'])->name('index');
+        Route::get('/create', [TeachersController::class, 'create'])->name('create');
+        Route::put('/delete-teacher/{teacher}', [TeachersController::class, 'deactivate'])->name('delete');
+        Route::get('/edit/{subject}', [TeachersController::class, 'edit'])->name('edit');
+        Route::put('/update/{subject}', [TeachersController::class, 'update'])->name('update');
+        Route::post('/store', [TeachersController::class, 'store'])->name('store');
     });
 });
 

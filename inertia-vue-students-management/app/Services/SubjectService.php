@@ -4,7 +4,7 @@ namespace App\Services;
 
 
 use App\Interface\SubjectInterface;
-use Dotenv\Exception\ValidationException;
+use Illuminate\Validation\ValidationException;
 
 class SubjectService 
 {
@@ -37,6 +37,17 @@ class SubjectService
     public function deleteSubject($subjectId)
     {
         return $this->subjectInterface->deleteSubject($subjectId);
+    }
+
+    public function updateSubject($subjectId, array $data)
+    {
+        $existingSubject = $this->subjectInterface->findSubjectByName($data['name']);
+        if ($existingSubject && $existingSubject->id != $subjectId) {
+            throw ValidationException::withMessages([
+                'name' => 'Subject name already exists.'
+            ]);
+        }
+        return $this->subjectInterface->updateSubject($subjectId, $data);
     }
     
 
