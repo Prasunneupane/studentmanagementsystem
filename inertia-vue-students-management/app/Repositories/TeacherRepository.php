@@ -4,6 +4,7 @@ namespace App\Repositories;
 
 use App\Interface\TeacherInterfacce;
 use App\Models\Teachers;
+use Storage;
 
 class TeacherRepository implements TeacherInterfacce
 {
@@ -18,10 +19,16 @@ class TeacherRepository implements TeacherInterfacce
     public function getAllTeachers()
     {
         // Implementation here  
+        return $this->model->where('is_active', true)->get();
     }
     public function createTeacher(array $data)
     {
-        // Implementation here  
+        // Implementation here 
+        if (isset($data['photo']) && $data['photo'] instanceof \Illuminate\Http\UploadedFile) {
+            $data['photo'] = $data['photo']->store('teachers', 'public');
+        }
+        // dd($data);
+        return $this->model->create($data);
     }
     public function getTeacherById(int $id)
     {
@@ -29,7 +36,16 @@ class TeacherRepository implements TeacherInterfacce
     }
     public function updateTeacher(int $id, array $data)
     {
-        // Implementation here  
+        $teacher = $this->model->findOrFail($id);
+         // Handle photo upload if present
+        if (isset($data['photo']) && $data['photo'] instanceof \Illuminate\Http\UploadedFile) {
+            // Delete old photo if exists
+            if ($teacher->photo) {
+                Storage::disk('public')->delete($teacher->photo);
+            }
+            $data['photo'] = $data['photo']->store('photos', 'public');
+        }
+        $teacher->update($data);
     }
     public function deleteTeacher(int $id)
     {

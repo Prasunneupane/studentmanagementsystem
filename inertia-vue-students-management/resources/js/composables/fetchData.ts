@@ -36,6 +36,22 @@ export interface Subject {
   // add more fields if needed
 }
 
+export interface Teacher{
+  id: number;
+  name:string;
+  email:string;
+  phone:string;
+  subject_specialization:string;
+  status:string;
+  joining_date:string;
+  leaving_date:string;
+  photo:string;
+  date_of_birth:string;
+  qualification:string;
+  is_active:boolean;
+  created_by:string;
+}
+
 export function useStudentData(form?: any) {
   const students = ref<Student[]>([]);
   const loading = ref(false);
@@ -265,6 +281,7 @@ const updateStudent = async (studentId: number,formData:any)=> {
     deleteGuardian,
     updateStudent,
     guardians,
+    // Teacher,
     // subject,
   };
 }

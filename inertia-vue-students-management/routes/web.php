@@ -48,8 +48,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/', [TeachersController::class, 'index'])->name('index');
         Route::get('/create', [TeachersController::class, 'create'])->name('create');
         Route::put('/delete-teacher/{teacher}', [TeachersController::class, 'deactivate'])->name('delete');
-        Route::get('/edit/{subject}', [TeachersController::class, 'edit'])->name('edit');
-        Route::put('/update/{subject}', [TeachersController::class, 'update'])->name('update');
+        Route::get('/edit/{teacher}', [TeachersController::class, 'edit'])->name('edit');
+        Route::put('/update/{teacher}', [TeachersController::class, 'update'])->name('update');
         Route::post('/store', [TeachersController::class, 'store'])->name('store');
     });
 });

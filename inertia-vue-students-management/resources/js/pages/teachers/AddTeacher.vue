@@ -42,14 +42,14 @@ const defaultStatus = computed(() =>
 
 // Date of Birth — convert string → Date object for DatePicker
 const   dobDate = ref<Date | null>(null)
-
+const photo = props.teacher?.photo_url || null;
 // Initialize form
 const form = useForm({
   name: props.teacher?.name || '',
   email: props.teacher?.email || '',
   phone: props.teacher?.phone || '',
   address: props.teacher?.address || '',
-  subject_specializtion: props.teacher?.subject_specialization || '',
+  subject_specialization: props.teacher?.subject_specialization || '',
   qualification: props.teacher?.qualification || '',
   status: props.teacher
     ? statusOptions.value.find(s => s.value === props.teacher.status) || defaultStatus.value
@@ -60,7 +60,7 @@ const form = useForm({
   dob: props.teacher?.date_of_birth || '',
   is_active: props.teacher?.is_active?.toString() || '1',
 })
-
+console.log(form,"formdata");
 // Sync form.dob ↔ dobDate (DatePicker uses Date object)
 watch(() => form.dob, (val) => {
   if (val) {
@@ -163,7 +163,7 @@ const handleSubmit = () => {
 
               <div class="space-y-2">
                 <Label>Contact No <span class="text-red-500">*</span></Label>
-                <Input v-model="form.phone" placeholder="98XXXXXXXX" />
+                <Input v-model="form.phone" minlength="10" maxlength="10" placeholder="98XXXXXXXX" />
                 <p v-if="form.errors.phone" class="text-sm text-red-600">{{ form.errors.phone }}</p>
               </div>
             </div>
@@ -178,8 +178,8 @@ const handleSubmit = () => {
 
               <div class="space-y-2">
                 <Label>Subject Specialization <span class="text-red-500">*</span></Label>
-                <Input v-model="form.subject_specializtion" placeholder="Mathematics, Physics..." />
-                <p v-if="form.errors.subject_specializtion" class="text-sm text-red-600">{{ form.errors.subject_specializtion }}</p>
+                <Input v-model="form.subject_specialization" placeholder="Mathematics, Physics..." />
+                <p v-if="form.errors.subject_specialization" class="text-sm text-red-600">{{ form.errors.subject_specialization }}</p>
               </div>
 
               <div class="space-y-2">
@@ -233,8 +233,8 @@ const handleSubmit = () => {
               <Label>Photo</Label>
               <Input type="file" accept="image/*" @change="handlePhotoChange" />
               <p v-if="form.errors.photo" class="text-sm text-red-600">{{ form.errors.photo }}</p>
-              <p v-if="props.teacher?.photo" class="text-sm text-muted-foreground">
-                Current photo: <a :href="props.teacher.photo" target="_blank" class="underline">View</a>
+              <p v-if="photo" class="text-sm text-muted-foreground">
+                Current photo: <a :href="photo" target="_blank" class="underline">View</a>
               </p>
             </div>
 

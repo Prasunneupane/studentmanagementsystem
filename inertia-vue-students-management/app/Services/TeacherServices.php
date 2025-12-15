@@ -21,18 +21,34 @@ class TeacherServices
         return $this->teacherService->getAllTeachers();
     }
 
-    public function createTeacher(array $data)
+    public function createTeacher(array $data,$request)
     {
-        return $this->teacherService->createTeacher($data);
+        // dd($request['status']['value']);
+        $createData = [
+            ...$data,
+            'status' => $request['status']['value'] ?? null,
+            'created_by' => auth()->id(),
+            'date_of_birth' => $request['dob'] ?? null,
+        ];
+        // dd($createData);
+        return $this->teacherService->createTeacher($createData);
     }
     public function getTeacherById(int $id)
     {
         return $this->teacherService->getTeacherById($id);
     }
-    public function updateTeacher(int $id, array $data)
+    public function updateTeacher(int $id, array $data,$request)
     {
-        return $this->teacherService->updateTeacher($id, $data);
-    }
+        $updateData = [
+            ...$data,
+            'status' => $request['status']['value'] ?? null,
+            'date_of_birth' => $request['dob'] ?? null,
+
+        ];
+        // dd($updateData);
+        return $this->teacherService->updateTeacher($id, $updateData);
+    }           
+    
 
     public function deleteTeacher(int $id)
     {

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Teachers;
+use App\Repositories\validation;
 use App\Services\TeacherServices;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -13,13 +14,21 @@ class TeachersController extends Controller
      * Display a listing of the resource.
      */
     private $teacherServices;
-    public function __construct(TeacherServices $teacherServices)
+    private $teacherValidation;
+    public function __construct(
+        TeacherServices $teacherServices,
+        Validation $validation 
+        )
     {
         $this->teacherServices = $teacherServices;
+        $this->teacherValidation = $validation;
     }
     public function index()
     {
-        //
+        $teacherList = $this->teacherServices->getAllTeachers();
+        return Inertia::render('teachers/TeacherList', [
+            'teachers' => $teacherList
+        ]);
     }
 
     /**
@@ -40,20 +49,12 @@ class TeachersController extends Controller
     public function store(Request $request)
     {
         // dd($request->all());
-         $validatedData = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:tbl_teachers,email',
-            'phone' => 'required|string|max:10|unique:tbl_teachers,phone',
-            'address' => 'nullable|string|max:500',
-            'subject_specializtion' => 'required|string|max:255',
-            'joining_date' => 'required|date',
-            'leaving_date' => 'nullable|date|after_or_equal:joining_date',
-            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'dob' => 'required|date',
-            'is_active' => 'required|boolean',
-            // 'status' => 'required|array|in:'.implode(',', $this->teacherServices->getEnumerationValues('status')),
-
-        ]);
+         $validatedData = $request->validate(
+            $this->teacherValidation->teacherValidationRules($this->teacherServices)
+        );
+        // dd($validatedData);
+        $createTeacher = $this->teacherServices->createTeacher($validatedData,$request->all());
+        return redirect()->route('teachers.index')->with('success', 'Teacher created successfully.');
     }
 
     /**
@@ -67,17 +68,26 @@ class TeachersController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(Teachers $teachers)
+    public function edit(Teachers $teacher)
     {
-        //
+        // dd($teacher->toArray());
+        return Inertia::render('teachers/AddTeacher', [
+            'teacher' => $teacher->toArray(),
+            'status' => $this->teacherServices->getEnumerationValues('status'),
+        ]);
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Teachers $teachers)
+    public function update(Request $request, Teachers $teacher)
     {
-        //
+        $validatedData = $request->validate(
+            $this->teacherValidation->teacherUpdateValidationRules($this->teacherServices, $teacher->id)
+        );
+        // dd($validatedData);
+        $updateTeacher = $this->teacherServices->updateTeacher($teacher->id, $validatedData, $request->all());
+        return redirect()->route('teachers.index')->with('success', 'Teacher updated successfully.');
     }
 
     /**
