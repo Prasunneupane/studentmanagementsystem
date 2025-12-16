@@ -16,7 +16,7 @@ class Teachers extends Model
         'status',
         'phone',
         'address',
-        'subject_specializtion',
+        'subject_specialization',
         'joining_date',
         'leaving_date',
         'photo',

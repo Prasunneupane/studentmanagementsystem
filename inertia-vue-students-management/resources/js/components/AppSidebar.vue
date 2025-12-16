@@ -13,6 +13,7 @@ const mainNavItems: NavItem[] = [
         title: 'Dashboard',
         href: '/dashboard',
         icon: LayoutGrid,
+        
     },
     {
         title: 'Student Management',
@@ -66,9 +67,48 @@ const mainNavItems: NavItem[] = [
         ],
     },
     {
+        title: 'Master Settings',
+        icon: Settings,
+        items: [
+                {
+                title: 'Roles',
+                icon: UserRoundCheck,
+                items: [
+                    {
+                    title: 'Add Role',
+                    href: '/roles/create',
+                    icon: FilePlusIcon,
+                    },
+                    {
+                    title: 'Assign Role',
+                    href: '/settings/roles/assign',
+                    icon: Users,
+                    },
+                ],
+                },
+                {
+                title: 'Permissions',
+                icon: BookOpen,
+                items: [
+                    {
+                    title: 'Add Permission',
+                    href: '/settings/permissions',
+                    icon: FilePlusIcon,
+                    },
+                    {
+                    title: 'Assign Permission',
+                    href: '/settings/permissions/assign',
+                    icon: GraduationCap,
+                    },
+                ],
+                },
+            ],
+    },
+    {
         title: 'Settings',
         href: '/settings',
         icon: Settings,
+        
     },
 ];
 
@@ -101,7 +141,7 @@ const footerNavItems: NavItem[] = [
         </SidebarHeader>
 
         <SidebarContent>
-            <NavMain :items="mainNavItems" />
+            <NavMain :items="mainNavItems"  :isRoot="true"/>
         </SidebarContent>
 
         <SidebarFooter>

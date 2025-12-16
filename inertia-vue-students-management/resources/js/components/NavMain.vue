@@ -17,6 +17,7 @@ import { reactive, watch } from 'vue';
 
 const props = defineProps<{
     items: NavItem[];
+    isRoot?: boolean;
 }>();
 
 const page = usePage();
@@ -58,7 +59,7 @@ watch(() => page.url, () => {
 
 <template>
     <SidebarGroup>
-        <SidebarGroupLabel>Platform</SidebarGroupLabel>
+        <SidebarGroupLabel  v-if="isRoot">Platform</SidebarGroupLabel>
         <SidebarMenu>
             <SidebarMenuItem v-for="item in reactiveItems" :key="item.title">
                 <!-- Normal menu -->
@@ -95,23 +96,45 @@ watch(() => page.url, () => {
                     </CollapsibleTrigger>
 
                     <CollapsibleContent>
-                        <SidebarMenuSub>
-                            <SidebarMenuSubItem
-                                v-for="subItem in item.items"
-                                :key="subItem.title"
-                            >
-                                <SidebarMenuSubButton
-                                    as-child
-                                    :is-active="isExactActive(subItem.href)"
-                                >
-                                    <Link :href="subItem.href || '#'">
-                                        <component :is="subItem.icon" />
-                                        <span>{{ subItem.title }}</span>
-                                    </Link>
-                                </SidebarMenuSubButton>
-                            </SidebarMenuSubItem>
-                        </SidebarMenuSub>
+  <SidebarMenuSub>
+    <template v-for="subItem in item.items" :key="subItem.title">
+
+      <!-- SUBMENU WITH CHILDREN (LEVEL 3) -->
+      <SidebarMenuSubItem v-if="subItem.items">
+        <Collapsible class="group/collapsible ml-2">
+          <CollapsibleTrigger as-child>
+            <SidebarMenuSubButton>
+              <component :is="subItem.icon" />
+              <span>{{ subItem.title }}</span>
+              <ChevronRight
+                class="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90"
+              />
+            </SidebarMenuSubButton>
+          </CollapsibleTrigger>
+
+                    <CollapsibleContent>
+                        <!-- 🔁 RECURSIVE CALL -->
+                        <NavMain :items="subItem.items" />
                     </CollapsibleContent>
+                    </Collapsible>
+                </SidebarMenuSubItem>
+
+                <!-- NORMAL SUBMENU ITEM -->
+                <SidebarMenuSubItem v-else>
+                    <SidebarMenuSubButton
+                    as-child
+                    :is-active="isExactActive(subItem.href)"
+                    >
+                    <Link :href="subItem.href || '#'">
+                        <component :is="subItem.icon" />
+                        <span>{{ subItem.title }}</span>
+                    </Link>
+                    </SidebarMenuSubButton>
+                </SidebarMenuSubItem>
+
+                </template>
+            </SidebarMenuSub>
+            </CollapsibleContent>
                 </Collapsible>
             </SidebarMenuItem>
         </SidebarMenu>

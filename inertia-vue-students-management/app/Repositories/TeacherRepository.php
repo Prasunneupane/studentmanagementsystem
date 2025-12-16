@@ -32,7 +32,7 @@ class TeacherRepository implements TeacherInterfacce
     }
     public function getTeacherById(int $id)
     {
-        // Implementation here
+        return $this->model->findOrFail($id);
     }
     public function updateTeacher(int $id, array $data)
     {
@@ -54,17 +54,18 @@ class TeacherRepository implements TeacherInterfacce
     public function findTeacherByName(string $name)
     {
         // Implementation here  
+        return $this->model->where(['name', 'LIKE', "%{$name}%",'is_active'=>1])->get();
     }
     public function deactivateTeacher(int $id)
     {
-        // Implementation here  
+        return $this->model->where('id', $id)->update(['is_active' => false]);
     }
     public function activateTeacher(int $id)
     {
-        // Implementation here
+        return $this->model->where('id', $id)->update(['is_active' => true]);
     }
     public function getEnumerationValues(string $columnName = 'status'): array
-{
+    {
     // 1. Get raw column type from database
         $type = \DB::select(
             "SHOW COLUMNS FROM {$this->model->getTable()} WHERE Field = '{$columnName}'"

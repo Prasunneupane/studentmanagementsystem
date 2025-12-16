@@ -24,11 +24,13 @@ class TeacherServices
     public function createTeacher(array $data,$request)
     {
         // dd($request['status']['value']);
+       
         $createData = [
             ...$data,
             'status' => $request['status']['value'] ?? null,
             'created_by' => auth()->id(),
             'date_of_birth' => $request['dob'] ?? null,
+           
         ];
         // dd($createData);
         return $this->teacherService->createTeacher($createData);
@@ -39,11 +41,16 @@ class TeacherServices
     }
     public function updateTeacher(int $id, array $data,$request)
     {
+         if($request['status']['value'] !='on_leave' || $request['status']['value'] !='active'){
+            $request['leaving_date']=date('Y-m-d');
+            $request['is_active']=false;
+        }   
         $updateData = [
             ...$data,
             'status' => $request['status']['value'] ?? null,
             'date_of_birth' => $request['dob'] ?? null,
-
+            'leaving_date' => $request['leaving_date'] ?? null,
+            'is_active' => $request['is_active'] ?? true,
         ];
         // dd($updateData);
         return $this->teacherService->updateTeacher($id, $updateData);

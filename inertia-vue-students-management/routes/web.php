@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ClassesController;
 use App\Http\Controllers\ClassSectionController;
+use App\Http\Controllers\RolesController;
 use App\Http\Controllers\StateDistricMunController;
 use App\Http\Controllers\StudentsController;
 use App\Http\Controllers\SubjectController;
@@ -51,6 +52,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/edit/{teacher}', [TeachersController::class, 'edit'])->name('edit');
         Route::put('/update/{teacher}', [TeachersController::class, 'update'])->name('update');
         Route::post('/store', [TeachersController::class, 'store'])->name('store');
+    });
+
+    Route::prefix('roles')->name('roles.')->group(function () {
+        Route::get('/', [RolesController::class, 'index'])->name('index');
+        Route::get('/create', [RolesController::class, 'create'])->name('create');
+        Route::put('/delete-teacher/{role}', [RolesController::class, 'deactivate'])->name('delete');
+        Route::get('/edit/{role}', [RolesController::class, 'edit'])->name('edit');
+        Route::put('/update/{role}', [RolesController::class, 'update'])->name('update');
+        Route::post('/store', [RolesController::class, 'store'])->name('store');
     });
 });
 

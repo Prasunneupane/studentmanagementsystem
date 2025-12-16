@@ -97,4 +97,9 @@ class TeachersController extends Controller
     {
         //
     }
+    public function deactivate(Teachers $teacher)
+    {
+        $this->teacherServices->deactivateTeacher($teacher->id);
+        return redirect()->route('teachers.index')->with('success', 'Teacher deactivated successfully.');
+    }
 }

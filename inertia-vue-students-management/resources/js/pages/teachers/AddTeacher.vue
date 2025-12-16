@@ -240,7 +240,7 @@ const handleSubmit = () => {
 
             <!-- Submit -->
             <div class="flex justify-end gap-4 pt-6 border-t">
-              <Button type="submit" :disabled="form.processing">
+              <Button type="submit" :disabled="form.processing" class="cursor-pointer">
                 <Loader2 v-if="form.processing" class="mr-2 h-4 w-4 animate-spin" />
                 {{ isEdit ? 'Update Teacher' : 'Add Teacher' }}
               </Button>
