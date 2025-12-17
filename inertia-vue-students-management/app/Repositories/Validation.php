@@ -50,4 +50,42 @@ class Validation
         ];
 
     }
+
+    public function roleValidationRules($request)
+    {
+        return [
+            'name' => 'required|string|max:255|unique:tbl_roles,name',
+            'description' => 'nullable|string|max:500',
+            'is_active' => 'required|boolean',
+        ];
+    }
+
+    public function roleUpdateValidationRules($request, $roleId)
+    {
+        return [
+            'name' => 'required|string|max:255|unique:tbl_roles,name,'.$roleId,
+            'description' => 'nullable|string|max:500',
+            'is_active' => 'required|boolean',
+        ];
+    }
+
+    public function permissionValidationRules($request)
+    {
+        return [
+            'name' => 'required|string|max:255|unique:tbl_permissions,name',
+            'description' => 'nullable|string|max:500',
+            'module' => 'nullable|string|max:255',
+            'is_active' => 'required|boolean',
+        ];
+    }
+
+    public function permissionUpdateValidationRules($request, $permissionId)
+    {
+        return [
+            'name' => 'required|string|max:255|unique:tbl_permissions,name,'.$permissionId,
+            'description' => 'nullable|string|max:500',
+            'module' => 'nullable|string|max:255',
+            'is_active' => 'required|boolean',
+        ];
+    }
 }

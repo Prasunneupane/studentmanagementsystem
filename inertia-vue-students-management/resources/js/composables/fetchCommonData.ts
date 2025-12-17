@@ -38,6 +38,24 @@ export interface Teacher{
   created_by:string;
 }
 
+export interface Role{
+  id: number;
+  name:string;
+  description:string;
+  is_active:boolean;
+  // created_by:string;
+}
+
+export interface Permission{
+  id: number;
+  name:string;
+  slug:string;
+  module:string;
+  description:string;
+  is_active:boolean;
+  // created_by:string;
+}
+
 export function useFetchingData(form?: any) {
   // const students = ref<Student[]>([]);
   const loading = ref(false);

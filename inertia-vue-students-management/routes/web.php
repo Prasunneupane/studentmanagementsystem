@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ClassesController;
 use App\Http\Controllers\ClassSectionController;
+use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\RolesController;
 use App\Http\Controllers\StateDistricMunController;
 use App\Http\Controllers\StudentsController;
@@ -57,10 +58,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('roles')->name('roles.')->group(function () {
         Route::get('/', [RolesController::class, 'index'])->name('index');
         Route::get('/create', [RolesController::class, 'create'])->name('create');
-        Route::put('/delete-teacher/{role}', [RolesController::class, 'deactivate'])->name('delete');
+        Route::put('/delete-role/{role}', [RolesController::class, 'deactivate'])->name('delete');
         Route::get('/edit/{role}', [RolesController::class, 'edit'])->name('edit');
         Route::put('/update/{role}', [RolesController::class, 'update'])->name('update');
         Route::post('/store', [RolesController::class, 'store'])->name('store');
+    });
+
+    Route::prefix('permissions')->name('permissions.')->group(function () {
+        Route::get('/', [PermissionController::class, 'index'])->name('index');
+        Route::get('/create', [PermissionController::class, 'create'])->name('create');
+        Route::put('/delete-permission/{permission}', [PermissionController::class, 'deactivate'])->name('delete');
+        Route::get('/edit/{permission}', [PermissionController::class, 'edit'])->name('edit');
+        Route::put('/update/{permission}', [PermissionController::class, 'update'])->name('update');
+        Route::post('/store', [PermissionController::class, 'store'])->name('store');
     });
 });
 

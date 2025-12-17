@@ -3,16 +3,28 @@
 namespace App\Http\Controllers;
 
 use App\Models\Permission;
+use App\Repositories\Validation;
+use App\Services\PermissionServices;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class PermissionController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
+    private $permissionServices;
+    private $dataValidation;
+    public function __construct(PermissionServices $permissionServices,Validation $validation)
+    {
+        $this->permissionServices = $permissionServices;  
+        $this->dataValidation = $validation;
+    }
     public function index()
     {
-        //
+        return Inertia::render('permission/PermissionList', [
+            'permissions' => $this->permissionServices->getAllPermission()
+        ]);
     }
 
     /**
@@ -20,7 +32,7 @@ class PermissionController extends Controller
      */
     public function create()
     {
-        //
+        return Inertia::render('permission/AddUpdatePermission');
     }
 
     /**
@@ -28,7 +40,9 @@ class PermissionController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $this->dataValidation->permissionValidationRules($request);
+        $createPermission = $this->permissionServices->createPermission($request->all());
+        return redirect()->route('permissions.index')->with('success', 'Permission created successfully.');
     }
 
     /**

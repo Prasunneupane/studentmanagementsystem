@@ -3,11 +3,19 @@
 namespace App\Providers;
 
 use App\Interface\GuardianInterface;
+use App\Interface\PermissionInterface;
+use App\Interface\RoleInterface;
 use App\Interface\SubjectInterface;
 use App\Interface\TeacherInterfacce;
+use App\Models\Permission;
+use App\Models\Roles;
+use App\Observers\PermissionObserver;
+use App\Observers\RolesObserver;
 use App\Repositories\GuardianRepository;
 use App\Repositories\LocationInterface;
 use App\Repositories\LocationRepository;
+use App\Repositories\PermissionRepository;
+use App\Repositories\RoleRepository;
 use App\Repositories\SubjectRepository;
 use App\Repositories\TeacherRepository;
 use App\Services\GuardianService;
@@ -32,6 +40,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(GuardianInterface::class, GuardianService::class);
         $this->app->bind(SubjectInterface::class, SubjectRepository::class);
         $this->app->bind(TeacherInterfacce::class, TeacherRepository::class);
+        $this->app->bind(RoleInterface::class, RoleRepository::class);
+        $this->app->bind(PermissionInterface::class, PermissionRepository::class);
     }
 
     /**
@@ -42,5 +52,7 @@ class AppServiceProvider extends ServiceProvider
         Inertia::share([
         'jwt_token' => fn () => session('jwt_token'),
     ]);
+        Roles::observe(RolesObserver::class);
+        Permission::observe(PermissionObserver::class);
     }
 }

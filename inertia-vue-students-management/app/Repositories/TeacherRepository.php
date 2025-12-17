@@ -43,7 +43,7 @@ class TeacherRepository implements TeacherInterfacce
             if ($teacher->photo) {
                 Storage::disk('public')->delete($teacher->photo);
             }
-            $data['photo'] = $data['photo']->store('photos', 'public');
+            $data['photo'] = $data['photo']->store('teachers', 'public');
         }
         $teacher->update($data);
     }

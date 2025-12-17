@@ -92,7 +92,7 @@ const mainNavItems: NavItem[] = [
                 items: [
                     {
                     title: 'Add Permission',
-                    href: '/settings/permissions',
+                    href: '/permissions',
                     icon: FilePlusIcon,
                     },
                     {
