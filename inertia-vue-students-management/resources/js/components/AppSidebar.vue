@@ -5,7 +5,8 @@ import NavUser from '@/components/NavUser.vue';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/vue3';
-import { BookOpen, Folder, LayoutGrid,FilePlusIcon, Settings, UserPlus, Eye, Users, Book,BookUser, UserRoundCheck, GraduationCap, UserRoundPlus   } from 'lucide-vue-next';
+import { BookOpen, Folder, LayoutGrid,FilePlusIcon, Settings, 
+    UserPlus, Eye, Users, Book,BookUser, UserRoundCheck, GraduationCap, UserRoundPlus,Plus   } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
 // <FilePlusCorner />
 const mainNavItems: NavItem[] = [
@@ -80,9 +81,9 @@ const mainNavItems: NavItem[] = [
                     icon: FilePlusIcon,
                     },
                     {
-                    title: 'Assign Role',
-                    href: '/settings/roles/assign',
-                    icon: Users,
+                    title: 'View Role',
+                    href: '/roles',
+                    icon: Eye,
                     },
                 ],
                 },
@@ -92,15 +93,38 @@ const mainNavItems: NavItem[] = [
                 items: [
                     {
                     title: 'Add Permission',
+                    href: '/permissions/create',
+                    icon: FilePlusIcon,
+                    },
+                    {
+                    title: 'View Permission',
+                    href: '/permissions',
+                    icon: Eye,
+                    },
+                    {
+                    title: 'Assgin Permission',
+                    href: '/permissions/assign-permission',
+                    icon: Plus,
+                    },
+                ],
+                
+                },
+                {
+                title: 'Users',
+                icon: Users,
+                items: [
+                    {
+                    title: 'Add User',
                     href: '/permissions',
                     icon: FilePlusIcon,
                     },
                     {
-                    title: 'Assign Permission',
-                    href: '/settings/permissions/assign',
-                    icon: GraduationCap,
+                    title: 'View User',
+                    href: '/permissions',
+                    icon: Eye,
                     },
                 ],
+                
                 },
             ],
     },

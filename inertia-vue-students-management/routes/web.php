@@ -71,6 +71,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/edit/{permission}', [PermissionController::class, 'edit'])->name('edit');
         Route::put('/update/{permission}', [PermissionController::class, 'update'])->name('update');
         Route::post('/store', [PermissionController::class, 'store'])->name('store');
+        Route::get('/assign-permission', [PermissionController::class, 'assign_permission'])->name('assign_permission');
     });
 });
 

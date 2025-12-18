@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Permission;
+use App\Models\Roles;
 use App\Repositories\Validation;
 use App\Services\PermissionServices;
 use Illuminate\Http\Request;
@@ -15,7 +16,10 @@ class PermissionController extends Controller
      */
     private $permissionServices;
     private $dataValidation;
-    public function __construct(PermissionServices $permissionServices,Validation $validation)
+    public function __construct(
+        PermissionServices $permissionServices,
+        Validation $validation
+    )
     {
         $this->permissionServices = $permissionServices;  
         $this->dataValidation = $validation;
@@ -58,7 +62,10 @@ class PermissionController extends Controller
      */
     public function edit(Permission $permission)
     {
-        //
+
+        return Inertia::render('permission/AddUpdatePermission',[
+            'permission'=>$permission
+        ]);
     }
 
     /**
@@ -66,7 +73,9 @@ class PermissionController extends Controller
      */
     public function update(Request $request, Permission $permission)
     {
-        //
+        $this->dataValidation->permissionUpdateValidationRules($request, $permission->id);
+        $updatePermission = $this->permissionServices->updatePermission($permission->id,$request->all());
+        return redirect()->route('permissions.index')->with('success', 'Permission updated successfully.');
     }
 
     /**
@@ -75,5 +84,20 @@ class PermissionController extends Controller
     public function destroy(Permission $permission)
     {
         //
+    }
+
+    public function deactivate(Permission $permission)
+    {
+        $this->permissionServices->deletePermission($permission->id);
+        return redirect()->route('permissions.index')->with('success', 'Permission deactivated successfully.');
+    }
+
+    public function assign_permission()
+    {
+        
+        return Inertia::render('permission/AssignPermissionsToRole',[
+            'roles' => Roles::where('is_active', 1)->get(),
+            'permissions' => $this->permissionServices->getAllPermission(),
+        ]);
     }
 }
