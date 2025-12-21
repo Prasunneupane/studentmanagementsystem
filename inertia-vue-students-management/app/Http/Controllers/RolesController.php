@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Permission;
 use App\Models\Roles;
 use App\Repositories\Validation;
 use App\Services\RoleServices;
@@ -87,5 +88,18 @@ class RolesController extends Controller
     {
         $this->roleServices->deleteRole($role->id);
         return redirect()->route('roles.index')->with('success', 'Role deactivated successfully.');
+    }
+
+    public function assign_permission(Roles $role)
+    {
+        $allPermissions = Permission::where('is_active', 1)->get();
+        $rolePermissions = $this->roleServices->getRolePermissions($role->id);
+        $allRoles = $this->roleServices->getAllRoles();
+        return Inertia::render('roles/AssignPermissionsToRole', [
+            'role' => $role,
+            'allPermissions' => $allPermissions,
+            'rolePermissions' => $rolePermissions,
+            'roles' => $allRoles
+        ]);
     }
 }

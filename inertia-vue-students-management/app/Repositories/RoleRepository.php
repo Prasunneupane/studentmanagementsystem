@@ -53,5 +53,11 @@ class RoleRepository implements RoleInterface
         
     }
 
+    public function getRolePermissions(int $roleId)
+    {
+        $role = Roles::with('permissions')->findOrFail($roleId);
+        return $role->permissions;
+    }
+
 
 }

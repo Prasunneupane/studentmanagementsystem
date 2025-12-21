@@ -21,16 +21,17 @@ const { toast } = useToast()
 
 /* -------------------- Props -------------------- */
 const props = defineProps<{
-  roles: { id: number; name: string }[]
-  permissions: { id: number; name: string; module?: string }[]
+  role: { id: number; name: string }[]
+  allPermissions: { id: number; name: string; module?: string }[]
   roleId?: number
   roleName?: string
   assignedPermissions?: number[]
 }>()
+console.log(props.role,"props.role");
 
 /* -------------------- Role Options -------------------- */
 const roleOptions = computed(() =>
-  props.roles.map(role => ({
+  props.role.map(role => ({
     value: role.id,
     label: role.name,
   }))
@@ -74,13 +75,13 @@ const handleSubmit = () => {
         <!-- HEADER (unchanged) -->
         <CardHeader class="flex justify-between items-center">
           <div>
-            <CardTitle>Assign Permissions</CardTitle>
+            <!-- <CardTitle>Assign Permissions</CardTitle> -->
             <CardDescription>
               Select a role and assign permissions
             </CardDescription>
           </div>
-          <Button as-child variant="outline">
-            <Link href="/settings/roles">
+          <Button as-child>
+            <Link :href="route('roles.index')">
               <Eye class="w-4 h-4 mr-2" /> View Roles
             </Link>
           </Button>
@@ -114,7 +115,7 @@ const handleSubmit = () => {
 
                   <div class="grid grid-cols-1 gap-4">
                     <div
-                      v-for="permission in props.permissions"
+                      v-for="permission in props.allPermissions"
                       :key="permission.id"
                       class="flex items-center gap-3"
                     >

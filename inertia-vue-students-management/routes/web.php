@@ -62,6 +62,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/edit/{role}', [RolesController::class, 'edit'])->name('edit');
         Route::put('/update/{role}', [RolesController::class, 'update'])->name('update');
         Route::post('/store', [RolesController::class, 'store'])->name('store');
+        Route::get('/assign-permission/{role}', [RolesController::class, 'assign_permission'])->name('assign_permissions');
     });
 
     Route::prefix('permissions')->name('permissions.')->group(function () {
@@ -71,7 +72,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/edit/{permission}', [PermissionController::class, 'edit'])->name('edit');
         Route::put('/update/{permission}', [PermissionController::class, 'update'])->name('update');
         Route::post('/store', [PermissionController::class, 'store'])->name('store');
-        Route::get('/assign-permission', [PermissionController::class, 'assign_permission'])->name('assign_permission');
+        
     });
 });
 

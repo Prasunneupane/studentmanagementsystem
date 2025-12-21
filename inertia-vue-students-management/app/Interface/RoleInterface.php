@@ -10,4 +10,5 @@ interface RoleInterface
     public function deactivateRole(int $roleId);    
     public function getRoleById(int $roleId);
     public function activateRole(int $roleId);
+    public function getRolePermissions(int $roleId);
 }

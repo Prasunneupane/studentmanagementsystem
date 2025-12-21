@@ -37,6 +37,9 @@ class RoleServices
     {
         return $this->roleService->deactivateRole($id);
     }
-    
+    public function getRolePermissions(int $roleId)
+    {
+        return $this->roleService->getRolePermissions($roleId);
+    }   
 
 }
