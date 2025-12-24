@@ -58,6 +58,7 @@ class User extends Authenticatable implements JWTSubject
     public function roles()
     {
         return $this->belongsToMany(Roles::class, 'tbl_user_roles', 'user_id', 'role_id')
+                    ->withPivot('created_by')
                     ->withTimestamps();
     }
 

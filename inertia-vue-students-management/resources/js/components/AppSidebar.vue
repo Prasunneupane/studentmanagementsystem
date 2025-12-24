@@ -101,11 +101,11 @@ const mainNavItems: NavItem[] = [
                     href: '/permissions',
                     icon: Eye,
                     },
-                    {
-                    title: 'Assgin Permission',
-                    href: '/permissions/assign-permission',
-                    icon: Plus,
-                    },
+                    // {
+                    // title: 'Assgin Permission',
+                    // href: '/permissions/assign-permission',
+                    // icon: Plus,
+                    // },
                 ],
                 
                 },
@@ -115,12 +115,12 @@ const mainNavItems: NavItem[] = [
                 items: [
                     {
                     title: 'Add User',
-                    href: '/permissions',
+                    href: '/users/create',
                     icon: FilePlusIcon,
                     },
                     {
                     title: 'View User',
-                    href: '/permissions',
+                    href: '/users',
                     icon: Eye,
                     },
                 ],

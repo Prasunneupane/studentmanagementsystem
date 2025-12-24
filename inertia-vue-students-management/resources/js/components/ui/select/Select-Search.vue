@@ -15,7 +15,7 @@ import {
   ComboboxTrigger,
 } from "@/components/ui/combobox"
 
-interface Option {
+ interface Option {
   value: string
   label: string
 }

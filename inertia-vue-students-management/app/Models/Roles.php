@@ -18,12 +18,14 @@ class Roles extends Model
     public function permissions()
     {
         return $this->belongsToMany(Permission::class, 'tbl_role_permission', 'role_id', 'permission_id')
+                    ->withPivot('created_by')
                     ->withTimestamps();
     }
 
     public function users()
     {
         return $this->belongsToMany(User::class, 'tbl_user_roles', 'role_id', 'user_id')
+                    ->withPivot('created_by')
                     ->withTimestamps();
     }
     public function parent()

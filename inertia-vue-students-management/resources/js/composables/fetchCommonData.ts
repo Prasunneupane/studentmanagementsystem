@@ -38,6 +38,14 @@ export interface Teacher{
   created_by:string;
 }
 
+export interface User{
+  id: number;
+  name:string;
+  email:string;
+  role:string;
+  is_active:boolean;
+}
+
 export interface Role{
   id: number;
   name:string;

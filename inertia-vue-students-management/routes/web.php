@@ -8,6 +8,7 @@ use App\Http\Controllers\StateDistricMunController;
 use App\Http\Controllers\StudentsController;
 use App\Http\Controllers\SubjectController;
 use App\Http\Controllers\TeachersController;
+use App\Http\Controllers\UserCheckController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -63,6 +64,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::put('/update/{role}', [RolesController::class, 'update'])->name('update');
         Route::post('/store', [RolesController::class, 'store'])->name('store');
         Route::get('/assign-permission/{role}', [RolesController::class, 'assign_permission'])->name('assign_permissions');
+        Route::get('/{role}/permissions/get', [RolesController::class, 'getRolePermissions'])->name('permissions.get');
+        Route::post('/permissions/assign', [RolesController::class, 'assignPermissions'])->name('permissions.assign');
     });
 
     Route::prefix('permissions')->name('permissions.')->group(function () {
@@ -72,6 +75,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/edit/{permission}', [PermissionController::class, 'edit'])->name('edit');
         Route::put('/update/{permission}', [PermissionController::class, 'update'])->name('update');
         Route::post('/store', [PermissionController::class, 'store'])->name('store');
+        
+    });
+
+    Route::prefix('users')->name('users.')->group(function () {
+        Route::get('/', [UserCheckController::class, 'index'])->name('index');
+        Route::get('/create', [UserCheckController::class, 'create'])->name('create');
+        Route::put('/delete-permission/{permission}', [UserCheckController::class, 'deactivate'])->name('delete');
+        Route::get('/edit/{user}', [UserCheckController::class, 'edit'])->name('edit');
+        Route::put('/update/{user}', [UserCheckController::class, 'update'])->name('update');
+        Route::post('/store', [UserCheckController::class, 'store'])->name('store');
         
     });
 });

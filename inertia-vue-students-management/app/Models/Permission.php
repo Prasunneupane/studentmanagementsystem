@@ -16,4 +16,10 @@ class Permission extends Model
         'is_active',
         'created_by',
     ];
+
+    public function roles()
+    {
+        return $this->belongsToMany(Roles::class, 'tbl_role_permission', 'permission_id', 'role_id')
+                    ->withTimestamps();
+    }
 }
