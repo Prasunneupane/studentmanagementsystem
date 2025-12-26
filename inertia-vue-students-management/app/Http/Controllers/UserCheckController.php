@@ -7,6 +7,8 @@ namespace App\Http\Controllers;
 use App\Models\Roles;
 use App\Models\Students;
 use App\Models\User;
+use App\Repositories\Validation;
+use App\Services\UserServices;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -23,29 +25,22 @@ class UserCheckController extends Controller
      */
 
     
-
-    public function __construct()
+    private $dataValidation;
+    private $userService;
+    public function __construct(
+        Validation $validation,
+        UserServices $userService
+    )
     {
-        
+        $this->dataValidation = $validation;
+        $this->userService = $userService;
         // $this->middleware('auth:api');
     }
 
     public function index()
     {
-        $userList = User::where('is_active',1)->with('roles')->get()->map(function($user){
-            return [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'roleName' => $user->roles->pluck('name')->join(', '),
-                'is_active' => $user->is_active,
-                // 'phone' => $user->phone,
-                // 'address' => $user->address,
-                // 'subject_specialization' => $user->subject_specialization,
-                // 'status' => $user->status,
-                // 'qualification' => $user->qualification,
-            ];
-        });
+        
+        $userList = $this->userService->getAllUsers();
         return Inertia::render('user/UserList',[
             'users' => $userList
         ]); 
@@ -56,15 +51,8 @@ class UserCheckController extends Controller
      */
     public function create()
     {
-        $allRoles = Roles::where('is_active',1)->pluck('id','name');
-        
-        $mappedRoles = $allRoles->map(function($item, $key){
-            return ['value'=>$item,'label'=>$key];
-        })->values();
-        $allRoles = $mappedRoles->prepend([
-            'value' => '',
-            'label' => 'Select Role',
-        ])->values();
+        $allRoles = $this->userService->getAllRoles();
+        $allRoles = $this->userService->transformRoles($allRoles);
         // dd($allRoles);
         return Inertia::render('user/RegisterUser',[
             'roles' => $allRoles,
@@ -77,23 +65,9 @@ class UserCheckController extends Controller
      */
     public function store(Request $request):RedirectResponse
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'roles' => 'required|exists:tbl_roles,id',
-        ]);
-        // dd($request->all());
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'is_active'=>1,
-            'created_by'=>JWTAuth::user()->id,
-        ]);
-        $user->roles()->sync([
-            $request->roles => ['created_by' => JWTAuth::user()->id]
-        ]);
+        
+        $data =$request->validate($this->dataValidation->userValidationRules($request));
+        $this->userService->createUsers($data);
         return to_route('users.index',)->with('success', 'User created successfully.');
        
     }
@@ -103,23 +77,9 @@ class UserCheckController extends Controller
      */
     public function edit(User $user)
     {
-        $allRoles = Roles::where('is_active', 1)->pluck('id', 'name');
-
-        $mappedRoles = $allRoles->map(function ($item, $key) {
-            return ['value' => $item, 'label' => $key];
-        })->values();
-
-        $allRoles = $mappedRoles->prepend([
-            'value' => '',
-            'label' => 'Select Role',
-        ])->values();
-
-        // Get user with roles
-        $userWithRoles = $user->load('roles');
-
-        // Add roleId array to user
-        $userData = $userWithRoles->toArray();
-       $userData['roleId'] = $user->roles->pluck('id')->first();
+        $allRoles = $this->userService->getAllRoles();
+        $allRoles = $this->userService->transformRoles($allRoles);
+        $userData = $this->userService->getUserWithRoles($user);
         return Inertia::render('user/RegisterUser', [
             'roles' => $allRoles,
             'user'  => $userData,
@@ -129,12 +89,10 @@ class UserCheckController extends Controller
 
     public function update(Request $request,User $user):RedirectResponse
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|lowercase|email|max:255|unique:'.User::class.',email,'.$user->id,
-            // 'password' => ['nullable', 'confirmed', Rules\Password::defaults()],
-            'roles' => 'required|exists:tbl_roles,id',
-        ]);
+        $data =  $request->validate(
+            $this->dataValidation->userUpdateValidationRules($request, $user)
+        );
+        $this->userService->updateUsers($user->id, $data);
         // dd($request->all());
         $data = [
             'name' => $request->name,
@@ -144,10 +102,7 @@ class UserCheckController extends Controller
         // if($request->password){
         //     $data['password'] = Hash::make($request->password);
         // }
-        $user->update($data);
-        $user->roles()->sync([
-            $request->roles => ['created_by' => JWTAuth::user()->id]
-        ]);
+        
         return to_route('users.index',)->with('success', 'User updated successfully.');
     }
 
@@ -157,9 +112,8 @@ class UserCheckController extends Controller
     public function deactivate(User $user):RedirectResponse
     {
         // dd($user);
-        $user->is_active = 0;
-        $user->update();
-        $user->roles()->detach();
+        // dd($user->id);
+        $this->userService->deactivateUser($user->id);
         return to_route('users.index')->with('success', 'User deactivated successfully.');
     }
     public function checkUser()

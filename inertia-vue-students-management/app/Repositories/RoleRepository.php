@@ -59,5 +59,7 @@ class RoleRepository implements RoleInterface
         return $role->permissions;
     }
 
+    
+
 
 }

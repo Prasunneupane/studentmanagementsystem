@@ -2,6 +2,8 @@
 
 namespace App\Repositories;
 
+use App\Models\User;
+
 class Validation
 {
     /**
@@ -86,6 +88,27 @@ class Validation
             'description' => 'nullable|string|max:500',
             'module' => 'nullable|string|max:255',
             'is_active' => 'required|boolean',
+        ];
+    }
+
+    public function userValidationRules($request)
+    {
+        return [
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|lowercase|email|max:255|unique:users,email',
+            'password' => 'required|string|min:8|confirmed',
+            'roles' => 'required|exists:tbl_roles,id',
+        ];
+    }
+
+    public function userUpdateValidationRules($request, $user)
+    {
+        return [
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|lowercase|email|max:255|unique:'.User::class.',email,'.$user->id,
+            // 'password' => ['nullable', 'confirmed', Rules\Password::defaults()],
+            'is_active' => 'required|boolean',
+            'roles' => 'required|exists:tbl_roles,id',
         ];
     }
 }

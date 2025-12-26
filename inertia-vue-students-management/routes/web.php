@@ -81,7 +81,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('users')->name('users.')->group(function () {
         Route::get('/', [UserCheckController::class, 'index'])->name('index');
         Route::get('/create', [UserCheckController::class, 'create'])->name('create');
-        Route::put('/delete-permission/{permission}', [UserCheckController::class, 'deactivate'])->name('delete');
+        Route::put('/delete-permission/{user}', [UserCheckController::class, 'deactivate'])->name('delete');
         Route::get('/edit/{user}', [UserCheckController::class, 'edit'])->name('edit');
         Route::put('/update/{user}', [UserCheckController::class, 'update'])->name('update');
         Route::post('/store', [UserCheckController::class, 'store'])->name('store');
