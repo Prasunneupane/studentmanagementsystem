@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\PermissionService;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -9,6 +10,13 @@ use Tighten\Ziggy\Ziggy;
 
 class HandleInertiaRequests extends Middleware
 {
+    protected $permissionService;
+    public function __construct(PermissionService $permissionService)
+    {
+        $this->permissionService = $permissionService;
+    }
+
+    
     /**
      * The root template that's loaded on the first page visit.
      *
@@ -45,6 +53,9 @@ class HandleInertiaRequests extends Middleware
             'quote' => ['message' => trim($message), 'author' => trim($author)],
             'auth' => [
                 'user' => $request->user(),
+                 'permissions' => $request->user() 
+                    ? $this->permissionService->getNavigationItems($request->user())
+                    : null,
             ],
             'ziggy' => [
                 ...(new Ziggy)->toArray(),

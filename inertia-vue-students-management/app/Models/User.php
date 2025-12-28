@@ -72,4 +72,25 @@ class User extends Authenticatable implements JWTSubject
                 ->flatten()
                 ->unique('id');
     }
+
+     public function hasPermission(string $permissionSlug): bool
+    {
+        return $this->permissions()->contains('slug', $permissionSlug);
+    }
+
+    public function hasAnyPermission(array $permissionSlugs): bool
+    {
+        $userPermissions = $this->permissions()->pluck('slug')->toArray();
+        return !empty(array_intersect($permissionSlugs, $userPermissions));
+    }
+
+    public function hasRole(string $roleName): bool
+    {
+        return $this->roles()->where('name', $roleName)->exists();
+    }
+
+    public function getPermissionSlugs(): array
+    {
+        return $this->permissions()->pluck('slug')->toArray();
+    }
 }

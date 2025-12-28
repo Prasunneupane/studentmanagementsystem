@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Permission;
 use App\Models\Roles;
 use App\Repositories\Validation;
+use App\Services\PermissionService;
 use App\Services\RoleServices;
 use DB;
 use Illuminate\Http\Request;
@@ -17,10 +18,12 @@ class RolesController extends Controller
      */
     private $roleServices;
     private $dataValidation;
-    public function __construct(RoleServices $roleServices,Validation $validation)
+    protected $permissionService;
+    public function __construct(RoleServices $roleServices,Validation $validation,PermissionService $permissionService)
     {
         $this->roleServices = $roleServices;
         $this->dataValidation = $validation;
+        $this->permissionService = $permissionService;
     }
     public function index()
     {
@@ -162,40 +165,48 @@ class RolesController extends Controller
         'permissions.*' => 'exists:tbl_permissions,id',
     ]);
 
-    try {
-        DB::beginTransaction();
+        try {
+            DB::beginTransaction();
 
-        $role = Roles::findOrFail($validated['role_id']);
+            $role = Roles::findOrFail($validated['role_id']);
 
-        $userId = auth()->id(); // 👈 current user
+            $userId = auth()->id(); // 👈 current user
 
-        // Build pivot data
-        $syncData = [];
+            // Build pivot data
+            $syncData = [];
 
-        foreach ($validated['permissions'] ?? [] as $permissionId) {
-            $syncData[$permissionId] = [
-                'created_by' => $userId,
-            ];
+            foreach ($validated['permissions'] ?? [] as $permissionId) {
+                $syncData[$permissionId] = [
+                    'created_by' => $userId,
+                ];
+            }
+
+            // Sync with pivot data
+            $role->permissions()->sync($syncData);
+
+            DB::commit();
+
+            return redirect()
+                ->route('roles.index')
+                ->with('success', 'Permissions assigned successfully');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return redirect()
+                ->back()
+                ->withErrors([
+                    'error' => 'Failed to assign permissions: ' . $e->getMessage()
+                ]);
         }
-
-        // Sync with pivot data
-        $role->permissions()->sync($syncData);
-
-        DB::commit();
-
-        return redirect()
-            ->route('roles.index')
-            ->with('success', 'Permissions assigned successfully');
-
-    } catch (\Exception $e) {
-        DB::rollBack();
-
-        return redirect()
-            ->back()
-            ->withErrors([
-                'error' => 'Failed to assign permissions: ' . $e->getMessage()
-            ]);
     }
+
+    private function clearCacheForRoleUsers(Roles $role)
+    {
+        $users = $role->users;
+        foreach ($users as $user) {
+            $this->permissionService->clearUserCache($user);
+        }
     }
 
 }

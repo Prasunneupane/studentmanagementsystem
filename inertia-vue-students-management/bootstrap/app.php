@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\CheckPermission;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\VerifyJwtToken;
@@ -26,7 +27,8 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->alias([
-            'jwt.verify' => \App\Http\Middleware\VerifyJwtToken::class,
+            'jwt.verify' => VerifyJwtToken::class,
+            'permission' => CheckPermission::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
