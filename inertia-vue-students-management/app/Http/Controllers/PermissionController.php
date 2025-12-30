@@ -44,7 +44,7 @@ class PermissionController extends Controller
      */
     public function store(Request $request)
     {
-        $this->dataValidation->permissionValidationRules($request);
+        $request->validate($this->dataValidation->permissionValidationRules($request));
         $createPermission = $this->permissionServices->createPermission($request->all());
         return redirect()->route('permissions.index')->with('success', 'Permission created successfully.');
     }
@@ -73,7 +73,7 @@ class PermissionController extends Controller
      */
     public function update(Request $request, Permission $permission)
     {
-        $this->dataValidation->permissionUpdateValidationRules($request, $permission->id);
+        $request->validate($this->dataValidation->permissionUpdateValidationRules($request, $permission->id));
         $updatePermission = $this->permissionServices->updatePermission($permission->id,$request->all());
         return redirect()->route('permissions.index')->with('success', 'Permission updated successfully.');
     }

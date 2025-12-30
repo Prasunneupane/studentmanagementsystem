@@ -121,7 +121,7 @@ const mainNavItems = computed((): NavItem[] => {
   }
 
   // Master Settings
-  if (permissions.value.settings.canView) {
+  if (permissions.value.canManageMasterSettings) {
     const masterSettingsItems: NavItem[] = [];
 
     // Roles sub-section
@@ -157,7 +157,7 @@ const mainNavItems = computed((): NavItem[] => {
     if (permissions.value.permissions.canManage) {
       const permissionItems: NavItem[] = [];
       
-      if (permissions.value.canCreatePermission) {
+      if (permissions.value.permissions.canCreate) {
         permissionItems.push({
           title: 'Add Permission',
           href: '/permissions/create',

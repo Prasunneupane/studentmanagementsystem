@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import AppLayout from '@/layouts/AppLayout.vue'
-import { Head, useForm } from '@inertiajs/vue3'
+import { Head, useForm, usePage } from '@inertiajs/vue3'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -17,9 +17,10 @@ import { Link } from '@inertiajs/vue3'
 import { Toaster } from '@/components/ui/sonner'
 import { useToast } from '@/composables/useToast'
 import 'vue-sonner/style.css'
-
+const page = usePage();
 const { toast } = useToast()
-
+const permissions = computed(() => (page.props.auth as any)?.permissions || {});
+const perm = permissions.value.permissions ;
 // Props
 const props = defineProps({
   permission: {
@@ -96,7 +97,7 @@ const handleSubmit = () => {
               {{ isEdit ? 'Update Permissions details.' : 'Add a new permissions to the system.' }}
             </CardDescription>
           </div>
-          <Button as-child>
+          <Button v-if="perm.canView" as-child>
             <Link :href="route('permissions.index')">
               <Eye class="w-4 h-4 mr-2" /> View Permissions
             </Link>
@@ -109,14 +110,14 @@ const handleSubmit = () => {
             <!-- Row 1 -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div class="space-y-2">
-                <Label>Role Name <span class="text-red-500">*</span></Label>
-                <Input v-model="form.name" placeholder="SuperAdmin, Admin, Account..." />
+                <Label>Permission Name <span class="text-red-500">*</span></Label>
+                <Input v-model="form.name" placeholder="Create ..., View ..." />
                 <p v-if="form.errors.name" class="text-sm text-red-600">{{ form.errors.name }}</p>
               </div>
 
               <div class="space-y-2">
                 <Label>Description <span class="text-red-500"></span></Label>
-                <Textarea v-model="form.description" placeholder="Role description..." />
+                <Textarea v-model="form.description" placeholder=" description..." />
                 <p v-if="form.errors.description" class="text-sm text-red-600">{{ form.errors.description }}</p>
               </div>
 

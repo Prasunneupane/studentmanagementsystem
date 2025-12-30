@@ -51,12 +51,12 @@ class PermissionService
                 */
                 'students' => [
                     'canManage' => $this->hasAny($permissions, [
-                        'view_student', 'create_student', 'edit_student', 'delete_student'
+                        'view_students', 'create_students', 'edit_students', 'delete_students'
                     ]),
-                    'canView'   => in_array('view_student', $permissions),
-                    'canCreate' => in_array('create_student', $permissions),
-                    'canEdit'   => in_array('edit_student', $permissions),
-                    'canDelete' => in_array('delete_student', $permissions),
+                    'canView'   => in_array('view_students', $permissions),
+                    'canCreate' => in_array('create_students', $permissions),
+                    'canEdit'   => in_array('edit_students', $permissions),
+                    'canDelete' => in_array('delete_students', $permissions),
                 ],
 
                 /*
@@ -66,12 +66,12 @@ class PermissionService
                 */
                 'subjects' => [
                     'canManage' => $this->hasAny($permissions, [
-                        'view_subject', 'create_subject', 'edit_subject', 'delete_subject'
+                        'view_subjects', 'create_subjects', 'edit_subjects', 'delete_subjects'
                     ]),
-                    'canView'   => in_array('view_subject', $permissions),
-                    'canCreate' => in_array('create_subject', $permissions),
-                    'canEdit'   => in_array('edit_subject', $permissions),
-                    'canDelete' => in_array('delete_subject', $permissions),
+                    'canView'   => in_array('view_subjects', $permissions),
+                    'canCreate' => in_array('create_subjects', $permissions),
+                    'canEdit'   => in_array('edit_subjects', $permissions),
+                    'canDelete' => in_array('delete_subjects', $permissions),
                 ],
 
                 /*
@@ -81,12 +81,12 @@ class PermissionService
                 */
                 'teachers' => [
                     'canManage' => $this->hasAny($permissions, [
-                        'view_teacher', 'create_teacher', 'edit_teacher', 'delete_teacher'
+                        'view_teachers', 'create_teachers', 'edit_teachers', 'delete_teachers'
                     ]),
-                    'canView'   => in_array('view_teacher', $permissions),
-                    'canCreate' => in_array('create_teacher', $permissions),
-                    'canEdit'   => in_array('edit_teacher', $permissions),
-                    'canDelete' => in_array('delete_teacher', $permissions),
+                    'canView'   => in_array('view_teachers', $permissions),
+                    'canCreate' => in_array('create_teachers', $permissions),
+                    'canEdit'   => in_array('edit_teachers', $permissions),
+                    'canDelete' => in_array('delete_teachers', $permissions),
                 ],
 
                 /*
@@ -96,12 +96,12 @@ class PermissionService
                 */
                 'users' => [
                     'canManage' => $this->hasAny($permissions, [
-                        'view_user', 'create_user', 'edit_user', 'delete_user'
+                        'view_users', 'create_users', 'edit_users', 'delete_users'
                     ]),
-                    'canView'   => in_array('view_user', $permissions),
-                    'canCreate' => in_array('create_user', $permissions),
-                    'canEdit'   => in_array('edit_user', $permissions),
-                    'canDelete' => in_array('delete_user', $permissions),
+                    'canView'   => in_array('view_users', $permissions),
+                    'canCreate' => in_array('create_users', $permissions),
+                    'canEdit'   => in_array('edit_users', $permissions),
+                    'canDelete' => in_array('delete_users', $permissions),
                 ],
 
                 /*
@@ -111,12 +111,12 @@ class PermissionService
                 */
                 'roles' => [
                     'canManage' => $this->hasAny($permissions, [
-                        'view_role', 'create_role', 'edit_role', 'delete_role'
+                        'view_roles', 'create_roles', 'edit_roles', 'delete_roles'
                     ]),
-                    'canView'   => in_array('view_role', $permissions),
-                    'canCreate' => in_array('create_role', $permissions),
-                    'canEdit'   => in_array('edit_role', $permissions),
-                    'canDelete' => in_array('delete_role', $permissions),
+                    'canView'   => in_array('view_roles', $permissions),
+                    'canCreate' => in_array('create_roles', $permissions),
+                    'canEdit'   => in_array('edit_roles', $permissions),
+                    'canDelete' => in_array('delete_roles', $permissions),
                 ],
 
                 /*
@@ -126,12 +126,12 @@ class PermissionService
                 */
                 'permissions' => [
                     'canManage' => $this->hasAny($permissions, [
-                        'view_permission', 'create_permission', 'edit_permission', 'delete_permission'
+                        'view_permissions', 'create_permissions', 'edit_permissions', 'delete_permissions'
                     ]),
-                    'canView'   => in_array('view_permission', $permissions),
-                    'canCreate' => in_array('create_permission', $permissions),
-                    'canEdit'   => in_array('edit_permission', $permissions),
-                    'canDelete' => in_array('delete_permission', $permissions),
+                    'canView'   => in_array('view_permissions', $permissions),
+                    'canCreate' => in_array('create_permissions', $permissions),
+                    'canEdit'   => in_array('edit_permissions', $permissions),
+                    'canDelete' => in_array('delete_permissions', $permissions),
                 ],
 
                 /*
@@ -150,9 +150,9 @@ class PermissionService
                 |--------------------------------------------------------------------------
                 */
                 'canManageMasterSettings' => $this->hasAny($permissions, [
-                    'view_role', 'create_role', 'edit_role', 'delete_role',
-                    'view_permission', 'create_permission', 'edit_permission', 'delete_permission',
-                    'view_user', 'create_user', 'edit_user', 'delete_user',
+                    'view_roles', 'create_roles', 'edit_roles', 'delete_roles',
+                    'view_permissions', 'create_permissions', 'edit_permissions', 'delete_permissions',
+                    'view_users', 'create_users', 'edit_users', 'delete_users',
                 ]),
 
                 /*
