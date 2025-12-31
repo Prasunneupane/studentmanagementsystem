@@ -143,17 +143,24 @@ watch(
                   placeholder="email@example.com" />
                 <InputError :message="form.errors.email" />
               </div>
+
+              <!-- <div v-if="!isEdit" class="grid gap-2">
+                <Label for="email">Email address</Label>
+                <Input id="password" type="password" required :tabindex="2" autocomplete="password" v-model="form.password"
+                  placeholder="Password" />
+                <InputError :message="form.errors.password" />
+              </div> -->
               <!-- Password (Create only) -->
-              <div v-if="!isEdit" class="grid gap-2">
+              <div class="grid gap-2">
                 <Label for="password">Password</Label>
-                <Input id="password" type="password" required autocomplete="new-password" v-model="form.password"
+                <Input id="password" type="password" :tabindex="3" required autocomplete="new-password" v-model="form.password"
                   placeholder="Password" />
                 <InputError :message="form.errors.password" />
               </div>
 
               <div v-if="!isEdit" class="grid gap-2">
                 <Label for="password_confirmation">Confirm password</Label>
-                <Input id="password_confirmation" type="password" required autocomplete="new-password"
+                <Input id="password_confirmation" type="password" :tabindex="4" required autocomplete="new-password"
                   v-model="form.password_confirmation" placeholder="Confirm password" />
                 <InputError :message="form.errors.password_confirmation" />
               </div>
@@ -161,7 +168,7 @@ watch(
 
               <div class="space-y-2">
                 <Label>Role <span class="text-red-500">*</span></Label>
-                <SelectSearch :model-value="statusOptions.find(r => r.value === form.roles) || null"
+                <SelectSearch :tabindex="5" :model-value="statusOptions.find(r => r.value === form.roles) || null"
                   :options="statusOptions" placeholder="Select Role"
                   @update:modelValue="option => form.roles = option?.value ?? ''" />
                 <p v-if="form.errors.roles" class="text-sm text-red-600">

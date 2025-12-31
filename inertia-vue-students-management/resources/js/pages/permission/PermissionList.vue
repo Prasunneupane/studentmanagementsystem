@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import {h, ref } from 'vue'
+import {h, ref, computed} from 'vue'
 import AppLayout from '@/layouts/AppLayout.vue'
-import { Head, router, useForm } from '@inertiajs/vue3'
+import { Head, router, useForm, usePage} from '@inertiajs/vue3'
 import DataTable from '../students/Datatable.vue'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -22,7 +22,10 @@ import { useToast } from '@/composables/useToast'
 import type { ColumnDef } from '@tanstack/vue-table'
 import { useFetchingData, type Permission } from '@/composables/fetchCommonData'
 
+const page = usePage();
 const { toast } = useToast()
+const permissionList = computed(() => (page.props.auth as any)?.permissions || {});
+const perm = permissionList.value.permissions ;
 const props = defineProps<{ permissions: Permission[] }>()
 const permissions = ref(props.permissions || [])
 const selectedpermission = ref<Permission | null>(null)
@@ -70,7 +73,9 @@ const columns: ColumnDef<Permission>[] = [
       const permission = row.original
       return h('div', { class: 'flex items-center gap-2' }, [
         // h(Button, { variant: 'ghost', size: 'sm', class: 'h-8 w-8 p-0', title: 'View', onClick: () => handleView(student) }, () => h(Eye, { class: 'h-4 w-4' })),
+        perm.canEdit &&
         h(Button, { variant: 'ghost', size: 'sm', class: 'h-8 w-8 p-0 cursor-pointer', title: 'Edit', onClick: () => handleEdit(permission) }, () => h(Edit, { class: 'h-4 w-4' })),
+        perm.canDelete &&
         h(Button, { variant: 'ghost', size: 'sm', class: 'h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 cursor-pointer', title: 'Delete', onClick: () => handleDelete(permission) }, () => h(Trash2, { class: 'h-4 w-4' })),
       ])
     },
