@@ -16,9 +16,13 @@ import { Link } from '@inertiajs/vue3'
 import { Toaster } from '@/components/ui/sonner'
 import { useToast } from '@/composables/useToast'
 import 'vue-sonner/style.css'
+import { usePermissions } from '@/composables/usePermission'
+
 
 const { toast } = useToast()
 
+const { subjectPermission } = usePermissions();
+const subjectPermissionList = subjectPermission.value ;
 // -------- PROPS ----------
 const props = defineProps({
   subject: {
@@ -111,7 +115,7 @@ const handleSubmit = () => {
           <CardTitle>
             {{ isEdit ? 'Edit Subject' : 'Add Subject' }}
 
-            <Button as-child class="ml-auto float-right">
+            <Button v-if="subjectPermissionList.canView" as-child class="ml-auto float-right">
               <Link :href="route('subjects.index')">
                 <Eye class="w-4 h-4 mr-2" /> View Subjects
               </Link>
@@ -178,7 +182,7 @@ const handleSubmit = () => {
             </div>
 
             <!-- Actions -->
-            <div class="flex justify-end gap-4 pt-6 border-t">
+            <div class="flex justify-end gap-4 pt-6 border-t" v-if="subjectPermissionList.canCreate || subjectPermissionList.canEdit">
               
               <Button type="submit" :disabled="form.processing" class="cursor-pointer">
                 <Loader2 v-if="form.processing" class="mr-2 h-4 w-4 animate-spin" />

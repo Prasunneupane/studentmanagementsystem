@@ -17,7 +17,20 @@ const page = usePage();
 
 // Get permissions from shared data
 const permissions = computed(() => page.props.auth?.permissions || {});
-console.log(permissions.value,"permissions");
+
+// Get current URL to determine which nav items should be open
+const currentUrl = computed(() => page.url);
+
+// Helper function to check if a route is active or if any of its children are active
+const isRouteActive = (item: NavItem): boolean => {
+  if (item.href && currentUrl.value.startsWith(item.href)) {
+    return true;
+  }
+  if (item.items) {
+    return item.items.some(child => isRouteActive(child));
+  }
+  return false;
+};
 
 // Filter navigation items based on permissions
 const mainNavItems = computed((): NavItem[] => {
@@ -51,12 +64,15 @@ const mainNavItems = computed((): NavItem[] => {
     }
 
     if (studentItems.length > 0) {
-      items.push({
+      const studentManagement: NavItem = {
         title: 'Student Management',
         href: '/',
         icon: Users,
         items: studentItems,
-      });
+        isActive: false,
+      };
+      studentManagement.isActive = isRouteActive(studentManagement);
+      items.push(studentManagement);
     }
   }
 
@@ -81,12 +97,15 @@ const mainNavItems = computed((): NavItem[] => {
     }
 
     if (subjectItems.length > 0) {
-      items.push({
+      const subjectManagement: NavItem = {
         title: 'Subject Management',
         href: '/',
         icon: Book,
         items: subjectItems,
-      });
+        isActive: false,
+      };
+      subjectManagement.isActive = isRouteActive(subjectManagement);
+      items.push(subjectManagement);
     }
   }
 
@@ -111,12 +130,15 @@ const mainNavItems = computed((): NavItem[] => {
     }
 
     if (teacherItems.length > 0) {
-      items.push({
+      const teacherManagement: NavItem = {
         title: 'Teacher Management',
         href: '/',
         icon: BookUser,
         items: teacherItems,
-      });
+        isActive: false,
+      };
+      teacherManagement.isActive = isRouteActive(teacherManagement);
+      items.push(teacherManagement);
     }
   }
 
@@ -145,11 +167,14 @@ const mainNavItems = computed((): NavItem[] => {
       }
 
       if (roleItems.length > 0) {
-        masterSettingsItems.push({
+        const rolesItem: NavItem = {
           title: 'Roles',
           icon: UserRoundCheck,
           items: roleItems,
-        });
+          isActive: false,
+        };
+        rolesItem.isActive = isRouteActive(rolesItem);
+        masterSettingsItems.push(rolesItem);
       }
     }
 
@@ -174,11 +199,14 @@ const mainNavItems = computed((): NavItem[] => {
       }
 
       if (permissionItems.length > 0) {
-        masterSettingsItems.push({
+        const permissionsItem: NavItem = {
           title: 'Permissions',
           icon: BookOpen,
           items: permissionItems,
-        });
+          isActive: false,
+        };
+        permissionsItem.isActive = isRouteActive(permissionsItem);
+        masterSettingsItems.push(permissionsItem);
       }
     }
 
@@ -203,20 +231,26 @@ const mainNavItems = computed((): NavItem[] => {
       }
 
       if (userItems.length > 0) {
-        masterSettingsItems.push({
+        const usersItem: NavItem = {
           title: 'Users',
           icon: Users,
           items: userItems,
-        });
+          isActive: false,
+        };
+        usersItem.isActive = isRouteActive(usersItem);
+        masterSettingsItems.push(usersItem);
       }
     }
 
     if (masterSettingsItems.length > 0) {
-      items.push({
+      const masterSettings: NavItem = {
         title: 'Master Settings',
         icon: Settings,
         items: masterSettingsItems,
-      });
+        isActive: false,
+      };
+      masterSettings.isActive = isRouteActive(masterSettings);
+      items.push(masterSettings);
     }
   }
 

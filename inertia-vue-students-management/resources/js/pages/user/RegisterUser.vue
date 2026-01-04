@@ -17,9 +17,11 @@ import { Link } from '@inertiajs/vue3'
 import { Toaster } from '@/components/ui/sonner'
 import { useToast } from '@/composables/useToast'
 import 'vue-sonner/style.css'
+import { usePermissions } from '@/composables/usePermission'
 
 const { toast } = useToast()
-
+const { usersPermission } = usePermissions();
+const userPermissionList = usersPermission.value ;
 // Props
 const props = defineProps({
   user: {
@@ -120,7 +122,7 @@ watch(
               {{ isEdit ? 'Update User details.' : 'Add a new User to the system.' }}
             </CardDescription>
           </div>
-          <Button as-child>
+          <Button v-if="userPermissionList.canView" as-child>
             <Link :href="route('users.index')">
               <Eye class="w-4 h-4 mr-2" /> View User
             </Link>
@@ -198,7 +200,7 @@ watch(
             <div class="flex justify-end gap-4 pt-6 border-t">
               <Button type="submit" class="cursor-pointer" tabindex="5" :disabled="form.processing">
                 <LoaderCircle v-if="form.processing" class="h-4 w-4 animate-spin" />
-                {{ isEdit ? 'Update User' : 'Add User' }}
+                    {{ isEdit ? 'Update User' : 'Add User' }}
               </Button>
             </div>
           </form>

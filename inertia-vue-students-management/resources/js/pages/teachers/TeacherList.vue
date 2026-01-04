@@ -21,7 +21,7 @@ import 'vue-sonner/style.css'
 import { useToast } from '@/composables/useToast'
 import type { ColumnDef } from '@tanstack/vue-table'
 import { useFetchingData, type Teacher } from '@/composables/fetchCommonData'
-
+import { usePermissions } from '@/composables/usePermission'
 const { toast } = useToast()
 const props = defineProps<{ teachers: Teacher[] }>()
 const teachers = ref(props.teachers)
@@ -36,6 +36,9 @@ const {
   loading,
   
 } = useFetchingData();
+const { teachersPermissions } = usePermissions();
+const teachersPermissionsList = teachersPermissions.value ;
+
 const formatType = (value: string) => {
   return value
     .split('_')
@@ -78,8 +81,9 @@ const columns: ColumnDef<Teacher>[] = [
     cell: ({ row }) => {
       const teacher = row.original
       return h('div', { class: 'flex items-center gap-2' }, [
-        // h(Button, { variant: 'ghost', size: 'sm', class: 'h-8 w-8 p-0', title: 'View', onClick: () => handleView(student) }, () => h(Eye, { class: 'h-4 w-4' })),
+        teachersPermissionsList.canEdit &&
         h(Button, { variant: 'ghost', size: 'sm', class: 'h-8 w-8 p-0 cursor-pointer', title: 'Edit', onClick: () => handleEdit(teacher) }, () => h(Edit, { class: 'h-4 w-4' })),
+        teachersPermissionsList.canDelete &&
         h(Button, { variant: 'ghost', size: 'sm', class: 'h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 cursor-pointer', title: 'Delete', onClick: () => handleDelete(teacher) }, () => h(Trash2, { class: 'h-4 w-4' })),
       ])
     },
@@ -150,7 +154,7 @@ const confirmDelete = async (id: string | number | null) => {
         <CardHeader>
           <CardTitle class="text-xl font-bold">
             Teachers List 
-                <Button as-child class="ml-auto float-right">
+                <Button v-if="teachersPermissionsList.canCreate" as-child class="ml-auto float-right">
                   <Link :href="route('teachers.create')">
                     <Plus class="w-4 h-4 mr-2" />
                     Create Teacher
@@ -167,7 +171,7 @@ const confirmDelete = async (id: string | number | null) => {
   </AppLayout>
 
   <DialogueDelete
-     v-model="isDeleteOpen"
+    v-model="isDeleteOpen"
     :title="'Delete Teacher'"
     :description="'Are you sure you want to delete this teacher? This action cannot be undone.'"
     :item-name="selectedTeacher?.name"

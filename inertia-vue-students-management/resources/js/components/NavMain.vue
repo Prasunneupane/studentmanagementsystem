@@ -22,47 +22,61 @@ const props = defineProps<{
 
 const page = usePage();
 
-// ✅ Only mark active if EXACT match
+// Check if exact URL matches
 const isExactActive = (href?: string) => {
-    if (!href) return false;
-    return page.url.split('?')[0] === href; // strip query params
+    if (!href || href === '/') return false;
+    return page.url.split('?')[0] === href;
 };
 
-// ✅ Parent active if it or one of its children matches
-const hasActiveChild = (items?: NavItem[]) => {
+// Check if any child (recursively) is active
+const hasActiveChild = (items?: NavItem[]): boolean => {
     if (!items) return false;
-    return items.some(item => isExactActive(item.href));
+    return items.some(item => {
+        if (isExactActive(item.href)) return true;
+        if (item.items) return hasActiveChild(item.items);
+        return false;
+    });
 };
 
+// Check if parent should be marked active
 const isParentActive = (item: NavItem) => {
     if (isExactActive(item.href)) return true;
     return hasActiveChild(item.items);
 };
 
-// ✅ reactive items to track collapsibles
-const reactiveItems = reactive(
-    props.items.map(item => ({
+// Process items recursively to add isOpen state
+const processItems = (items: NavItem[]): any[] => {
+    return items.map(item => ({
         ...item,
         isOpen: hasActiveChild(item.items),
-    }))
-);
+        items: item.items ? processItems(item.items) : undefined,
+    }));
+};
 
-// Watch for route changes → update open/active state
-watch(() => page.url, () => {
-    reactiveItems.forEach(item => {
+// Create reactive items with open state
+const reactiveItems = reactive(processItems(props.items));
+
+// Watch for route changes and update open state
+const updateOpenStates = (items: any[]) => {
+    items.forEach(item => {
         if (item.items) {
             item.isOpen = hasActiveChild(item.items);
+            updateOpenStates(item.items);
         }
     });
+};
+
+watch(() => page.url, () => {
+    updateOpenStates(reactiveItems);
 });
 </script>
 
 <template>
     <SidebarGroup>
-        <SidebarGroupLabel  v-if="isRoot">Platform</SidebarGroupLabel>
+        <SidebarGroupLabel v-if="isRoot">Platform</SidebarGroupLabel>
         <SidebarMenu>
             <SidebarMenuItem v-for="item in reactiveItems" :key="item.title">
-                <!-- Normal menu -->
+                <!-- Normal menu item without children -->
                 <SidebarMenuButton
                     v-if="!item.items"
                     as-child
@@ -75,12 +89,11 @@ watch(() => page.url, () => {
                     </Link>
                 </SidebarMenuButton>
 
-                <!-- Collapsible with children -->
+                <!-- Collapsible menu item with children -->
                 <Collapsible
                     v-else
-                    :default-open="hasActiveChild(item.items)"
-                    class="group/collapsible"
                     v-model:open="item.isOpen"
+                    class="group/collapsible"
                 >
                     <CollapsibleTrigger as-child>
                         <SidebarMenuButton
@@ -96,45 +109,86 @@ watch(() => page.url, () => {
                     </CollapsibleTrigger>
 
                     <CollapsibleContent>
-  <SidebarMenuSub>
-    <template v-for="subItem in item.items" :key="subItem.title">
+                        <SidebarMenuSub>
+                            <template v-for="subItem in item.items" :key="subItem.title">
+                                <!-- Nested submenu with children (Level 3) -->
+                                <SidebarMenuSubItem v-if="subItem.items">
+                                    <Collapsible
+                                        v-model:open="subItem.isOpen"
+                                        class="group/nested-collapsible"
+                                    >
+                                        <CollapsibleTrigger as-child>
+                                            <SidebarMenuSubButton
+                                                :is-active="isParentActive(subItem)"
+                                            >
+                                                <component :is="subItem.icon" v-if="subItem.icon" />
+                                                <span>{{ subItem.title }}</span>
+                                                <ChevronRight
+                                                    class="ml-auto transition-transform duration-200 group-data-[state=open]/nested-collapsible:rotate-90"
+                                                />
+                                            </SidebarMenuSubButton>
+                                        </CollapsibleTrigger>
 
-      <!-- SUBMENU WITH CHILDREN (LEVEL 3) -->
-      <SidebarMenuSubItem v-if="subItem.items">
-        <Collapsible class="group/collapsible ml-2">
-          <CollapsibleTrigger as-child>
-            <SidebarMenuSubButton>
-              <component :is="subItem.icon" />
-              <span>{{ subItem.title }}</span>
-              <ChevronRight
-                class="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90"
-              />
-            </SidebarMenuSubButton>
-          </CollapsibleTrigger>
+                                        <CollapsibleContent>
+                                            <SidebarMenuSub>
+                                                <SidebarMenuSubItem
+                                                    v-for="nestedItem in subItem.items"
+                                                    :key="nestedItem.title"
+                                                >
+                                                    <!-- Check if nested item has more children (Level 4+) -->
+                                                    <template v-if="nestedItem.items">
+                                                        <Collapsible
+                                                            v-model:open="nestedItem.isOpen"
+                                                            class="group/deep-collapsible"
+                                                        >
+                                                            <CollapsibleTrigger as-child>
+                                                                <SidebarMenuSubButton>
+                                                                    <component :is="nestedItem.icon" v-if="nestedItem.icon" />
+                                                                    <span>{{ nestedItem.title }}</span>
+                                                                    <ChevronRight
+                                                                        class="ml-auto transition-transform duration-200 group-data-[state=open]/deep-collapsible:rotate-90"
+                                                                    />
+                                                                </SidebarMenuSubButton>
+                                                            </CollapsibleTrigger>
+                                                            <CollapsibleContent>
+                                                                <!-- Recursive component for deeper levels -->
+                                                                <NavMain :items="nestedItem.items" />
+                                                            </CollapsibleContent>
+                                                        </Collapsible>
+                                                    </template>
+                                                    
+                                                    <!-- Regular nested item (leaf node) -->
+                                                    <SidebarMenuSubButton
+                                                        v-else
+                                                        as-child
+                                                        :is-active="isExactActive(nestedItem.href)"
+                                                    >
+                                                        <Link :href="nestedItem.href || '#'">
+                                                            <component :is="nestedItem.icon" v-if="nestedItem.icon" />
+                                                            <span>{{ nestedItem.title }}</span>
+                                                        </Link>
+                                                    </SidebarMenuSubButton>
+                                                </SidebarMenuSubItem>
+                                            </SidebarMenuSub>
+                                        </CollapsibleContent>
+                                    </Collapsible>
+                                </SidebarMenuSubItem>
 
-                    <CollapsibleContent>
-                        <!-- 🔁 RECURSIVE CALL -->
-                        <NavMain :items="subItem.items" />
+                                <!-- Regular submenu item (leaf node) -->
+                                <SidebarMenuSubItem v-else>
+                                    <SidebarMenuSubButton
+                                        as-child
+                                        :is-active="isExactActive(subItem.href)"
+                                    >
+                                        <Link :href="subItem.href || '#'">
+                                            <component :is="subItem.icon" v-if="subItem.icon" />
+                                            <span>{{ subItem.title }}</span>
+                                        </Link>
+                                    </SidebarMenuSubButton>
+                                </SidebarMenuSubItem>
+                            </template>
+                        </SidebarMenuSub>
                     </CollapsibleContent>
-                    </Collapsible>
-                </SidebarMenuSubItem>
-
-                <!-- NORMAL SUBMENU ITEM -->
-                <SidebarMenuSubItem v-else>
-                    <SidebarMenuSubButton
-                    as-child
-                    :is-active="isExactActive(subItem.href)"
-                    >
-                    <Link :href="subItem.href || '#'">
-                        <component :is="subItem.icon" />
-                        <span>{{ subItem.title }}</span>
-                    </Link>
-                    </SidebarMenuSubButton>
-                </SidebarMenuSubItem>
-
-                </template>
-            </SidebarMenuSub>
-            </CollapsibleContent>
                 </Collapsible>
             </SidebarMenuItem>
         </SidebarMenu>

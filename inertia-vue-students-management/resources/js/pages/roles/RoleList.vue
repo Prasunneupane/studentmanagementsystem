@@ -19,8 +19,12 @@ import { Link } from '@inertiajs/vue3'
 import { Toaster } from '@/components/ui/sonner'
 import 'vue-sonner/style.css'
 import { useToast } from '@/composables/useToast'
+import { usePermissions } from '@/composables/usePermission'
 import type { ColumnDef } from '@tanstack/vue-table'
 import { useFetchingData, type Role } from '@/composables/fetchCommonData'
+
+const { rolePermission } = usePermissions();
+const rolePermissionList = rolePermission.value ;
 
 const { toast } = useToast()
 const props = defineProps<{ roles: Role[] }>()
@@ -70,8 +74,11 @@ const columns: ColumnDef<Role>[] = [
       const role = row.original
       return h('div', { class: 'flex items-center gap-2' }, [
         // h(Button, { variant: 'ghost', size: 'sm', class: 'h-8 w-8 p-0', title: 'View', onClick: () => handleView(student) }, () => h(Eye, { class: 'h-4 w-4' })),
+        rolePermissionList.canEdit &&
         h(Button, { variant: 'ghost', size: 'sm', class: 'h-8 w-8 p-0 cursor-pointer', title: 'Edit', onClick: () => handleEdit(role) }, () => h(Edit, { class: 'h-4 w-4' })),
+        rolePermissionList.canDelete &&
         h(Button, { variant: 'ghost', size: 'sm', class: 'h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 cursor-pointer', title: 'Delete', onClick: () => handleDelete(role) }, () => h(Trash2, { class: 'h-4 w-4' })),
+        rolePermissionList.canAssignPermissions &&
         h(Button, { variant: 'ghost', size: 'sm', class: 'h-8 w-8 p-0 cursor-pointer', title: 'Assign Permissions', onClick: () => router.get(route('roles.assign_permissions', role.id)) }, () => h(BookOpen, { class: 'h-4 w-4' })),
       ])
     },
@@ -142,7 +149,7 @@ const confirmDelete = async (id: string | number | null) => {
         <CardHeader>
           <CardTitle class="text-xl font-bold">
             Roles List 
-                <Button as-child class="ml-auto float-right">
+                <Button v-if="rolePermissionList.canCreate" as-child class="ml-auto float-right">
                   <Link :href="route('roles.create')">
                     <Plus class="w-4 h-4 mr-2" />
                     Create Roles

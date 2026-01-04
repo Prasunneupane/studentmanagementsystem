@@ -18,6 +18,7 @@ export interface NavItem {
     disabled?: boolean;
     external?: boolean;
     isOpen?: boolean;
+    isActive?: boolean;
 }
 
 export type AppPageProps<T extends Record<string, unknown> = Record<string, unknown>> = T & {

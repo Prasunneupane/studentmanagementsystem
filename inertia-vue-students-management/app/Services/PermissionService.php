@@ -117,6 +117,7 @@ class PermissionService
                     'canCreate' => in_array('create_roles', $permissions),
                     'canEdit'   => in_array('edit_roles', $permissions),
                     'canDelete' => in_array('delete_roles', $permissions),
+                    'canAssignPermissions' =>in_array('assign_permissions', $permissions),
                 ],
 
                 /*

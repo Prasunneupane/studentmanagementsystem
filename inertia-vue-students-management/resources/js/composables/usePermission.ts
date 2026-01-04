@@ -1,39 +1,33 @@
 // composables/usePermissions.ts
-import { computed } from 'vue';
-import { usePage } from '@inertiajs/vue3';
+import { computed, } from 'vue';
+import { usePage, } from '@inertiajs/vue3';
 
 export function usePermissions() {
+
   const page = usePage();
-  
+
   const permissions = computed(() => page.props.auth?.permissions || {});
-  const userPermissionSlugs = computed(() => permissions.value.permissions || []);
 
-  const hasPermission = (permission: string): boolean => {
-    return userPermissionSlugs.value.includes(permission);
-  };
+  const teachersPermissions = computed(() => {
+    return permissions.value.teachers || {};
+  });
+  const usersPermission = computed(() => {
+    return permissions.value.users || {};
+  });
 
-  const hasAnyPermission = (permissionArray: string[]): boolean => {
-    return permissionArray.some(permission => 
-      userPermissionSlugs.value.includes(permission)
-    );
-  };
+  const rolePermission= computed(() => {
+    return permissions.value.roles || {};
+  });
 
-  const hasAllPermissions = (permissionArray: string[]): boolean => {
-    return permissionArray.every(permission => 
-      userPermissionSlugs.value.includes(permission)
-    );
-  };
-
-  const can = (ability: string): boolean => {
-    return permissions.value[ability] === true;
-  };
+  const subjectPermission = computed(() => {
+    return permissions.value.subjects || {};
+  });
 
   return {
     permissions,
-    userPermissionSlugs,
-    hasPermission,
-    hasAnyPermission,
-    hasAllPermissions,
-    can,
+    teachersPermissions,
+    usersPermission,
+    rolePermission,
+    subjectPermission,
   };
 }
