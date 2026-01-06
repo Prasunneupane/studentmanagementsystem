@@ -17,11 +17,11 @@ import { Link } from '@inertiajs/vue3'
 import { Toaster } from '@/components/ui/sonner'
 import { useToast } from '@/composables/useToast'
 import 'vue-sonner/style.css'
-import { usePermissions } from '@/composables/usePermission'
+import { usePermission } from '@/composables/usePermissions'
 
 const { toast } = useToast()
-const { usersPermission } = usePermissions();
-const userPermissionList = usersPermission.value ;
+const { can } = usePermission();
+
 // Props
 const props = defineProps({
   user: {
@@ -122,7 +122,7 @@ watch(
               {{ isEdit ? 'Update User details.' : 'Add a new User to the system.' }}
             </CardDescription>
           </div>
-          <Button v-if="userPermissionList.canView" as-child>
+          <Button v-if="can('users.canView')" as-child>
             <Link :href="route('users.index')">
               <Eye class="w-4 h-4 mr-2" /> View User
             </Link>
@@ -197,7 +197,7 @@ watch(
                 <InputError :message="form.errors.is_active" />
               </div>
             </div>
-            <div class="flex justify-end gap-4 pt-6 border-t">
+            <div class="flex justify-end gap-4 pt-6 border-t" v-if="can('users.canCreate') || can('users.canEdit')">
               <Button type="submit" class="cursor-pointer" tabindex="5" :disabled="form.processing">
                 <LoaderCircle v-if="form.processing" class="h-4 w-4 animate-spin" />
                     {{ isEdit ? 'Update User' : 'Add User' }}

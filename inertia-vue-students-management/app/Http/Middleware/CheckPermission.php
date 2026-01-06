@@ -26,9 +26,10 @@ class CheckPermission
         }
 
         $user = Auth::user();
-
+        // dd($this->isSuperAdmin($user));
         // Super admin bypass (optional - if you want super admins to have all permissions)
         if ($this->isSuperAdmin($user)) {
+            // dd('here');
             return $next($request);
         }
 

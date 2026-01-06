@@ -17,13 +17,11 @@ import { Link } from '@inertiajs/vue3'
 import { Toaster } from '@/components/ui/sonner'
 import { useToast } from '@/composables/useToast'
 import 'vue-sonner/style.css'
-import { usePermissions } from '@/composables/usePermission'
 
-
+import { usePermission } from '@/composables/usePermissions'
 const { toast } = useToast()
+const { can } = usePermission();
 
-const { teachersPermissions } = usePermissions();
-const teachersPermissionsList = teachersPermissions.value ;
 // Props
 const props = defineProps({
   teacher: {
@@ -141,7 +139,7 @@ const handleSubmit = () => {
               {{ isEdit ? 'Update teacher details.' : 'Add a new teacher to the system.' }}
             </CardDescription>
           </div>
-          <Button v-if="teachersPermissionsList.canView" as-child>
+          <Button v-if="can('teachers.canView')" as-child>
             <Link :href="route('teachers.index')">
               <Eye class="w-4 h-4 mr-2" /> View Teachers
             </Link>
@@ -243,7 +241,7 @@ const handleSubmit = () => {
             </div>
 
             <!-- Submit -->
-            <div class="flex justify-end gap-4 pt-6 border-t" v-if="teachersPermissionsList.canCreate || teachersPermissionsList.canEdit">
+            <div class="flex justify-end gap-4 pt-6 border-t" v-if="can('teachers.canCreate') || can('teachers.canEdit')">
               <Button type="submit" :disabled="form.processing" class="cursor-pointer">
                 <Loader2 v-if="form.processing" class="mr-2 h-4 w-4 animate-spin" />
                 {{ isEdit ? 'Update Teacher' : 'Add Teacher' }}

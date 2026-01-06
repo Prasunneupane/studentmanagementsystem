@@ -17,13 +17,15 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Loader2, Eye, Plus } from 'lucide-vue-next'
 import { Toaster } from '@/components/ui/sonner'
 import { useToast } from '@/composables/useToast'
+import { usePermission } from '@/composables/usePermissions'
+
 
 const { toast } = useToast()
 interface Option {
   value: string
   label: string
 }
-
+const { can } = usePermission();
 /* -------------------- Props -------------------- */
 const props = defineProps<{
   role: { id: number; name: string }
@@ -110,13 +112,7 @@ const handleSubmit = () => {
     toast.error('Please select a role')
     return
   }
-
-  console.log('=== SUBMIT DEBUG ===')
-  console.log('Selected Role:', form.role_id)
-  console.log('Selected Permissions:', selectedPermissions.value)
-  console.log('Permissions Count:', selectedPermissions.value.length)
-
-  processing.value = true
+ processing.value = true
 
   // Use router.post directly
   router.post(
@@ -132,7 +128,7 @@ const handleSubmit = () => {
         processing.value = false
       },
       onError: (errors) => {
-        console.error('❌ Submission errors:', errors)
+        
         toast.error('Failed to assign permissions')
         processing.value = false
       },
@@ -163,13 +159,13 @@ const handleSubmit = () => {
             </CardDescription>
           </div>
           <div class="flex gap-3">
-          <Button as-child>
+          <Button v-if="can('roles.canView')" as-child>
             <Link :href="route('roles.index')">
               <Eye class="w-4 h-4 mr-2" /> View Roles
             </Link>
           </Button>
 
-          <Button as-child>
+          <Button v-if="can('roles.canCreate')" as-child>
             <Link :href="route('roles.create')">
               <Plus class="w-4 h-4 mr-2" /> Create Role
             </Link>
@@ -267,16 +263,19 @@ const handleSubmit = () => {
             </div>
 
             <!-- Submit -->
-            <div class="flex justify-end gap-3 border-t pt-6">
+            <div class="flex justify-end gap-3 border-t pt-6" >
               <Button
                 type="button"
                 variant="outline"
                 as-child
                 :disabled="processing"
+                v-if="can('roles.canView')"
               >
                 <Link :href="route('roles.index')"> Cancel </Link>
               </Button>
-              <Button class="cursor-pointer" type="submit" :disabled="processing || loadingPermissions">
+              <Button  class="cursor-pointer" type="submit" :disabled="processing || loadingPermissions"
+              v-if="can('roles.canAssignPermissions')"
+              >
                 <Loader2
                   v-if="processing"
                   class="mr-2 h-4 w-4 animate-spin"

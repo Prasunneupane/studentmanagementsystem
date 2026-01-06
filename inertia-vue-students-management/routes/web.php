@@ -27,22 +27,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Student Management Routes
     Route::prefix('students')->name('students.')->group(function () {
         // View students list - requires students.view permission
+            Route::middleware(['permission:students.create'])->group(function () {
+            Route::get('/create', [StudentsController::class, 'create'])->name('create');
+            Route::post('/store', [StudentsController::class, 'store'])->name('store');
+        });
         Route::middleware(['permission:students.view'])->group(function () {
             Route::get('/', [StudentsController::class, 'index'])->name('index');
             Route::get('/{student}', [StudentsController::class, 'show'])->name('show');
         });
 
-        // Create student - requires students.create permission
-        Route::middleware(['permission:students.create'])->group(function () {
-            Route::get('/create', [StudentsController::class, 'create'])->name('create');
-            Route::post('/store', [StudentsController::class, 'store'])->name('store');
-        });
-
-        // Edit student - requires students.edit permission
+    // Edit student - requires students.edit permission
         Route::middleware(['permission:students.edit'])->group(function () {
             Route::get('/{student}/edit', [StudentsController::class, 'edit'])->name('edit');
             Route::put('/{student}', [StudentsController::class, 'update'])->name('update');
-        });
+    });
 
         // Delete student - requires students.delete permission
         Route::middleware(['permission:students.delete'])->group(function () {

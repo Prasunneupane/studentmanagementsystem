@@ -19,12 +19,11 @@ import { Link } from '@inertiajs/vue3'
 import { Toaster } from '@/components/ui/sonner'
 import 'vue-sonner/style.css'
 import { useToast } from '@/composables/useToast'
-import { usePermissions } from '@/composables/usePermission'
+import { usePermission } from '@/composables/usePermissions'
 import type { ColumnDef } from '@tanstack/vue-table'
 import { useFetchingData, type User } from '@/composables/fetchCommonData'
 const page = usePage();
-const permissionList = computed(() => (page.props.auth as any)?.permissions || {});
-const perm = permissionList.value.permissions ;
+const { can } = usePermission();
 const { toast } = useToast()
 const props = defineProps<{ users: User[] }>()
 const users = ref(props.users)
@@ -39,8 +38,7 @@ const {
   loading,
   
 } = useFetchingData();
-const { usersPermission } = usePermissions();
-const userPermissionList = usersPermission.value ;
+
 // console.log(userPermissionList,"teacher");
 
 const formatType = (value: string) => {
@@ -82,9 +80,9 @@ const columns: ColumnDef<User>[] = [
       const user = row.original
       return h('div', { class: 'flex items-center gap-2' }, [
         // h(Button, { variant: 'ghost', size: 'sm', class: 'h-8 w-8 p-0', title: 'View', onClick: () => handleView(student) }, () => h(Eye, { class: 'h-4 w-4' })),
-        userPermissionList.canEdit &&
+        can('users.canEdit') &&
         h(Button, { variant: 'ghost', size: 'sm', class: 'h-8 w-8 p-0 cursor-pointer', title: 'Edit', onClick: () => handleEdit(user) }, () => h(Edit, { class: 'h-4 w-4' })),
-        userPermissionList.canDelete &&
+        can('users.canDelete') &&
         h(Button, { variant: 'ghost', size: 'sm', class: 'h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 cursor-pointer', title: 'Delete', onClick: () => handleDelete(user) }, () => h(Trash2, { class: 'h-4 w-4' })),
       ])
     },
@@ -137,7 +135,6 @@ const confirmDelete = async (id: string | number | null) => {
     )
   } catch (err) {
     toast.error('Failed to delete User')
-    console.error(err)
   }
 }
 </script>
@@ -155,7 +152,7 @@ const confirmDelete = async (id: string | number | null) => {
         <CardHeader>
           <CardTitle class="text-xl font-bold">
             Users List 
-                <Button v-if="userPermissionList.canCreate" as-child class="ml-auto float-right">
+                <Button v-if="can('users.canCreate')" as-child class="ml-auto float-right">
                   <Link :href="route('users.create')">
                     <Plus class="w-4 h-4 mr-2" />
                     Create User
@@ -174,7 +171,7 @@ const confirmDelete = async (id: string | number | null) => {
   <DialogueDelete
      v-model="isDeleteOpen"
     :title="'Delete User'"
-    :description="'Are you sure you want to delete this teacher? This action cannot be undone.'"
+    :description="'Are you sure you want to delete this user? This action cannot be undone.'"
     :item-name="selectedUser?.name"
     :item-id="selectedUser?.id"
     @confirm="confirmDelete(selectedUser?.id ?? null)"

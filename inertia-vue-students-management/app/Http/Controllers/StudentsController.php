@@ -31,11 +31,12 @@ class StudentsController extends Controller
         return Inertia::render('students/StudentList'); // Adjust the view name as needed
     }
 
-    /**
+/**
      * Show the form for creating a new resource.
      */
     public function create()
     {
+        // dd('here');
         return Inertia::render('students/RegisterStudent'); // Adjust the view name as needed
     }
 

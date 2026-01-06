@@ -21,7 +21,8 @@ import 'vue-sonner/style.css'
 import { useToast } from '@/composables/useToast'
 import type { ColumnDef } from '@tanstack/vue-table'
 import { useFetchingData, type Teacher } from '@/composables/fetchCommonData'
-import { usePermissions } from '@/composables/usePermission'
+
+import { usePermission } from '@/composables/usePermissions'
 const { toast } = useToast()
 const props = defineProps<{ teachers: Teacher[] }>()
 const teachers = ref(props.teachers)
@@ -32,12 +33,9 @@ const breadcrumbs = [
   // { title: 'View Subjects', href: '/subjects/create' }
 ]
 const {
-  
-  loading,
-  
+  loading, 
 } = useFetchingData();
-const { teachersPermissions } = usePermissions();
-const teachersPermissionsList = teachersPermissions.value ;
+const { can } = usePermission();
 
 const formatType = (value: string) => {
   return value
@@ -81,9 +79,9 @@ const columns: ColumnDef<Teacher>[] = [
     cell: ({ row }) => {
       const teacher = row.original
       return h('div', { class: 'flex items-center gap-2' }, [
-        teachersPermissionsList.canEdit &&
+        can('teachers.canEdit') &&
         h(Button, { variant: 'ghost', size: 'sm', class: 'h-8 w-8 p-0 cursor-pointer', title: 'Edit', onClick: () => handleEdit(teacher) }, () => h(Edit, { class: 'h-4 w-4' })),
-        teachersPermissionsList.canDelete &&
+         can('teachers.canDelete') &&
         h(Button, { variant: 'ghost', size: 'sm', class: 'h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 cursor-pointer', title: 'Delete', onClick: () => handleDelete(teacher) }, () => h(Trash2, { class: 'h-4 w-4' })),
       ])
     },
@@ -154,7 +152,7 @@ const confirmDelete = async (id: string | number | null) => {
         <CardHeader>
           <CardTitle class="text-xl font-bold">
             Teachers List 
-                <Button v-if="teachersPermissionsList.canCreate" as-child class="ml-auto float-right">
+                <Button v-if=" can('teachers.canCreate')" as-child class="ml-auto float-right">
                   <Link :href="route('teachers.create')">
                     <Plus class="w-4 h-4 mr-2" />
                     Create Teacher

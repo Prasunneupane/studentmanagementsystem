@@ -99,7 +99,7 @@ return new class extends Migration
     ['name'=>'Dadeldhura','state_id'=>7,'created_at'=>now(),'updated_at'=>now()],
     ['name'=>'Baitadi','state_id'=>7,'created_at'=>now(),'updated_at'=>now()],
     ['name'=>'Darchula','state_id'=>7,'created_at'=>now(),'updated_at'=>now()],
-]);
+    ]);
     }
 
     /**
