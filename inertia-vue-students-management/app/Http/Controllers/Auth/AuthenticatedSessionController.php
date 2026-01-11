@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use Cache;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -55,7 +56,8 @@ class AuthenticatedSessionController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
-    // Invalidate the JWT token
+        $userId = Auth::id();
+        // Invalidate the JWT token
         try {
             JWTAuth::invalidate(JWTAuth::getToken());
         } catch (\Exception $e) {
@@ -66,7 +68,9 @@ class AuthenticatedSessionController extends Controller
         session()->forget('jwt_token');
         
         Auth::guard('web')->logout();
-
+        if ($userId) {
+            Cache::forget("user_permissions_{$userId}");
+        }
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 

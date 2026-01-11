@@ -159,11 +159,11 @@ class RolesController extends Controller
      */
     public function assignPermissions(Request $request)
 {
-    $validated = $request->validate([
-        'role_id' => 'required|exists:tbl_roles,id',
-        'permissions' => 'nullable|array',
-        'permissions.*' => 'exists:tbl_permissions,id',
-    ]);
+        $validated = $request->validate([
+            'role_id' => 'required|exists:tbl_roles,id',
+            'permissions' => 'nullable|array',
+            'permissions.*' => 'exists:tbl_permissions,id',
+        ]);
 
         try {
             DB::beginTransaction();
@@ -183,9 +183,10 @@ class RolesController extends Controller
 
             // Sync with pivot data
             $role->permissions()->sync($syncData);
-
+            
             DB::commit();
-
+            $this->invalidatePermissionsCache();
+            
             return redirect()
                 ->route('roles.index')
                 ->with('success', 'Permissions assigned successfully');
@@ -201,12 +202,12 @@ class RolesController extends Controller
         }
     }
 
-    private function clearCacheForRoleUsers(Roles $role)
+    private function invalidatePermissionsCache(): void
     {
-        $users = $role->users;
-        foreach ($users as $user) {
-            $this->permissionService->clearUserCache($user);
-        }
+        // $users = $role->users;
+        // foreach ($users as $user) {
+            $this->permissionService->bumpPermissionsVersion();
+        // }
     }
 
 }

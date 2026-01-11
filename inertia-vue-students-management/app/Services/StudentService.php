@@ -4,6 +4,9 @@ namespace App\Services;
 
 use App\Contracts\StudentRepositoryInterface;
 use App\Contracts\StudentServiceInterface;
+use App\Models\Classes;
+use App\Models\Enrollments;
+use App\Models\Section;
 use App\Models\Students;
 use App\Repositories\GuardianRepository;
 use DB;
@@ -106,6 +109,19 @@ class StudentService implements StudentServiceInterface
                 ]);
             }
 
+            Enrollments::create([
+                'student_id' => $student->id,
+                'class_id' => $data['classId'],
+                'section_id' => $data['sectionId'] ?? null,
+                'academic_year_id' => DB::table('tbl_academic_years')->where('is_active', 1)->value('id'),
+                'roll_no' => DB::table('tbl_academic_years')->where('is_active', 1)->value('academic_year') . '-' . str_pad($student->id, 4, '0', STR_PAD_LEFT),
+                'admission_date' => $data['joinedDate'],
+                'status' => 'enrolled',
+                'remarks' => $data['remarks'] ?? null,
+                'is_active' => 1,
+                'created_by' => $userId,
+            ]);
+
             DB::commit();
             return $student;
             
@@ -185,5 +201,25 @@ class StudentService implements StudentServiceInterface
         // dump($studentData);
         // dd($studentId);
         return $this->studentRepository->updateStudentById($studentId, $studentData);
+    }
+
+    public function getClassList(): array{
+        return Classes::where('is_active')->pluck('id','name')->toArray();
+    }
+
+    public function getSectionList(): array{
+        return Section::where('is_active')->pluck('id','name')->toArray();
+    }
+
+    public function getStateList(): array{
+        return DB::table('tbl_states')->where('is_active',1)->pluck('name','id')->toArray();
+    }
+
+    public function getDistrictList(int $stateId): array{
+        return DB::table('tbl_districts')->where(['is_active'=>1,'state_id'=>$stateId])->pluck('name','id')->toArray();
+    }
+    
+    public function getMunicipalityList(int $districtId): array{
+        return DB::table('municipalities')->where(['is_active'=>1,'district_id'=>$districtId])->pluck('name','id')->toArray();
     }
 }

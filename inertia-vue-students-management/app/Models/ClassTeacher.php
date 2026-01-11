@@ -4,19 +4,16 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Enrollments extends Model
+class ClassTeacher extends Model
 {
-    protected $table = 'tbl_enrollments';
+    protected $table = 'tbl_class_teachers';
 
     protected $fillable = [
-        'student_id',
         'class_id',
         'section_id',
+        'teacher_id',
         'academic_year_id',
-        'roll_no',
-        'admission_date',
-        'status',
-        'remarks',
+        'is_class_teacher',
         'is_active',
         'created_by',
         'updated_by',

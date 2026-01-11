@@ -40,7 +40,9 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import SelectSearch from '@/components/ui/select/Select-Search.vue'
+import {usePermission } from '@/composables/usePermissions'
 
+const { can } = usePermission();
 // Breadcrumbs
 const breadcrumbs = [{ title: 'View Students', href: '/students' }]
 
@@ -540,9 +542,12 @@ const columns: ColumnDef<Student>[] = [
     cell: ({ row }) => {
       const student = row.original
       return h('div', { class: 'flex items-center gap-2' }, [
-        h(Button, { variant: 'ghost', size: 'sm', class: 'h-8 w-8 p-0', title: 'View', onClick: () => handleView(student) }, () => h(Eye, { class: 'h-4 w-4' })),
-        h(Button, { variant: 'ghost', size: 'sm', class: 'h-8 w-8 p-0', title: 'Edit', onClick: () => handleEdit(student) }, () => h(Edit, { class: 'h-4 w-4' })),
-        h(Button, { variant: 'ghost', size: 'sm', class: 'h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50', title: 'Delete', onClick: () => handleDelete(student) }, () => h(Trash2, { class: 'h-4 w-4' })),
+        can('students.canView') &&
+        h(Button, { variant: 'ghost', size: 'sm', class: 'h-8 w-8 p-0 cursor-pointer', title: 'View', onClick: () => handleView(student) }, () => h(Eye, { class: 'h-4 w-4' })),
+        can('students.canEdit') &&
+        h(Button, { variant: 'ghost', size: 'sm', class: 'h-8 w-8 p-0 cursor-pointer', title: 'Edit', onClick: () => handleEdit(student) }, () => h(Edit, { class: 'h-4 w-4' })),
+        can('students.canDelete') &&
+        h(Button, { variant: 'ghost', size: 'sm', class: 'h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 cursor-pointer', title: 'Delete', onClick: () => handleDelete(student) }, () => h(Trash2, { class: 'h-4 w-4' })),
       ])
     },
   },
@@ -695,10 +700,10 @@ const columns: ColumnDef<Student>[] = [
                     </td>
                     <td class="px-4 py-3 text-right">
                       <div class="flex items-center justify-end gap-1">
-                        <Button variant="ghost" size="icon" class="h-8 w-8" @click="openGuardianModal(g)">
+                        <Button v-if="can('guardians.canEdit')" variant="ghost" size="icon" class="h-8 w-8" @click="openGuardianModal(g)">
                           <Pencil class="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" class="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50" @click="handleGuardianDelete(g)">
+                        <Button v-if="can('guardians.canDelete')" variant="ghost" size="icon" class="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50" @click="handleGuardianDelete(g)">
                           <Trash2 class="h-4 w-4" />
                         </Button>
                       </div>

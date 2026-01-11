@@ -11,4 +11,6 @@ interface StudentServiceInterface
     public function getStudentsByDateRange(string $fromDate, string $toDate): array;
 
     public function updateStudentById(int $studentId, array $data): Students;
+
+    public function getClassList():array;
 }
