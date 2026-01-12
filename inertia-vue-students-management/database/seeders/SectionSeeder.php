@@ -16,8 +16,11 @@ class SectionSeeder extends Seeder
         $sections = range('A', 'H'); // generates ['A','B','C',...,'H']
 
         foreach ($sections as $letter) {
-            DB::table('sections')->insert([
+            DB::table('tbl_section')->insert([
                 'name' => "Section {$letter}",
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
         }
     

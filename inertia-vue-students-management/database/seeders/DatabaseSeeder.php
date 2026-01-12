@@ -15,12 +15,17 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
 
-        //$this->call(SectionSeeder::class);
+        // $this->call(SectionSeeder::class);
         // $this->call(ClassSeeder::class);
         // $this->call(RoleSeeder::class);
         // $this->call(SectionSeeder::class);
         // $this->call(PermissionSeeder::class);
         // $this->call(RolePermissionSeeder::class);
         //$this->call(AcademicYearSeeder::class);
+        // $this->call(StatesSeeder::class);
+        // $this->call(DistrictSeeder::class);
+        // $this->call(MunicipalitySeeder::class);
+        // $this->call(DefaultSettingSeeder::class);
+        // $this->call(ClassSectionSeeder::class);
     }
 }

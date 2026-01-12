@@ -204,11 +204,11 @@ class StudentService implements StudentServiceInterface
     }
 
     public function getClassList(): array{
-        return Classes::where('is_active')->pluck('id','name')->toArray();
+        return Classes::where('is_active',true)->pluck('name','id')->toArray();
     }
 
     public function getSectionList(): array{
-        return Section::where('is_active')->pluck('id','name')->toArray();
+        return Section::where('is_active',true)->pluck('id','name')->toArray();
     }
 
     public function getStateList(): array{
@@ -220,6 +220,6 @@ class StudentService implements StudentServiceInterface
     }
     
     public function getMunicipalityList(int $districtId): array{
-        return DB::table('municipalities')->where(['is_active'=>1,'district_id'=>$districtId])->pluck('name','id')->toArray();
+        return DB::table('tbl_municipalities')->where(['is_active'=>1,'district_id'=>$districtId])->pluck('name','id')->toArray();
     }
 }

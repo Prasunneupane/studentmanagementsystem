@@ -13,4 +13,9 @@ interface StudentServiceInterface
     public function updateStudentById(int $studentId, array $data): Students;
 
     public function getClassList():array;
+
+    public function getStateList():array;
+    public function getDistrictList(int $stateId): array;
+
+    public function getMunicipalityList(int $districtId): array;
 }

@@ -26,6 +26,18 @@ const breadcrumbs = [{ title: 'Add Student', href: '/student/create' }];
 // Reference to the form component
 const studentFormRef = ref<InstanceType<typeof StudentFormSections> | null>(null);
 
+const props = defineProps({
+  stateList: {
+    type: Object,
+    // default: null
+  },
+  classList: {
+    type: Object,
+    // default: null
+  }
+});
+console.log(props.stateList,"states in register student");
+
 // Initialize form with defaults
 const today = new Date();
 const form = useForm({

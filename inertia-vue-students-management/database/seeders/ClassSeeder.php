@@ -16,7 +16,7 @@ class ClassSeeder extends Seeder
         $sections = range('1', '10'); // generates ['A','B','C',...,'H']
          // Clear existing data
         foreach ($sections as $letter) {
-            DB::table('classes')->insert([
+            DB::table('tbl_classes')->insert([
                 'name' => "Class {$letter}",
                 'is_active' => true,
                 'created_at' => now(),

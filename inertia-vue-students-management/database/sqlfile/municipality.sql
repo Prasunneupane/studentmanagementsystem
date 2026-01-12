@@ -1,4 +1,4 @@
-INSERT INTO `municipalities` ( `district_id`, `name`, `created_at`, `updated_at`) VALUES
+INSERT INTO tbl_municipalities ( `district_id`, `name`, `created_at`, `updated_at`) VALUES
 (1, 'Phungling Municipality', '2025-08-14 05:34:13', '2025-08-14 05:34:13'),
 (1, 'Aatharai Triveni', '2025-08-14 05:35:23', '2025-08-14 05:35:23'),
 (1, 'Sidingawa', '2025-08-14 10:04:10', '2025-08-14 10:04:10'),

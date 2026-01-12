@@ -37,8 +37,16 @@ class StudentsController extends Controller
     public function create()
     {
         // dd('here');
-        $classList =  $this->studentService->getClassList();  ;  
-        return Inertia::render('students/RegisterStudent'); // Adjust the view name as needed
+        $classList =  $this->studentService->getClassList(); 
+        dd($classList);
+        $stateList =  $this->studentService->getStateList();
+        
+        return Inertia::render('students/RegisterStudent',
+        [
+                'classList'=>$classList,
+                'stateList'=>$stateList
+            ]
+        ); // Adjust the view name as needed
     }
 
     /**
