@@ -222,4 +222,8 @@ class StudentService implements StudentServiceInterface
     public function getMunicipalityList(int $districtId): array{
         return DB::table('tbl_municipalities')->where(['is_active'=>1,'district_id'=>$districtId])->pluck('name','id')->toArray();
     }
+
+    public function getDefaultValue(){
+        return DB::table('tbl_default_setting')->where('is_active',1)->pluck('setting_key', 'setting_value')->toArray();
+    }
 }

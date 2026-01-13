@@ -44,6 +44,6 @@ class DefaultSettingSeeder extends Seeder
                 ],
                 
 ];
-        \DB::table('tbl_defaul_setting')->insert($defaultSettings);
+        \DB::table('tbl_default_setting')->insert($defaultSettings);
     }
 }

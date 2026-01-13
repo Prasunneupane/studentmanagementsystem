@@ -18,4 +18,5 @@ interface StudentServiceInterface
     public function getDistrictList(int $stateId): array;
 
     public function getMunicipalityList(int $districtId): array;
+    public function getDefaultValue();
 }

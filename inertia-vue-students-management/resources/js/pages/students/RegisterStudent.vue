@@ -20,25 +20,55 @@ import SelectSearch from "@/components/ui/select/Select-Search.vue";
 import DatePicker from "@/components/ui/datepicker/DatePicker.vue";
 import StudentFormSections from "@/components/forms/StudentFormSections.vue";
 
+interface DefaultValue {
+  setting_key: number;
+  setting_value: string;
+}
+
+interface StateOption {
+  value: number;
+  label: string;
+}
 // Breadcrumbs
 const breadcrumbs = [{ title: 'Add Student', href: '/student/create' }];
 
 // Reference to the form component
 const studentFormRef = ref<InstanceType<typeof StudentFormSections> | null>(null);
 
-const props = defineProps({
-  stateList: {
-    type: Object,
-    // default: null
-  },
+// const props = defineProps({
+//    defaultValues: DefaultValue[];
+//    stateList: StateOption[];
+
+//   classList: {
+//     type: [],
+//     default: []
+//   },
+//   defaultValues: {
+//     type: Object,
+//     default: () => ({})
+//   }
+// });
+const props = defineProps<{
+  defaultValues: DefaultValue[];
+  stateList: StateOption[];
   classList: {
-    type: Object,
-    // default: null
-  }
-});
-console.log(props.stateList,"states in register student");
+    type: [],
+    default: []
+  },
+}>();
+
+console.log(props.defaultValues,"states in register student");
 
 // Initialize form with defaults
+const stateObj = props.defaultValues.find(
+  (item: any) => item.setting_value === "Default State"
+);
+
+const stateId = stateObj ? {value:stateObj.setting_key,label:stateObj.setting_key} : null;
+const matchedState = stateObj
+  ? props.stateList.find((s: any) => s.value === stateObj.setting_key)
+  : null;
+
 const today = new Date();
 const form = useForm({
   // Personal Info
@@ -62,7 +92,7 @@ const form = useForm({
 
   // Address Info
   address: '',
-  stateId: null as { value: string; label: string } | null,
+  stateId: stateId,
   districtId: null as { value: string; label: string } | null,
   municipalityId: null as { value: string; label: string } | null,
 
@@ -79,7 +109,9 @@ const {
   validateAllFields 
 } = useFormValidation(form);
 
-const { states, districts, municipalities, ...locationHandlers } = useLocationData(form);
+const states = computed(() => props.stateList ||{ value: '', label: '' });
+const classList = computed(() => props.classList || {});
+const {  districts, municipalities, ...locationHandlers } = useLocationData(form);
 const { classes, sections, ...academicHandlers } = useAcademicData();
 const { dateOfBirthValue, joinedDateValue, isSubmitting, handleSubmit } = useStudentForm(form, validateAllFields, validationErrors, showValidation,studentFormRef);
 

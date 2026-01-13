@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Students;
+use App\Transformers\CommonTransformers;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Http\JsonResponse;
@@ -19,9 +20,12 @@ class StudentsController extends Controller
 
     protected $studentService;
 
-    public function __construct(StudentServiceInterface $studentService)
+    private $transformers;
+
+    public function __construct(StudentServiceInterface $studentService,CommonTransformers $transformers)
     {
         $this->studentService = $studentService;
+        $this->transformers = $transformers;
         // $this->middleware('auth:api');
     }
 
@@ -37,14 +41,18 @@ class StudentsController extends Controller
     public function create()
     {
         // dd('here');
-        $classList =  $this->studentService->getClassList(); 
-        dd($classList);
+        $classList =  $this->studentService->getClassList();
+        $classList = $this->transformers->classListTransformer($classList);
         $stateList =  $this->studentService->getStateList();
-        
+        $stateList = $this->transformers->stateListTransformer($stateList);
+        $defaultValues = $this->studentService->getDefaultValue();
+        $defaultValues = $this->transformers->defaultValuesTransform($defaultValues);
+        // dd($defaultValues);
         return Inertia::render('students/RegisterStudent',
         [
                 'classList'=>$classList,
-                'stateList'=>$stateList
+                'stateList'=>$stateList,
+                'defaultValues'=>$defaultValues,
             ]
         ); // Adjust the view name as needed
     }

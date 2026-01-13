@@ -11,16 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('tbl_default_setting', function (Blueprint $table) {
-            $table->id();
-            $table->string('setting_key');
-            $table->string('setting_value');
-            $table->string('description')->nullable();
-            $table->boolean('is_active')->default(true);
-            $table->integer('created_by')->nullable();
-            $table->integer('updated_by')->nullable();
-            $table->timestamps();
-        });
+        p
     }
 
     /**
