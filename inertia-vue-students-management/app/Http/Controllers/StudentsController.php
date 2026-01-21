@@ -44,17 +44,27 @@ class StudentsController extends Controller
         $classList =  $this->studentService->getClassList();
         $classList = $this->transformers->classListTransformer($classList);
         $stateList =  $this->studentService->getStateList();
-        $stateList = $this->transformers->stateListTransformer($stateList);
-        $defaultValues = $this->studentService->getDefaultValue();
-        $defaultValues = $this->transformers->defaultValuesTransform($defaultValues);
-        // dd($defaultValues);
+        $defaultStates = (array) $this->studentService->getDefaultStates();
+        $districtList =  $this->studentService->getDistrictList($defaultStates['value']);
+        $defaultDistricts = (array) $this->studentService->getDefaultDistricts();
+        $municipalitiesList =  $this->studentService->getMunicipalityList($defaultDistricts['value']);
+        $defaultMunicipalities = (array) $this->studentService->getDefaultMunicipalities();
+        $defaultValues =  $this->studentService->getDefaultValue();
+        // $defaultValues = $this->transformers->defaultValuesTransform($defaultValues);
+        //dd($defaultValues);
+
         return Inertia::render('students/RegisterStudent',
         [
                 'classList'=>$classList,
                 'stateList'=>$stateList,
+                'districtList'=>$districtList,
+                'municipalitiesList'=>$municipalitiesList,
                 'defaultValues'=>$defaultValues,
+                'defaultStates'=>$defaultStates,
+                'defaultDistricts'=>$defaultDistricts,
+                'defaultMunicipalities'=>$defaultMunicipalities,
             ]
-        ); // Adjust the view name as needed
+        ); 
     }
 
     /**

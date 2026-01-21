@@ -204,26 +204,76 @@ class StudentService implements StudentServiceInterface
     }
 
     public function getClassList(): array{
-        return Classes::where('is_active',true)->pluck('name','id')->toArray();
+        return Classes::where('is_active',true)
+        ->select('name as label','id as value')
+        ->get()
+        ->toArray();
     }
 
-    public function getSectionList(): array{
-        return Section::where('is_active',true)->pluck('id','name')->toArray();
+    public function getSectionList($classId): array{
+        // return DB::table('tbl_section as s')
+        // ->join('tbl_class_section as cs', 's.id', '=', 'cs.section_id')
+        // ->where(
+        //     ['cs.class_id' => $classId,
+        //      'cs.is_active' => 1,
+        //       's.is_active' => 1]
+        // )->select('s.id as value','s.name as label')
+        // ->get()
+        // ->toArray();
+        
     }
 
     public function getStateList(): array{
-        return DB::table('tbl_states')->where('is_active',1)->pluck('name','id')->toArray();
+        return DB::table('tbl_states')->where('is_active',1)
+            ->select('id as value','name as label')
+            ->get()
+            ->toArray();
     }
 
     public function getDistrictList(int $stateId): array{
-        return DB::table('tbl_districts')->where(['is_active'=>1,'state_id'=>$stateId])->pluck('name','id')->toArray();
+        return DB::table('tbl_districts')->where(['is_active'=>1,'state_id'=>$stateId])
+            ->select('id as value','name as label')
+            ->get()
+            ->toArray();
     }
     
     public function getMunicipalityList(int $districtId): array{
-        return DB::table('tbl_municipalities')->where(['is_active'=>1,'district_id'=>$districtId])->pluck('name','id')->toArray();
+        return DB::table('tbl_municipalities')->where(['is_active'=>1,'district_id'=>$districtId])
+            ->select('id as value','name as label')
+            ->get()
+            ->toArray();
     }
 
     public function getDefaultValue(){
-        return DB::table('tbl_default_setting')->where('is_active',1)->pluck('setting_key', 'setting_value')->toArray();
+        return DB::table('tbl_default_setting')
+        ->where('is_active',1)
+        ->pluck('setting_key as value', 'setting_value as label')
+        ->toArray();
+    }
+
+    public function getDefaultStates(){
+        return DB::table('tbl_states as s')
+            ->leftJoin('tbl_default_setting as ds', 's.id', '=', 'ds.setting_value')
+            ->where('ds.setting_key', 'Default State')
+            ->where('s.is_active', 1)
+            ->select('s.id as value', 's.name as label')
+            ->first();
+    }
+
+    public function getDefaultDistricts(){
+        return DB::table('tbl_districts as d')
+            ->leftJoin('tbl_default_setting as ds', 'd.id', '=', 'ds.setting_value')
+            ->where('ds.setting_key', 'Default District')
+
+            ->select('d.id as value', 'd.name as label')
+            ->first();
+    }
+
+    public function getDefaultMunicipalities(){
+        return DB::table('tbl_municipalities as m')
+            ->leftJoin('tbl_default_setting as ds', 'm.id', '=', 'ds.setting_value')
+            ->where('ds.setting_key', 'Default Municipality')
+            ->select('m.id as value', 'm.name as label')
+            ->first(); 
     }
 }
