@@ -369,7 +369,7 @@ const FormField = defineComponent({
           variant="outline"
           size="sm"
           @click="addGuardian"
-          class="flex items-center gap-2"
+          class="flex items-center gap-2 cursor-pointer"
         >
           <Plus class="h-4 w-4" />
           Add Guardian
@@ -383,7 +383,7 @@ const FormField = defineComponent({
           type="button"
           variant="ghost"
           size="icon"
-          class="absolute top-2 right-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+          class="absolute top-2 right-2 text-red-600 hover:text-red-700 hover:bg-red-50 cursor-pointer"
           @click="removeGuardian(index)"
           title="Remove Guardian"
         >

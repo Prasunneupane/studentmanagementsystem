@@ -41,4 +41,11 @@ class ClassSectionController extends Controller
         // [ $formattedMunicipalities]
         return response()->json(['sectionList' =>  $transformedClasses]);
     }
+
+    public function get_sections_by_class_id(Request $request)
+    {
+        $classId = $request->query('class_id');
+        $sectionList = $this->classesRepository->getSectionList($classId);
+        return response()->json($sectionList);
+    }
 }

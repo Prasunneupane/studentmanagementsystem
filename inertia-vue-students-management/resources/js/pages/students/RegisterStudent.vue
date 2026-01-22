@@ -6,7 +6,7 @@ import { Head, useForm, router } from '@inertiajs/vue3';
 import { useStudentForm } from '@/composables/useStudentForm';
 import { useFormValidation } from '@/composables/useFormValidation';
 import { useAcademicData } from '@/composables/useAcademicData';
-import axios from 'axios';
+import { useLocationData } from '@/composables/useLocationData';
 
 import { Toaster } from '@/components/ui/sonner'
 import 'vue-sonner/style.css'
@@ -26,12 +26,12 @@ interface DefaultValue {
 }
 
 interface StateOption {
-  value: string ;
+  value: string;
   label: string;
 }
 
 interface DefaultOptions {
-  value: number;
+  value: string;
   label: string;
 }
 
@@ -54,26 +54,23 @@ const props = defineProps<{
 
 console.log('Props:', props);
 
-// Local reactive state for location data
-const districts = ref<StateOption[]>(props.districtList || []);
-const municipalities = ref<StateOption[]>(props.municipalitiesList || []);
 const isLoadingDistricts = ref(false);
 const isLoadingMunicipalities = ref(false);
 
 const today = new Date();
 const form = useForm({
   // Personal Info
-  fName: '', 
-  mName: '', 
-  lName: '', 
-  email: '', 
-  phone: '', 
+  fName: '',
+  mName: '',
+  lName: '',
+  email: '',
+  phone: '',
   age: '',
-  dateOfBirth: '', 
-  motherName: '', 
-  fatherName: '', 
+  dateOfBirth: '',
+  motherName: '',
+  fatherName: '',
   guardianName: '',
-  contactNumber: '', 
+  contactNumber: '',
   photo: null as File | null,
 
   // Academic Info
@@ -83,152 +80,62 @@ const form = useForm({
 
   // Address Info
   address: '',
-  stateId: props.defaultStates ? { 
-    value: props.defaultStates.value.toString(), 
-    label: props.defaultStates.label 
+  stateId: props.defaultStates ? {
+    value: props.defaultStates.value.toString(),
+    label: props.defaultStates.label
   } : null,
-  districtId: props.defaultDistricts ? { 
-    value: props.defaultDistricts.value.toString(), 
-    label: props.defaultDistricts.label 
+  districtId: props.defaultDistricts ? {
+    value: props.defaultDistricts.value.toString(),
+    label: props.defaultDistricts.label
   } : null,
-  municipalityId: props.defaultMunicipalities ? { 
-    value: props.defaultMunicipalities.value.toString(), 
-    label: props.defaultMunicipalities.label 
+  municipalityId: props.defaultMunicipalities ? {
+    value: props.defaultMunicipalities.value.toString(),
+    label: props.defaultMunicipalities.label
   } : null,
 
   // Guardian Info (Array)
   guardians: [] as any[]
 });
 
-// Use composables
-const { 
-  validationErrors, 
-  showValidation, 
-  validateField, 
-  validateGuardianField, 
-  validateAllFields 
+// Use composables - Pass initial data from props
+const {
+  validationErrors,
+  showValidation,
+  validateField,
+  validateGuardianField,
+  validateAllFields
 } = useFormValidation(form);
 
-const { classes, sections, ...academicHandlers } = useAcademicData();
+const { 
+  states, 
+  districts, 
+  municipalities, 
+  isDistrictLoading,
+  isMunicipalityLoading,
+  ...locationHandlers 
+} = useLocationData(
+  form,
+  props.stateList,
+  props.districtList,
+  props.municipalitiesList
+);
+
+const { classes, sections, ...academicHandlers } = useAcademicData(form);
 const { dateOfBirthValue, joinedDateValue, isSubmitting, handleSubmit } = useStudentForm(
-  form, 
-  validateAllFields, 
-  validationErrors, 
-  showValidation, 
+  form,
+  validateAllFields,
+  validationErrors,
+  showValidation,
   studentFormRef
 );
 
-// APPROACH 1: Using Inertia Router Reload (Recommended for Inertia apps)
-const fetchDistrictsInertia = (stateId: string | number) => {
-  if (!stateId) return;
-  
-  isLoadingDistricts.value = true;
-  
-  router.reload({
-    only: ['districtList'],
-    data: { state_id: stateId },
-    preserveState: true,
-    // preserveScroll: true,
-    onSuccess: (page) => {
-      //districts = page.props.districtList || [];
-      isLoadingDistricts.value = false;
-    },
-    onError: () => {
-      isLoadingDistricts.value = false;
-      console.error('Failed to fetch districts');
-    }
-  });
-};
-
-const fetchMunicipalitiesInertia = (districtId: string | number, stateId: string | number) => {
-  if (!districtId) return;
-  
-  isLoadingMunicipalities.value = true;
-  
-  router.reload({
-    only: ['municipalitiesList'],
-    data: { 
-      district_id: districtId,
-      state_id: stateId 
-    },
-    //preserveState: true,
-    //preserveScroll: true,
-    onSuccess: (page) => {
-      //municipalities.value = page.props.municipalitiesList || [];
-      isLoadingMunicipalities.value = false;
-    },
-    onError: () => {
-      isLoadingMunicipalities.value = false;
-      console.error('Failed to fetch municipalities');
-    }
-  });
-};
-
-// APPROACH 2: Using Axios (Alternative if you prefer separate API endpoints)
-const fetchDistrictsAxios = async (stateId: string | number) => {
-  if (!stateId) return;
-  
-  isLoadingDistricts.value = true;
-  try {
-    const response = await axios.get('/student/districts', {
-      params: { state_id: stateId }
-    });
-    districts.value = response.data.districtList || [];
-  } catch (error) {
-    console.error('Failed to fetch districts:', error);
-  } finally {
-    isLoadingDistricts.value = false;
-  }
-};
-
-const fetchMunicipalitiesAxios = async (districtId: string | number) => {
-  if (!districtId) return;
-  
-  isLoadingMunicipalities.value = true;
-  try {
-    const response = await axios.get('/student/municipalities', {
-      params: { district_id: districtId }
-    });
-    municipalities.value = response.data.municipalitiesList || [];
-  } catch (error) {
-    console.error('Failed to fetch municipalities:', error);
-  } finally {
-    isLoadingMunicipalities.value = false;
-  }
-};
-
-// Watch for state changes
-watch(() => form.stateId, (newState, oldState) => {
-  if (newState && newState.value !== oldState?.value) {
-    // Reset dependent fields
-    form.districtId = null;
-    form.municipalityId = null;
-    municipalities.value = [];
-    
-    // Fetch districts - Choose one approach
-    // APPROACH 1: Inertia (Recommended)
-    fetchDistrictsInertia(newState.value);
-    
-    // APPROACH 2: Axios (Alternative)
-    // fetchDistrictsAxios(newState.value);
-  }
+// Sync loading states
+watch(isDistrictLoading, (val) => {
+  isLoadingDistricts.value = val;
 });
 
-// Watch for district changes
-watch(() => form.districtId, (newDistrict, oldDistrict) => {
-  if (newDistrict && newDistrict.value !== oldDistrict?.value) {
-    // Reset dependent fields
-    form.municipalityId = null;
-    
-    // Fetch municipalities - Choose one approach
-    // APPROACH 1: Inertia (Recommended)
-    if (form.stateId) {
-      fetchMunicipalitiesInertia(newDistrict.value, form.stateId.value);
-    }
-    
-    // APPROACH 2: Axios (Alternative)
-    // fetchMunicipalitiesAxios(newDistrict.value);
-  }
+watch(isMunicipalityLoading, (val) => {
+  isLoadingMunicipalities.value = val;
 });
 
 // Auto-sync age and date of birth
@@ -316,24 +223,24 @@ const handleGuardianValidation = (index: number, field: string) => {
           <CardTitle class="text-xl font-bold">Student Registration Form</CardTitle>
         </CardHeader>
         <CardContent class="w-full">
-          <StudentFormSections 
+          <StudentFormSections
             ref="studentFormRef"
-            :form="form" 
-            :validation-errors="validationErrors" 
+            :form="form"
+            :validation-errors="validationErrors"
             :show-validation="showValidation"
-            :states="props.stateList" 
-            :districts="districts" 
-            :municipalities="municipalities" 
+            :states="states"
+            :districts="districts"
+            :municipalities="municipalities"
             :classes="props.classList"
-            :sections="sections" 
-            :date-of-birth-value="dateOfBirthValue" 
+            :sections="sections"
+            :date-of-birth-value="dateOfBirthValue"
             :joined-date-value="joinedDateValue"
             :is-submitting="isSubmitting"
             :is-loading-districts="isLoadingDistricts"
             :is-loading-municipalities="isLoadingMunicipalities"
-            @field-blur="handleFieldBlur" 
+            @field-blur="handleFieldBlur"
             @phone-input="handlePhoneInput"
-            @photo-change="handlePhotoChange" 
+            @photo-change="handlePhotoChange"
             @submit="handleSubmit"
             @update:date-of-birth="(val: Date | null) => dateOfBirthValue = val"
             @update:joined-date="(val: Date | null) => joinedDateValue = val"

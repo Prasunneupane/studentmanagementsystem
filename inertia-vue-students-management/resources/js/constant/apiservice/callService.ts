@@ -9,14 +9,14 @@ export const getDistrictsByStateId = (stateId: string) =>
 
 export const getMunicipalitiesByDistrictId = (districtId: string) =>
   executeApiMethod<{
-    municipalities: LocationItem[];
+    // municipalities: LocationItem[];
   }>(apiMethods.getMunicipalitiesByDistrictId(districtId));
 
 export const getClassesList = () =>
   executeApiMethod<{classesList:LocationItem[]}>(apiMethods.getClassesList());
 
-export const getSectionList = () =>
-    executeApiMethod<{sectionList:LocationItem[]}>(apiMethods.getSectionList());
+export const getSectionList = (classId: number) =>
+    executeApiMethod<LocationItem[]>(apiMethods.getSectionList(classId));
 
 export const createStudent = (formData: FormData) =>
   executeApiMethod<{

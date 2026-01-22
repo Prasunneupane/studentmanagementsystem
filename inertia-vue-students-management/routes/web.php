@@ -175,6 +175,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::put('/delete-permission/{user}', [UserCheckController::class, 'deactivate'])->name('delete');
         });
     });
+
+    Route::get('get-districts-by-state_id', [StudentsController::class, 'get_districts_by_state_id'])->name('get_districts_by_state_id');
+    Route::get('get-municipalities-by-district_id', [StudentsController::class, 'get_municipalities_by_district_id'])->name('get_municipalities_by_district_id');
+    Route::get('get-sections-by-class_id', [ClassSectionController::class, 'get_sections_by_class_id'])->name('get_sections_by_class_id');  
 });
 
 require __DIR__.'/settings.php';

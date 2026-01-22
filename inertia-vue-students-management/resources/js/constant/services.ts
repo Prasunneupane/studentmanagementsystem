@@ -11,3 +11,6 @@ export const VITE_GET_GUARDIANS_LIST_BY_STUDENTID='api/guardian/getGuardiansBySt
 export const VITE_CREATE_GUARDIAN='api/guardian/createGuardian'
 export const VITE_UPDATE_GUARDIANS_BY_GUARDIANID='api/guardian/updateGuardianByGuardianId'
 export const VITE_DELETE_GUARDIANS_BY_GUARDIANID='api/guardian/deleteGuardianByGuardianId'
+export const VITE_DISTRICT_LIST = 'get-districts-by-state_id';
+export const VITE_MUNICIPALITY_LIST = 'get-municipalities-by-district_id';
+export const VITE_SECTIONS_LIST_BY_CLASSID = 'get-sections-by-class_id';

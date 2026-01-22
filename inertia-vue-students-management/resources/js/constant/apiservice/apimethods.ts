@@ -10,13 +10,17 @@ import {
   VITE_GET_GUARDIANS_LIST_BY_STUDENTID,
   VITE_UPDATE_GUARDIANS_BY_GUARDIANID,
   VITE_DELETE_GUARDIANS_BY_GUARDIANID,
-  VITE_API_UPDATE_STUDENT
+  VITE_API_UPDATE_STUDENT,
+  VITE_DISTRICT_LIST,
+  VITE_MUNICIPALITY_LIST,
+  VITE_SECTIONS_LIST_BY_CLASSID,
+
  } from '@/constant/services';
 
 // Update LocationItem to reflect actual response
 export interface LocationItem {
-  id: number; // Changed from string to number
-  name: string; // Changed from dynamic key to explicit "name"
+  value: string; // Changed from string to number
+  label: string; // Changed from dynamic key to explicit "name"
 }
 
 interface ApiMethodConfig {
@@ -33,13 +37,13 @@ export const apiMethods = {
   }),
 
   getDistrictsByStateId: (stateId: string): ApiMethodConfig => ({
-    endpoint: VITE_API_DISTRICTS,
+    endpoint: VITE_DISTRICT_LIST,
     method: 'GET',
     params: { state_id: stateId }
   }),
 
   getMunicipalitiesByDistrictId: (districtId: string): ApiMethodConfig => ({
-    endpoint: VITE_API_MUNICIPALITIES,
+    endpoint: VITE_MUNICIPALITY_LIST,
     method: 'GET',
     params: { district_id: districtId }
   }),
@@ -50,10 +54,10 @@ export const apiMethods = {
     // params: {  }
   }),
 
-    getSectionList: (): ApiMethodConfig => ({
-    endpoint: VITE_API_SECTIONS,
+    getSectionList: (classId:number): ApiMethodConfig => ({
+    endpoint: VITE_SECTIONS_LIST_BY_CLASSID,
     method: 'GET',
-    // params: {  }
+    params: { class_id: classId }
   }),
 
   createStudent: (formData: FormData): ApiMethodConfig => ({
@@ -113,7 +117,8 @@ export const executeApiMethod = async <T>(
     config.method,
     config.endpoint,
     config.data,
-    config.params
+    config.params,
+    true
   );
   return response.data;
 };

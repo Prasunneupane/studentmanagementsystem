@@ -211,15 +211,15 @@ class StudentService implements StudentServiceInterface
     }
 
     public function getSectionList($classId): array{
-        // return DB::table('tbl_section as s')
-        // ->join('tbl_class_section as cs', 's.id', '=', 'cs.section_id')
-        // ->where(
-        //     ['cs.class_id' => $classId,
-        //      'cs.is_active' => 1,
-        //       's.is_active' => 1]
-        // )->select('s.id as value','s.name as label')
-        // ->get()
-        // ->toArray();
+        return DB::table('tbl_section as s')
+        ->join('tbl_class_section as cs', 's.id', '=', 'cs.section_id')
+        ->where(
+            ['cs.class_id' => $classId,
+             'cs.is_active' => 1,
+              's.is_active' => 1]
+        )->select('s.id as value','s.name as label')
+        ->get()
+        ->toArray();
         
     }
 

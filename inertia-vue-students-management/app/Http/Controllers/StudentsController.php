@@ -38,11 +38,10 @@ class StudentsController extends Controller
 /**
      * Show the form for creating a new resource.
      */
-    public function create()
+    public function create(Request $request)
     {
-        // dd('here');
+        
         $classList =  $this->studentService->getClassList();
-        $classList = $this->transformers->classListTransformer($classList);
         $stateList =  $this->studentService->getStateList();
         $defaultStates = (array) $this->studentService->getDefaultStates();
         $districtList =  $this->studentService->getDistrictList($defaultStates['value']);
@@ -55,18 +54,33 @@ class StudentsController extends Controller
 
         return Inertia::render('students/RegisterStudent',
         [
-                'classList'=>$classList,
-                'stateList'=>$stateList,
-                'districtList'=>$districtList,
-                'municipalitiesList'=>$municipalitiesList,
-                'defaultValues'=>$defaultValues,
-                'defaultStates'=>$defaultStates,
-                'defaultDistricts'=>$defaultDistricts,
-                'defaultMunicipalities'=>$defaultMunicipalities,
+                    'classList'=>$classList,
+                    'stateList'=>$stateList,
+                    'districtList'=>$districtList,
+                    'municipalitiesList'=>$municipalitiesList,
+                    'defaultValues'=>$defaultValues,
+                    'defaultStates'=>$defaultStates,
+                    'defaultDistricts'=>$defaultDistricts,
+                    'defaultMunicipalities'=>$defaultMunicipalities,
             ]
         ); 
     }
 
+    public function get_districts_by_state_id(Request $request)
+    {
+        $state_id = $request->state_id;
+        $districtList =  $this->studentService->getDistrictList($state_id);
+        return response()->json($districtList, 200);
+    }
+
+    public function get_municipalities_by_district_id(Request $request)
+    {
+        $district_id = $request->district_id;
+        $municipalitiesList =  $this->studentService->getMunicipalityList($district_id);
+        return response()->json( $municipalitiesList, 200);
+    }
+
+   
     /**
      * Store a newly created resource in storage.
      */
@@ -113,7 +127,7 @@ class StudentsController extends Controller
         // dd( JWTAuth::user()->id );
         try {
             $userId = JWTAuth::user()->id; // Get authenticated user ID
-            $student= $this->studentService->updateStudentById($student_id, $request->all(), $userId);
+            $student= $this->studentService->updateStudentById($student_id, $request->all());
 
             // Return an Inertia redirect with a flash message
            return response()->json([
