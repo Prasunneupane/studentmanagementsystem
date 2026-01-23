@@ -14,3 +14,4 @@ export const VITE_DELETE_GUARDIANS_BY_GUARDIANID='api/guardian/deleteGuardianByG
 export const VITE_DISTRICT_LIST = 'get-districts-by-state_id';
 export const VITE_MUNICIPALITY_LIST = 'get-municipalities-by-district_id';
 export const VITE_SECTIONS_LIST_BY_CLASSID = 'get-sections-by-class_id';
+export const VITE_STUDENT_LIST_BY_DATERANGE = 'get-students-by-date_range';
