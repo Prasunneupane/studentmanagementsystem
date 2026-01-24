@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Guardian;
 use App\Models\Students;
 use App\Transformers\CommonTransformers;
 use Illuminate\Http\Request;
@@ -252,6 +253,106 @@ class StudentsController extends Controller
 
         return response()->json(['students' => $students]);
     }
+
+
+     public function getGuardians(Students $student)
+    {
+        $guardians = $student->guardians()
+            ->where('is_active', 1)
+            ->get()
+            ->map(function ($guardian) {
+                return [
+                    'id' => $guardian->id,
+                    'name' => $guardian->name,
+                    'relation' => $guardian->relation,
+                    'phone' => $guardian->phone,
+                    'email' => $guardian->email,
+                    'occupation' => $guardian->occupation,
+                    'address' => $guardian->address,
+                    'is_primary_contact' => (bool)$guardian->is_primary_contact,
+                ];
+            });
+
+        return response()->json(['guardians' => $guardians]);
+    }
+
+    /**
+     * Store guardian
+     */
+    public function storeGuardian(Request $request, Students $student)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'relation' => 'nullable|string|max:255',
+            'phone' => 'nullable|string|max:20',
+            'email' => 'nullable|email|max:255',
+            'occupation' => 'nullable|string|max:255',
+            'address' => 'nullable|string',
+            'is_primary_contact' => 'boolean',
+        ]);
+
+        $guardian = $student->guardians()->create($validated);
+
+        return response()->json([
+            'success' => true,
+            'guardian' => [
+                'id' => $guardian->id,
+                'name' => $guardian->name,
+                'relation' => $guardian->relation,
+                'phone' => $guardian->phone,
+                'email' => $guardian->email,
+                'occupation' => $guardian->occupation,
+                'address' => $guardian->address,
+                'is_primary_contact' => (bool)$guardian->is_primary_contact,
+            ]
+        ]);
+    }
+
+    /**
+     * Update guardian
+     */
+    public function updateGuardian(Request $request, Guardian $guardian)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'relation' => 'nullable|string|max:255',
+            'phone' => 'nullable|string|max:20',
+            'email' => 'nullable|email|max:255',
+            'occupation' => 'nullable|string|max:255',
+            'address' => 'nullable|string',
+            'is_primary_contact' => 'boolean',
+        ]);
+
+        $guardian->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'guardian' => [
+                'id' => $guardian->id,
+                'name' => $guardian->name,
+                'relation' => $guardian->relation,
+                'phone' => $guardian->phone,
+                'email' => $guardian->email,
+                'occupation' => $guardian->occupation,
+                'address' => $guardian->address,
+                'is_primary_contact' => (bool)$guardian->is_primary_contact,
+            ]
+        ]);
+    }
+
+    /**
+     * Delete guardian
+     */
+    public function destroyGuardian(Guardian $guardian)
+    {
+        $guardian->update(['is_active' => 0]);
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Guardian deleted successfully'
+        ]);
+    }
+
 
 
 
