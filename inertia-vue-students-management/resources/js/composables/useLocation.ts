@@ -44,7 +44,7 @@ export function useLocation() {
     isMunicipalityLoading.value = true;
     try {
       const response = await studentService.getMunicipalitiesByDistrictId(districtId);
-      municipalities.value = response.municipalities;
+      municipalities.value = response;
     } catch (error) {
       console.error('Failed to fetch municipalities:', error);
       municipalities.value = [];

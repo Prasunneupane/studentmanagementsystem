@@ -131,7 +131,7 @@ class StudentService implements StudentServiceInterface
         }
     }
 
-    public function getStudentsByDateRange(string $fromDate, string $toDate): array
+    public function getStudentsByDateRange(string $fromDate, string $toDate)
     {
         // Validate date formats
         $dateRegex = '/^\d{4}-\d{2}-\d{2}$/';

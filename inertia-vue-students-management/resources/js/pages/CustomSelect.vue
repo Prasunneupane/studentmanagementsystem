@@ -134,9 +134,9 @@ const adjustDropdownPosition = () => {
 // WATCH WINDOW RESIZE
 window.addEventListener("resize", adjustDropdownPosition);
 
-onMounted(() => {
-  document.addEventListener("click", handleClickOutside);
-});
+// onMounted(() => {
+//   document.addEventListener("click", handleClickOutside);
+// });
 
 watch(isOpen, (open) => {
   if (open) nextTick(adjustDropdownPosition);

@@ -10,6 +10,7 @@ use Inertia\Inertia;
 use Illuminate\Http\JsonResponse;
 use App\Contracts\StudentServiceInterface;
 use Log;
+use Storage;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Illuminate\Support\Facades\Redirect;
 
@@ -30,10 +31,26 @@ class StudentsController extends Controller
         // $this->middleware('auth:api');
     }
 
-    public function index()
+    public function index(Request $request)
     {
         //
-        return Inertia::render('students/StudentList'); // Adjust the view name as needed
+        $fromDate = $request->input('from_date', now()->startOfYear()->format('Y-m-d'));
+        $toDate = $request->input('to_date', now()->format('Y-m-d'));
+        $students =  $this->studentService->getStudentsByDateRange($fromDate, $toDate);
+        // dd($students);
+        $studentList = $this->transformers->studentListTransform($students); 
+        // dd($studentList);
+        $classList =  $this->studentService->getClassList();
+        $stateList =  $this->studentService->getStateList();
+        return Inertia::render('students/StudentList',
+        [
+            'initialStudents'=>$studentList,
+            'classes'=>$classList,
+            'states'=>$stateList,
+            'initialFromDate'=>$fromDate,
+            'initialToDate'=>$toDate,
+        ]
+        ); // Adjust the view name as needed
     }
 
 /**
@@ -210,6 +227,67 @@ class StudentsController extends Controller
             return response()->json(['error' => 'Failed to fetch students'], 500);
         }
 
+    }
+
+    public function update(Request $request, Student $student)
+    {
+        $validated = $request->validate([
+            'first_name' => 'required|string|max:255',
+            'middle_name' => 'nullable|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'email' => 'nullable|email|unique:students,email,' . $student->id,
+            'phone' => 'required|string|size:10',
+            'age' => 'required|integer|min:1|max:100',
+            'date_of_birth' => 'required|date',
+            'class_id' => 'required|exists:classes,id',
+            'section_id' => 'nullable|exists:sections,id',
+            'contact_number' => 'nullable|string',
+            'joined_date' => 'required|date',
+            'address' => 'nullable|string',
+            'state_id' => 'required|exists:states,id',
+            'district_id' => 'nullable|exists:districts,id',
+            'municipality_id' => 'nullable|exists:municipalities,id',
+            'photo' => 'nullable|image|max:2048',
+        ]);
+
+        if ($request->hasFile('photo')) {
+            // Delete old photo
+            if ($student->photo) {
+                Storage::delete($student->photo);
+            }
+            $validated['photo'] = $request->file('photo')->store('students', 'public');
+        }
+
+        $student->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Student updated successfully',
+            'student' => [
+                'id' => $student->id,
+                'first_name' => $student->first_name,
+                'middle_name' => $student->middle_name,
+                'last_name' => $student->last_name,
+                'email' => $student->email,
+                'phone' => $student->phone,
+                'age' => $student->age,
+                'date_of_birth' => $student->date_of_birth,
+                'joined_date' => $student->joined_date,
+                'address' => $student->address,
+                'contact_number' => $student->contact_number,
+                'photo_url' => $student->photo ? Storage::url($student->photo) : '/images/default-avatar.png',
+                'class_id' => $student->class_id,
+                'class_name' => $student->class?->name,
+                'section_id' => $student->section_id,
+                'section_name' => $student->section?->name,
+                'state_id' => $student->state_id,
+                'state_name' => $student->state?->name,
+                'district_id' => $student->district_id,
+                'district_name' => $student->district?->name,
+                'municipality_id' => $student->municipality_id,
+                'municipality_name' => $student->municipality?->name,
+            ]
+        ]);
     }
 
     public function loadByDateRange(Request $request)

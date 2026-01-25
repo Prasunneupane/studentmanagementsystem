@@ -8,7 +8,7 @@ interface StudentRepositoryInterface
 {
     public function create(array $data): Students;
 
-    public function getStudentsByDateRange(string $fromDate, string $toDate): array;
+    public function getStudentsByDateRange(string $fromDate, string $toDate);
 
     public function updateStudentById(int $studentId, array $data): Students;
 }

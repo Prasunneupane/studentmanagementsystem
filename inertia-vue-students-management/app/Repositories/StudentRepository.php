@@ -19,16 +19,19 @@ class StudentRepository implements StudentRepositoryInterface
         return Students::create($data);
     }
 
-    public function getStudentsByDateRange(string $fromDate, string $toDate): array
+    public function getStudentsByDateRange(string $fromDate, string $toDate)
     {
         $students = Students::whereRaw('DATE(created_at) BETWEEN ? AND ?', [$fromDate, $toDate])
         ->with([
             'class:id,name',
             'section:id,name',
+            'state:id,name',
+            'district:id,name',
+            'municipality:id,name',
         ])
         ->get();
 
-        return $students->toArray();
+        return $students;
     }
 
     public function updateStudentById(int $studentId, array $data): Students

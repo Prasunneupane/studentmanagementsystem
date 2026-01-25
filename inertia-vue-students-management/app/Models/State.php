@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class State extends Model
 {
     //
-    protected $table = "states";
+    protected $table = "tbl_states";
 
     public function districts()
     {

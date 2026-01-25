@@ -66,6 +66,8 @@ class Students extends Model
     {
         return $this->belongsTo(User::class, 'created_by', 'id');
     }
+
+
     public function getPhotoUrlAttribute()
     {
         return $this->photo ? asset('storage/' . $this->photo) : asset('images/default-avatar.png');
@@ -81,6 +83,10 @@ class Students extends Model
         return $this->section?->name;
     }
 
+    public function guardians()
+    {
+        return $this->hasMany(Guardian::class, 'student_id');
+    }
     public function primaryGuardian()
     {
         return $this->hasOne(Guardian::class, 'student_id')

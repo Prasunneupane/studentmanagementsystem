@@ -48,7 +48,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::middleware(['permission:students.delete'])->group(function () {
             Route::delete('/{student}', [StudentsController::class, 'destroy'])->name('destroy');
         });
-         Route::get('/{student}/guardians', [StudentsController::class, 'getGuardians'])->name('guardians.get');
+        Route::get('/{student}/guardians', [StudentsController::class, 'getGuardians'])->name('guardians.get');
         Route::post('/{student}/guardians', [StudentsController::class, 'storeGuardian'])->name('guardians.store');
         Route::put('/guardians/{guardian}', [StudentsController::class, 'updateGuardian'])->name('guardians.update');
         Route::delete('/guardians/{guardian}', [StudentsController::class, 'destroyGuardian'])->name('guardians.destroy');
