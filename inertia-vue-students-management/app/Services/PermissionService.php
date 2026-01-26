@@ -14,8 +14,13 @@ class PermissionService
 
     public function getUserPermissions(User $user): array
     {
-        $version = Cache::get('permissions_version', 1);
+        $version = Cache::get('permissions_version');
 
+        if (!$version) {
+            Cache::forever('permissions_version', 1);
+            $version = 1;
+        }
+        // dd($version);
         return Cache::remember(
             "user_permissions_{$user->id}_v{$version}",
             3600,
@@ -43,7 +48,7 @@ class PermissionService
     public function getNavigationItems(User $user): array
     {
         $permissions = $this->getUserPermissions($user);
-
+        // dd($permissions);
         return [
             'canViewDashboard' => true,
 
@@ -52,6 +57,7 @@ class PermissionService
             'subjects' => $this->crudPermissions($permissions, 'subjects'),
             'teachers' => $this->crudPermissions($permissions, 'teachers'),
             'users' => $this->crudPermissions($permissions, 'users'),
+            'classSubjects' => $this->crudPermissions($permissions, 'class_subjects'),
             'roles' => array_merge(
                 $this->crudPermissions($permissions, 'roles'),
                 ['canAssignPermissions' => in_array('assign_permissions', $permissions)]
@@ -129,6 +135,10 @@ class PermissionService
 
     public function bumpPermissionsVersion(): void
     {
-        Cache::increment('permissions_version');
+         if (!Cache::has('permissions_version')) {
+        Cache::forever('permissions_version', 2); // start at 2
+        } else {
+            Cache::increment('permissions_version');
+        }
     }
 }

@@ -164,7 +164,7 @@ class RolesController extends Controller
             'permissions' => 'nullable|array',
             'permissions.*' => 'exists:tbl_permissions,id',
         ]);
-
+        // dd($request->all());
         try {
             DB::beginTransaction();
 

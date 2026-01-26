@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ClassesController;
 use App\Http\Controllers\ClassSectionController;
+use App\Http\Controllers\ClassSubjectController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\RolesController;
 use App\Http\Controllers\StateDistricMunController;
@@ -182,6 +183,32 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::put('/delete-permission/{user}', [UserCheckController::class, 'deactivate'])->name('delete');
         });
     });
+
+    // Class Subject Mapping Routes
+    // Class-Subject Assignment Routes
+    Route::prefix('class-subjects')->name('class-subjects.')->group(function () {
+
+    Route::middleware(['permission:view_class_subjects'])->group(function () {
+        Route::get('/', [ClassSubjectController::class, 'index'])->name('index');
+    });
+
+    Route::middleware(['permission:create_class_subjects'])->group(function () {
+        Route::get('/create', [ClassSubjectController::class, 'create'])->name('create');
+        Route::post('/', [ClassSubjectController::class, 'store'])->name('store');
+    });
+
+    Route::middleware(['permission:edit_class_subjects'])->group(function () {
+        Route::get('/{classSubject}/edit', [ClassSubjectController::class, 'edit'])->name('edit');
+        Route::put('/{classSubject}', [ClassSubjectController::class, 'update'])->name('update');
+    });
+
+    Route::middleware(['permission:delete_class_subjects'])->group(function () {
+        Route::delete('/{classSubject}', [ClassSubjectController::class, 'destroy'])->name('destroy');
+    });
+
+    Route::get('/sections-by-class', [ClassSubjectController::class, 'getSectionsByClass'])
+        ->name('sections-by-class');
+});
 
     Route::get('get-districts-by-state_id', [StudentsController::class, 'get_districts_by_state_id'])->name('get_districts_by_state_id');
     Route::get('get-municipalities-by-district_id', [StudentsController::class, 'get_municipalities_by_district_id'])->name('get_municipalities_by_district_id');

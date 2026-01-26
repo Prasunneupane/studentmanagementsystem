@@ -242,6 +242,37 @@ const mainNavItems = computed((): NavItem[] => {
       }
     }
 
+    if (permissions.value.classSubjects.canManage) {
+      const userItems: NavItem[] = [];
+      
+      if (permissions.value.classSubjects.canCreate) {
+        userItems.push({
+          title: 'Add Class Subject Mapping',
+          href: '/class-subjects/create',
+          icon: FilePlusIcon,
+        });
+      }
+      
+      if (permissions.value.classSubjects.canView) {
+        userItems.push({
+          title: 'View Class Subject Mapping',
+          href: '/class-subjects',
+          icon: Eye,
+        });
+      }
+
+      if (userItems.length > 0) {
+        const usersItem: NavItem = {
+          title: 'Class Subject Mapping',
+          icon: Users,
+          items: userItems,
+          isActive: false,
+        };
+        usersItem.isActive = isRouteActive(usersItem);
+        masterSettingsItems.push(usersItem);
+      }
+    }
+
     if (masterSettingsItems.length > 0) {
       const masterSettings: NavItem = {
         title: 'Master Settings',

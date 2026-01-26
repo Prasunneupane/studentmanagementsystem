@@ -229,7 +229,7 @@ class StudentsController extends Controller
 
     }
 
-    public function update(Request $request, Student $student)
+    public function update(Request $request, Students $student)
     {
         $validated = $request->validate([
             'first_name' => 'required|string|max:255',
@@ -238,15 +238,15 @@ class StudentsController extends Controller
             'email' => 'nullable|email|unique:students,email,' . $student->id,
             'phone' => 'required|string|size:10',
             'age' => 'required|integer|min:1|max:100',
-            'date_of_birth' => 'required|date',
-            'class_id' => 'required|exists:classes,id',
-            'section_id' => 'nullable|exists:sections,id',
+            'date_of_birth' => 'required|date', 
+            'class_id' => 'required|exists:tbl_classes,id',
+            'section_id' => 'nullable|exists:tbl_section,id',
             'contact_number' => 'nullable|string',
             'joined_date' => 'required|date',
             'address' => 'nullable|string',
-            'state_id' => 'required|exists:states,id',
-            'district_id' => 'nullable|exists:districts,id',
-            'municipality_id' => 'nullable|exists:municipalities,id',
+            'state_id' => 'required|exists:tbl_states,id',
+            'district_id' => 'nullable|exists:tbl_districts,id',
+            'municipality_id' => 'nullable|exists:tbl_municipalities,id',
             'photo' => 'nullable|image|max:2048',
         ]);
 
@@ -257,7 +257,7 @@ class StudentsController extends Controller
             }
             $validated['photo'] = $request->file('photo')->store('students', 'public');
         }
-
+        // dd($validated); 
         $student->update($validated);
 
         return response()->json([
