@@ -10,6 +10,7 @@ use App\Models\Subject;
 use App\Models\Teacher;
 use App\Models\AcademicYear;
 use App\Models\Teachers;
+use App\Services\StudentService;
 use DB;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -19,6 +20,11 @@ class ClassSubjectController extends Controller
     /**
      * Display list of class-subject assignments
      */
+    private $studentService;
+    public function __construct(StudentService $studentService)
+    {   
+        $this->studentService = $studentService;
+    }
     public function index(Request $request)
     {
         $academicYearId = $request->input('academic_year_id', AcademicYear::where('is_current', 1)->first()?->id);
@@ -87,38 +93,37 @@ class ClassSubjectController extends Controller
     public function create()
     {
         $classes = Classes::where('is_active', 1)
+            ->select('id as value','name as label')
             ->orderBy('name')
-            ->get()
-            ->map(fn($c) => ['value' => (string)$c->id, 'label' => $c->name]);
+            ->get();
+            
 
         $subjects = Subject::where('is_active', 1)
+            ->select('id as value','name as label')
             ->orderBy('name')
-            ->get()
-            ->map(fn($s) => ['value' => (string)$s->id, 'label' => $s->name]);
+            ->get();
+            
 
         $teachers = Teachers::where('is_active', 1)
-            ->orderBy('first_name')
-            ->get()
-            ->map(fn($t) => [
-                'value' => (string)$t->id,
-                'label' => $t->first_name . ' ' . $t->last_name
-            ]);
+            ->select('id as value','name as label')->get();
+            
 
-        $academicYears = DB::table('tbl_academic_years')->orderBy('start_date', 'desc')
-            ->get()
-            ->map(fn($y) => ['value' => (string)$y->id, 'label' => $y->name]);
+        $academicYears = DB::table('tbl_academic_years')
+            ->orderBy('start_date', 'desc')
+            ->select('id as value','academic_year as label')
+            ->get();
+           
 
-        $currentAcademicYear = DB::table('tbl_academic_years')->where('is_current', 1)->first();
+        $currentAcademicYear = DB::table('tbl_academic_years')
+             ->select('id as value','academic_year as label')
+             ->where('is_active', operator: 1)->first();
 
-        return Inertia::render('ClassSubjects/Create', [
+        return Inertia::render('classSubject/Create', [
             'classes' => $classes,
             'subjects' => $subjects,
             'teachers' => $teachers,
             'academicYears' => $academicYears,
-            'currentAcademicYear' => $currentAcademicYear ? [
-                'value' => (string)$currentAcademicYear->id,
-                'label' => $currentAcademicYear->name
-            ] : null,
+            'currentAcademicYear' => $currentAcademicYear??null,
         ]);
     }
 
@@ -275,12 +280,9 @@ class ClassSubjectController extends Controller
      */
     public function getSectionsByClass(Request $request)
     {
-        $sections = Section::where('class_id', $request->class_id)
-            ->where('is_active', 1)
-            ->orderBy('name')
-            ->get()
-            ->map(fn($s) => ['value' => (string)$s->id, 'label' => $s->name]);
+        $sections = $this->studentService->getSectionList($request->input('class_id'));
 
         return response()->json($sections);
+        //
     }
 }

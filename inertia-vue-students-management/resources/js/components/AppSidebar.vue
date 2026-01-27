@@ -263,7 +263,7 @@ const mainNavItems = computed((): NavItem[] => {
 
       if (userItems.length > 0) {
         const usersItem: NavItem = {
-          title: 'Class Subject Mapping',
+          title: 'ClassSubjectMap',
           icon: Users,
           items: userItems,
           isActive: false,

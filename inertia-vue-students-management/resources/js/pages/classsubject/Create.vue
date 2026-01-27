@@ -7,8 +7,8 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import CustomSelect from '@/components/CustomSelect.vue'
-import { Toaster } from '@/components/ui/sonner'
+import CustomSelect from '../CustomSelect.vue'
+// import { Toaster } from '@/components/ui/sonner'
 import { useToast } from '@/composables/useToast'
 import { Loader2, Save, X } from 'lucide-vue-next'
 import axios from 'axios'
@@ -39,10 +39,10 @@ const sections = ref<Option[]>([])
 const loadingSections = ref(false)
 
 const form = useForm({
-  class_id: null as Option | null,
-  section_id: null as Option | null,
-  subject_id: null as Option | null,
-  teacher_id: null as Option | null,
+  class_id: null as string | null,
+  section_id: null as string | null,
+  subject_id: null as string | null,
+  teacher_id: null as string | null,
   academic_year_id: props.currentAcademicYear,
   is_optional: false,
   periods_per_week: 5,
@@ -55,12 +55,12 @@ watch(() => form.class_id, async (newClass) => {
   form.section_id = null
   sections.value = []
   
-  if (!newClass?.value) return
+  if (!newClass) return
   
   loadingSections.value = true
   try {
     const response = await axios.get('/class-subjects/sections-by-class', {
-      params: { class_id: newClass.value }
+      params: { class_id: newClass }
     })
     sections.value = response.data
   } catch (error) {
@@ -127,7 +127,7 @@ const handleCancel = () => {
     <Toaster />
     
     <div class="flex h-full w-full flex-1 flex-col gap-4 rounded-xl p-4">
-      <Card class="w-full max-w-4xl mx-auto shadow-lg rounded-2xl">
+      <Card class="w-full shadow-lg rounded-2xl">
         <CardHeader class="border-b">
           <CardTitle class="text-2xl font-bold">Assign Subject to Class-Section</CardTitle>
           <p class="text-sm text-muted-foreground mt-1">
