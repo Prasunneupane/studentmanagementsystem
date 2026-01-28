@@ -242,6 +242,7 @@ class ClassSubjectController extends Controller
         if ($validated['pass_marks'] > $validated['max_marks']) {
             return back()->withErrors(['pass_marks' => 'Pass marks cannot exceed max marks']);
         }
+        dd($validated);
 
         // Check for duplicate (excluding current record)
         $exists = ClassSubject::where('class_id', $validated['class_id'])
