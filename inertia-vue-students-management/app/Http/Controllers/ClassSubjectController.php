@@ -10,6 +10,7 @@ use App\Models\Subject;
 use App\Models\Teacher;
 use App\Models\AcademicYear;
 use App\Models\Teachers;
+use App\Repositories\Validation;
 use App\Services\StudentService;
 use DB;
 use Illuminate\Http\Request;
@@ -21,13 +22,18 @@ class ClassSubjectController extends Controller
      * Display list of class-subject assignments
      */
     private $studentService;
-    public function __construct(StudentService $studentService)
+    private $validation;
+    public function __construct(
+        StudentService $studentService,
+        Validation $validation
+    )
     {   
         $this->studentService = $studentService;
+        $this->validation = $validation;
     }
     public function index(Request $request)
     {
-        $academicYearId = $request->input('academic_year_id', AcademicYear::where('is_current', 1)->first()?->id);
+        $academicYearId = $request->input('academic_year_id', DB::table('tbl_academic_years')->where('is_current', 1)->first()?->id);
         $classId = $request->input('class_id');
         $sectionId = $request->input('section_id');
 
@@ -66,12 +72,12 @@ class ClassSubjectController extends Controller
                 ];
             });
 
-        $classes = ClassModel::where('is_active', 1)
+        $classes = Classes::where('is_active', 1)
             ->orderBy('name')
             ->get()
             ->map(fn($c) => ['value' => (string)$c->id, 'label' => $c->name]);
 
-        $academicYears = AcademicYear::orderBy('start_date', 'desc')
+        $academicYears = DB::table('tbl_academic_years')->orderBy('start_date', 'desc')
             ->get()
             ->map(fn($y) => ['value' => (string)$y->id, 'label' => $y->name]);
 
@@ -133,17 +139,17 @@ class ClassSubjectController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'class_id' => 'required|exists:classes,id',
-            'section_id' => 'required|exists:sections,id',
-            'subject_id' => 'required|exists:subjects,id',
-            'teacher_id' => 'nullable|exists:teachers,id',
-            'academic_year_id' => 'required|exists:academic_years,id',
+            'class_id' => 'required|exists:tbl_classes,id',
+            'section_id' => 'required|exists:tbl_sections,id',
+            'subject_id' => 'required|exists:tbl_subjects,id',
+            'teacher_id' => 'nullable|exists:tbl_teachers,id',
+            'academic_year_id' => 'required|exists:tbl_academic_years,id',
             'is_optional' => 'boolean',
             'periods_per_week' => 'required|integer|min:0|max:50',
             'max_marks' => 'required|numeric|min:0|max:1000',
             'pass_marks' => 'required|numeric|min:0|max:1000',
         ]);
-
+        // dd($validated);
         // Validate pass_marks <= max_marks
         if ($validated['pass_marks'] > $validated['max_marks']) {
             return back()->withErrors(['pass_marks' => 'Pass marks cannot exceed max marks']);
@@ -227,22 +233,22 @@ class ClassSubjectController extends Controller
     public function update(Request $request, ClassSubject $classSubject)
     {
         $validated = $request->validate([
-            'class_id' => 'required|exists:classes,id',
-            'section_id' => 'required|exists:sections,id',
-            'subject_id' => 'required|exists:subjects,id',
-            'teacher_id' => 'nullable|exists:teachers,id',
-            'academic_year_id' => 'required|exists:academic_years,id',
+            'class_id' => 'required|exists:tbl_classes,id',
+            'section_id' => 'required|exists:tbl_sections,id',
+            'subject_id' => 'required|exists:tbl_subjects,id',
+            'teacher_id' => 'nullable|exists:tbl_teachers,id',
+            'academic_year_id' => 'required|exists:tbl_academic_years,id',
             'is_optional' => 'boolean',
             'periods_per_week' => 'required|integer|min:0|max:50',
             'max_marks' => 'required|numeric|min:0|max:1000',
             'pass_marks' => 'required|numeric|min:0|max:1000',
         ]);
-
+         dd($validated);
         // Validate pass_marks <= max_marks
         if ($validated['pass_marks'] > $validated['max_marks']) {
             return back()->withErrors(['pass_marks' => 'Pass marks cannot exceed max marks']);
         }
-        dd($validated);
+       
 
         // Check for duplicate (excluding current record)
         $exists = ClassSubject::where('class_id', $validated['class_id'])
