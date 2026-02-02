@@ -40,13 +40,12 @@ const breadcrumbs = [
 const sections = ref<Option[]>([])
 const loadingSections = ref(false)
 
-// Form with proper types - store just the value strings, not Option objects
 const form = useForm({
-  class_id: '' as string,
-  section_id: '' as string,
-  subject_id: '' as string,
-  teacher_id: '' as string,
-  academic_year_id: props.currentAcademicYear?.value || '' as string,
+  class_id: null as Option | null,
+  section_id: null as Option | null,
+  subject_id: null as Option | null,
+  teacher_id: null as Option | null,
+  academic_year_id: props.currentAcademicYear,
   is_optional: false,
   periods_per_week: 5,
   max_marks: 100,
@@ -55,7 +54,7 @@ const form = useForm({
 
 // Fetch sections when class changes
 watch(() => form.class_id, async (newClass) => {
-  form.section_id = ''
+  form.section_id = null
   sections.value = []
   
   if (!newClass) return
@@ -63,7 +62,7 @@ watch(() => form.class_id, async (newClass) => {
   loadingSections.value = true
   try {
     const response = await axios.get('/class-subjects/sections-by-class', {
-      params: { class_id: newClass }
+      params: { class_id: newClass.value }
     })
     sections.value = response.data
   } catch (error) {
@@ -152,7 +151,7 @@ const handleCancel = () => {
                 <Label for="academic_year_id">
                   Academic Year <span class="text-red-500">*</span>
                 </Label>
-                <CustomSelect
+                <SelectSearch
                   id="academic_year_id"
                   v-model="form.academic_year_id"
                   :options="academicYears"
@@ -171,7 +170,7 @@ const handleCancel = () => {
                 <Label for="class_id">
                   Class <span class="text-red-500">*</span>
                 </Label>
-                <CustomSelect
+                <SelectSearch
                   id="class_id"
                   v-model="form.class_id"
                   :options="classes"
@@ -187,7 +186,7 @@ const handleCancel = () => {
                 <Label for="section_id">
                   Section <span class="text-red-500">*</span>
                 </Label>
-                <CustomSelect
+                <SelectSearch
                   id="section_id"
                   v-model="form.section_id"
                   :options="sections"
@@ -221,7 +220,7 @@ const handleCancel = () => {
 
               <div class="space-y-2">
                 <Label for="teacher_id">Teacher (Optional)</Label>
-                <CustomSelect
+                <SelectSearch
                   id="teacher_id"
                   v-model="form.teacher_id"
                   :options="teachers"

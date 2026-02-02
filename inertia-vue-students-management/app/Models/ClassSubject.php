@@ -9,7 +9,7 @@ class ClassSubject extends Model
 {
     use HasFactory;
 
-    protected $table = 'class_subjects';
+    protected $table = 'tbl_class_subject';
 
     protected $fillable = [
         'class_id',

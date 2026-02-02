@@ -33,7 +33,7 @@ class ClassSubjectController extends Controller
     }
     public function index(Request $request)
     {
-        $academicYearId = $request->input('academic_year_id', DB::table('tbl_academic_years')->where('is_current', 1)->first()?->id);
+        $academicYearId = $request->input('academic_year_id', DB::table('tbl_academic_years')->where('is_active', 1)->first()?->id);
         $classId = $request->input('class_id');
         $sectionId = $request->input('section_id');
 
@@ -138,17 +138,8 @@ class ClassSubjectController extends Controller
      */
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'class_id' => 'required|exists:tbl_classes,id',
-            'section_id' => 'required|exists:tbl_sections,id',
-            'subject_id' => 'required|exists:tbl_subjects,id',
-            'teacher_id' => 'nullable|exists:tbl_teachers,id',
-            'academic_year_id' => 'required|exists:tbl_academic_years,id',
-            'is_optional' => 'boolean',
-            'periods_per_week' => 'required|integer|min:0|max:50',
-            'max_marks' => 'required|numeric|min:0|max:1000',
-            'pass_marks' => 'required|numeric|min:0|max:1000',
-        ]);
+        $validated = $request->validate($this->validation->classSubjectValidationRules($request));
+
         // dd($validated);
         // Validate pass_marks <= max_marks
         if ($validated['pass_marks'] > $validated['max_marks']) {
@@ -167,7 +158,7 @@ class ClassSubjectController extends Controller
                 'subject_id' => 'This subject is already assigned to this class-section for the selected academic year.'
             ]);
         }
-
+        // dd($validated);
         ClassSubject::create($validated);
 
         return redirect()->route('class-subjects.index')->with('success', 'Subject assigned successfully');
