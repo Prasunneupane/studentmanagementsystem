@@ -6,11 +6,11 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
-import CustomSelect from '@/components/CustomSelect.vue'
+import CustomSelect from '../CustomSelect.vue'
 import { Toaster } from '@/components/ui/sonner'
 import { useToast } from '@/composables/useToast'
 import { Edit, Trash2, Plus, Filter } from 'lucide-vue-next'
-import DataTable from '@/components/DataTable.vue'
+import DataTable from '../students/Datatable.vue'
 import type { ColumnDef } from '@tanstack/vue-table'
 import {
   AlertDialog,

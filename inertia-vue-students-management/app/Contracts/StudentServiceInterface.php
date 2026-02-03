@@ -24,4 +24,8 @@ interface StudentServiceInterface
     public function getDefaultDistricts();
 
     public function getDefaultMunicipalities();
+
+    public function getAcademicYearList();
+
+    
 }

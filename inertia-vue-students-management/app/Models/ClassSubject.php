@@ -30,7 +30,17 @@ class ClassSubject extends Model
         'pass_marks' => 'decimal:2',
     ];
 
-    public $timestamps = false; // Since we only have created_at
+    protected $appends = [
+    'class_name',
+    'section_name',
+    'subject_name',
+    'teacher_name',
+    ];
+
+
+
+
+    public $timestamps = true; // Since we only have created_at
 
     // Relationships
     public function class()
@@ -55,7 +65,7 @@ class ClassSubject extends Model
 
     public function academicYear()
     {
-        return $this->belongsTo('tbl_academic_years','academic_year_id', 'id');
+        return $this->belongsTo(AcademicYears::class, 'academic_year_id', 'id');
     }
 
     // Scopes
@@ -82,5 +92,24 @@ class ClassSubject extends Model
     public function scopeMandatory($query)
     {
         return $query->where('is_optional', false);
+    }
+
+    public function getClassNameAttribute()
+    {
+        return $this->class?->name;
+    }
+
+    public function getSectionNameAttribute()
+    {
+        return $this->section?->name;
+    }
+
+    public function getSubjectNameAttribute()
+    {
+        return $this->subject?->name;
+    }
+    public function getTeacherNameAttribute()
+    {
+        return $this->teacher?->name;
     }
 }

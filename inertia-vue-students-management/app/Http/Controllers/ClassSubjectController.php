@@ -11,6 +11,7 @@ use App\Models\Teacher;
 use App\Models\AcademicYear;
 use App\Models\Teachers;
 use App\Repositories\Validation;
+use App\Services\ClassSubjectService;
 use App\Services\StudentService;
 use DB;
 use Illuminate\Http\Request;
@@ -23,23 +24,26 @@ class ClassSubjectController extends Controller
      */
     private $studentService;
     private $validation;
+    private $classSubjectService;
     public function __construct(
         StudentService $studentService,
-        Validation $validation
+        Validation $validation,
+        ClassSubjectService $classSubjectService
     )
     {   
         $this->studentService = $studentService;
         $this->validation = $validation;
+        $this->classSubjectService = $classSubjectService;
     }
     public function index(Request $request)
     {
-        $academicYearId = $request->input('academic_year_id', DB::table('tbl_academic_years')->where('is_active', 1)->first()?->id);
+        // $academicYearId = $request->input('academic_year_id', DB::table('tbl_academic_years')->where('is_active', 1)->first()?->id);
+        // dd($academicYearId);
+        $academicYearId = $this->classSubjectService->academicYearById($request);
         $classId = $request->input('class_id');
         $sectionId = $request->input('section_id');
-
-        $query = ClassSubject::with(['class', 'section', 'subject', 'teacher', 'academicYear'])
-            ->forAcademicYear($academicYearId);
-
+        $query = $this->classSubjectService->getClassSubjectForAcademicYear($academicYearId);
+        // dd($query);
         if ($classId) {
             $query->forClass($classId);
         }
@@ -47,41 +51,23 @@ class ClassSubjectController extends Controller
         if ($sectionId) {
             $query->forSection($sectionId);
         }
+       
+        $assignments = $this->classSubjectService->GetClassSubjectDataWithFilters($query)
+                        ->orderBy('id', 'desc')
+                        ->get() 
+                        ->makeHidden([
+                            'class',
+                            'section',
+                            'subject',
+                            'teacher',
+                            'academicYear',
+                        ]);
 
-        $assignments = $query->orderBy('class_id')
-            ->orderBy('section_id')
-            ->orderBy('subject_id')
-            ->get()
-            ->map(function ($assignment) {
-                return [
-                    'id' => $assignment->id,
-                    'class_id' => $assignment->class_id,
-                    'class_name' => $assignment->class?->name,
-                    'section_id' => $assignment->section_id,
-                    'section_name' => $assignment->section?->name,
-                    'subject_id' => $assignment->subject_id,
-                    'subject_name' => $assignment->subject?->name,
-                    'teacher_id' => $assignment->teacher_id,
-                    'teacher_name' => $assignment->teacher ? $assignment->teacher->first_name . ' ' . $assignment->teacher->last_name : 'Unassigned',
-                    'academic_year_id' => $assignment->academic_year_id,
-                    'academic_year_name' => $assignment->academicYear?->name,
-                    'is_optional' => $assignment->is_optional,
-                    'periods_per_week' => $assignment->periods_per_week,
-                    'max_marks' => $assignment->max_marks,
-                    'pass_marks' => $assignment->pass_marks,
-                ];
-            });
+        $classes = $this->studentService->getClassList();
+           
 
-        $classes = Classes::where('is_active', 1)
-            ->orderBy('name')
-            ->get()
-            ->map(fn($c) => ['value' => (string)$c->id, 'label' => $c->name]);
-
-        $academicYears = DB::table('tbl_academic_years')->orderBy('start_date', 'desc')
-            ->get()
-            ->map(fn($y) => ['value' => (string)$y->id, 'label' => $y->name]);
-
-        return Inertia::render('ClassSubjects/Index', [
+        $academicYears = $this->studentService->getAcademicYearList();
+        return Inertia::render('classSubject/Index', [
             'assignments' => $assignments,
             'classes' => $classes,
             'academicYears' => $academicYears,

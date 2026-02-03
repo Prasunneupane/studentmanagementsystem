@@ -276,4 +276,13 @@ class StudentService implements StudentServiceInterface
             ->select('m.id as value', 'm.name as label')
             ->first(); 
     }
+
+    public function getAcademicYearList(){
+        return DB::table('tbl_academic_years')
+            ->where('is_active',1)
+            ->select('id as value','academic_year as label')
+            ->orderBy('start_date','desc')
+            ->get()
+            ->toArray();
+    }
 }

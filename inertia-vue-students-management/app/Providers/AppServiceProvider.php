@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Interface\ClassSubjectInterface;
 use App\Interface\GuardianInterface;
 use App\Interface\PermissionInterface;
 use App\Interface\RoleInterface;
@@ -19,6 +20,7 @@ use App\Repositories\RoleRepository;
 use App\Repositories\SubjectRepository;
 use App\Repositories\TeacherRepository;
 use App\Repositories\UserRepository;
+use App\Services\ClassSubjectService;
 use App\Services\GuardianService;
 use Illuminate\Support\ServiceProvider;
 use App\Contracts\StudentRepositoryInterface;
@@ -43,6 +45,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(RoleInterface::class, RoleRepository::class);
         $this->app->bind(PermissionInterface::class, PermissionRepository::class);
         $this->app->bind(UserInterface::class, UserRepository::class);
+        $this->app->bind(ClassSubjectInterface::class, ClassSubjectService::class);
     }
 
     /**
