@@ -4,13 +4,13 @@ import AppLayout from '@/layouts/AppLayout.vue'
 import { Head, useForm, router } from '@inertiajs/vue3'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
-import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import CustomSelect from '../CustomSelect.vue'
 import { Toaster } from '@/components/ui/sonner'
 import { useToast } from '@/composables/useToast'
-import { Loader2, Save, X } from 'lucide-vue-next'
+import { Loader2, Save, X, UserCheck, AlertCircle } from 'lucide-vue-next'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import axios from 'axios'
 
 const { toast } = useToast()
@@ -20,55 +20,45 @@ interface Option {
   label: string
 }
 
-interface ClassSubjectData {
+interface ClassTeacherData {
   id: number
   class_id: string
   section_id: string
-  subject_id: string
-  teacher_id: string | null
+  teacher_id: string
   academic_year_id: string
-  is_optional: boolean
-  periods_per_week: number
-  max_marks: number
-  pass_marks: number
+  is_class_teacher: boolean
+  is_active: boolean
 }
 
 interface Props {
-  classSubject: ClassSubjectData
+  classTeacher: ClassTeacherData
   classes: Option[]
   sections: Option[]
-  subjects: Option[]
   teachers: Option[]
   academicYears: Option[]
 }
 
-
 const props = defineProps<Props>()
 
 const breadcrumbs = [
-  { title: 'Class Subjects', href: '/class-subjects' },
-  { title: 'Edit Assignment', href: `/class-subjects/${props.classSubject.id}/edit` }
+  { title: 'Class Teachers', href: '/class-teachers' },
+  { title: 'Edit Assignment', href: `/class-teachers/${props.classTeacher.id}/edit` }
 ]
 
 const loadingSections = ref(false)
 const sectionsOptions = ref<Option[]>(props.sections)
-console.log(props.classSubject,"classSubject");
 
 const form = useForm({
-  class_id: props.classSubject.class_id ??'',
-  section_id: props.classSubject.class_id ??'',
-  subject_id: props.classSubject.class_id ??'',
-  teacher_id: props.classSubject.teacher_id ??'',
-  academic_year_id: props.classSubject.academic_year_id ??'',
-  is_optional: props.classSubject.is_optional,
-  periods_per_week: props.classSubject.periods_per_week,
-  max_marks: props.classSubject.max_marks,
-  pass_marks: props.classSubject.pass_marks,
+  class_id: props.classTeacher.class_id ?? '',
+  section_id: props.classTeacher.section_id ?? '',
+  teacher_id: props.classTeacher.teacher_id ?? '',
+  academic_year_id: props.classTeacher.academic_year_id ?? '',
+  is_class_teacher: props.classTeacher.is_class_teacher,
+  is_active: props.classTeacher.is_active,
 })
 
 // Fetch sections when class changes
 watch(() => form.class_id, async (newClass, oldClass) => {
-  // Don't reset section on first load
   if (oldClass === null) return
   
   form.section_id = ''
@@ -78,7 +68,7 @@ watch(() => form.class_id, async (newClass, oldClass) => {
   
   loadingSections.value = true
   try {
-    const response = await axios.get('/class-subjects/sections-by-class', {
+    const response = await axios.get('/class-teachers/sections-by-class', {
       params: { class_id: newClass }
     })
     sectionsOptions.value = response.data
@@ -95,12 +85,8 @@ const errors = computed(() => {
   const errs: Record<string, string> = {}
   if (!form.class_id) errs.class_id = 'Class is required'
   if (!form.section_id) errs.section_id = 'Section is required'
-  if (!form.subject_id) errs.subject_id = 'Subject is required'
+  if (!form.teacher_id) errs.teacher_id = 'Teacher is required'
   if (!form.academic_year_id) errs.academic_year_id = 'Academic year is required'
-  if (form.periods_per_week < 0) errs.periods_per_week = 'Must be 0 or greater'
-  if (form.max_marks <= 0) errs.max_marks = 'Must be greater than 0'
-  if (form.pass_marks < 0) errs.pass_marks = 'Must be 0 or greater'
-  if (form.pass_marks > form.max_marks) errs.pass_marks = 'Cannot exceed max marks'
   return errs
 })
 
@@ -117,15 +103,12 @@ const handleSubmit = () => {
   form.transform((data) => ({
     class_id: data.class_id,
     section_id: data.section_id,
-    subject_id: data.subject_id,
-    teacher_id: data.teacher_id || null,
+    teacher_id: data.teacher_id,
     academic_year_id: data.academic_year_id,
-    is_optional: data.is_optional,
-    periods_per_week: data.periods_per_week,
-    max_marks: data.max_marks,
-    pass_marks: data.pass_marks,
+    is_class_teacher: data.is_class_teacher,
+    is_active: data.is_active,
     _method: 'PUT',
-  })).post(`/class-subjects/${props.classSubject.id}`, {
+  })).post(`/class-teachers/${props.classTeacher.id}`, {
     onSuccess: () => {
       toast.success('Assignment updated successfully')
     },
@@ -137,21 +120,21 @@ const handleSubmit = () => {
 }
 
 const handleCancel = () => {
-  router.visit('/class-subjects')
+  router.visit('/class-teachers')
 }
 </script>
 
 <template>
-  <Head title="Edit Subject Assignment" />
+  <Head title="Edit Teacher Assignment" />
   <AppLayout :breadcrumbs="breadcrumbs">
     <Toaster />
     
     <div class="flex h-full w-full flex-1 flex-col gap-4 rounded-xl p-4">
       <Card class="w-full shadow-lg rounded-2xl">
         <CardHeader class="border-b">
-          <CardTitle class="text-2xl font-bold">Edit Subject Assignment</CardTitle>
+          <CardTitle class="text-2xl font-bold">Edit Teacher Assignment</CardTitle>
           <p class="text-sm text-muted-foreground mt-1">
-            Update subject assignment configuration
+            Update teacher assignment configuration
           </p>
         </CardHeader>
         
@@ -212,101 +195,65 @@ const handleCancel = () => {
               </div>
             </div>
 
-            <!-- Subject and Teacher -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div class="space-y-2">
-                <Label for="subject_id">
-                  Subject <span class="text-red-500">*</span>
-                </Label>
-                <CustomSelect
-                  id="subject_id"
-                  v-model="form.subject_id"
-                  :options="subjects"
-                  placeholder="Select Subject"
-                  :class="{ 'border-red-500': errors.subject_id }"
-                />
-                <p v-if="errors.subject_id" class="text-sm text-red-600">
-                  {{ errors.subject_id }}
-                </p>
-              </div>
-
-              <div class="space-y-2">
-                <Label for="teacher_id">Teacher (Optional)</Label>
-                <CustomSelect
-                  id="teacher_id"
-                  v-model="form.teacher_id"
-                  :options="teachers"
-                  placeholder="Select Teacher"
-                />
-                <p class="text-xs text-muted-foreground">
-                  Leave empty if teacher not yet assigned
-                </p>
-              </div>
+            <!-- Teacher -->
+            <div class="space-y-2">
+              <Label for="teacher_id">
+                Teacher <span class="text-red-500">*</span>
+              </Label>
+              <CustomSelect
+                id="teacher_id"
+                v-model="form.teacher_id"
+                :options="teachers"
+                placeholder="Select Teacher"
+                :class="{ 'border-red-500': errors.teacher_id }"
+              />
+              <p v-if="errors.teacher_id" class="text-sm text-red-600">
+                {{ errors.teacher_id }}
+              </p>
             </div>
 
             <!-- Configuration -->
             <div class="space-y-4 p-4 bg-muted/50 rounded-lg">
-              <h3 class="font-semibold text-sm">Subject Configuration</h3>
+              <h3 class="font-semibold text-sm">Assignment Configuration</h3>
               
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="space-y-2">
-                  <Label for="periods_per_week">Periods per Week</Label>
-                  <Input
-                    id="periods_per_week"
-                    v-model.number="form.periods_per_week"
-                    type="number"
-                    min="0"
-                    max="50"
-                    :class="{ 'border-red-500': errors.periods_per_week }"
+              <div class="space-y-3">
+                <div class="flex items-start space-x-3">
+                  <Checkbox
+                    id="is_class_teacher"
+                    v-model:checked="form.is_class_teacher"
                   />
-                  <p v-if="errors.periods_per_week" class="text-sm text-red-600">
-                    {{ errors.periods_per_week }}
-                  </p>
+                  <div class="grid gap-1.5 leading-none">
+                    <Label for="is_class_teacher" class="font-medium cursor-pointer flex items-center gap-2">
+                      <UserCheck class="h-4 w-4" />
+                      Class Teacher
+                    </Label>
+                    <p class="text-sm text-muted-foreground">
+                      Mark this teacher as the primary class teacher for this section
+                    </p>
+                  </div>
                 </div>
 
-                <div class="space-y-2">
-                  <Label for="max_marks">
-                    Maximum Marks <span class="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="max_marks"
-                    v-model.number="form.max_marks"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    :class="{ 'border-red-500': errors.max_marks }"
-                  />
-                  <p v-if="errors.max_marks" class="text-sm text-red-600">
-                    {{ errors.max_marks }}
-                  </p>
-                </div>
+                <Alert v-if="form.is_class_teacher" variant="default" class="border-blue-200 bg-blue-50">
+                  <AlertCircle class="h-4 w-4 text-blue-600" />
+                  <AlertDescription class="text-blue-800">
+                    Marking as class teacher will automatically unset any existing class teacher for this section.
+                  </AlertDescription>
+                </Alert>
 
-                <div class="space-y-2">
-                  <Label for="pass_marks">
-                    Pass Marks <span class="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="pass_marks"
-                    v-model.number="form.pass_marks"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    :class="{ 'border-red-500': errors.pass_marks }"
+                <div class="flex items-start space-x-3">
+                  <Checkbox
+                    id="is_active"
+                    v-model:checked="form.is_active"
                   />
-                  <p v-if="errors.pass_marks" class="text-sm text-red-600">
-                    {{ errors.pass_marks }}
-                  </p>
+                  <div class="grid gap-1.5 leading-none">
+                    <Label for="is_active" class="font-medium cursor-pointer">
+                      Active Status
+                    </Label>
+                    <p class="text-sm text-muted-foreground">
+                      Set whether this assignment is currently active
+                    </p>
+                  </div>
                 </div>
-              </div>
-
-              <div class="flex items-center space-x-2">
-                <Checkbox
-                  id="is_optional"
-                  v-model:checked="form.is_optional"
-                />
-                <Label for="is_optional" class="font-normal cursor-pointer">
-                  This is an optional/elective subject
-                </Label>
               </div>
             </div>
 

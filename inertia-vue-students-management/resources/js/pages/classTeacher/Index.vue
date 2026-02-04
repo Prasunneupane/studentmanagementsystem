@@ -8,9 +8,8 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import CustomSelect from '../CustomSelect.vue'
 import { Toaster } from '@/components/ui/sonner'
-import 'vue-sonner/style.css'
 import { useToast } from '@/composables/useToast'
-import { Edit, Trash2, Plus, Filter } from 'lucide-vue-next'
+import { Edit, Trash2, Plus, Filter, UserCheck } from 'lucide-vue-next'
 import DataTable from '../students/Datatable.vue'
 import type { ColumnDef } from '@tanstack/vue-table'
 import {
@@ -33,16 +32,12 @@ interface Assignment {
   class_name: string
   section_id: number
   section_name: string
-  subject_id: number
-  subject_name: string
-  teacher_id: number | null
+  teacher_id: number
   teacher_name: string
   academic_year_id: number
   academic_year_name: string
-  is_optional: boolean
-  periods_per_week: number
-  max_marks: number
-  pass_marks: number
+  is_class_teacher: boolean
+  is_active: boolean
 }
 
 interface Option {
@@ -64,10 +59,10 @@ interface Props {
 const props = defineProps<Props>()
 
 const breadcrumbs = [
-  { title: 'Class Subjects', href: '/class-subjects' }
+  { title: 'Class Teachers', href: '/class-teachers' }
 ]
 
-const selectedAcademicYear = ref<Option |'' >(
+const selectedAcademicYear = ref<Option | ''>(
   props.academicYears.find(y => String(y.value) === String(props.currentAcademicYearId)) || ''
 )
 const selectedClass = ref<Option | ''>()
@@ -88,7 +83,7 @@ const filteredAssignments = computed(() => {
   if (selectedSection.value) {
     result = result.filter(a => String(a.section_id) === String(selectedSection.value))
   }
-  // debugger;
+
   return result
 })
 
@@ -96,11 +91,11 @@ const filteredAssignments = computed(() => {
 watch(selectedClass, async (newClass) => {
   selectedSection.value = ''
   sections.value = []
-  // debugger;
+
   if (!newClass) return
   
   try {
-    const response = await axios.get('/class-subjects/sections-by-class', {
+    const response = await axios.get('/class-teachers/sections-by-class', {
       params: { class_id: newClass }
     })
     sections.value = response.data
@@ -112,7 +107,7 @@ watch(selectedClass, async (newClass) => {
 // Reload when academic year changes
 watch(selectedAcademicYear, (newYear) => {
   if (newYear) {
-    router.get('/class-subjects', {
+    router.get('/class-teachers', {
       academic_year_id: newYear,
     }, {
       preserveState: true,
@@ -122,11 +117,11 @@ watch(selectedAcademicYear, (newYear) => {
 })
 
 const handleCreate = () => {
-  router.visit('/class-subjects/create')
+  router.visit('/class-teachers/create')
 }
 
 const handleEdit = (assignment: Assignment) => {
-  router.visit(`/class-subjects/${assignment.id}/edit`)
+  router.visit(`/class-teachers/${assignment.id}/edit`)
 }
 
 const handleDelete = (assignment: Assignment) => {
@@ -138,10 +133,9 @@ const confirmDelete = async () => {
   if (!assignmentToDelete.value) return
 
   try {
-    await axios.delete(`/class-subjects/${assignmentToDelete.value.id}`)
+    await axios.delete(`/class-teachers/${assignmentToDelete.value.id}`)
     toast.success('Assignment deleted successfully')
     
-    // Reload page
     router.reload({ only: ['assignments'] })
     
     isDeleteDialogOpen.value = false
@@ -152,8 +146,8 @@ const confirmDelete = async () => {
 }
 
 const clearFilters = () => {
-  selectedClass.value = '';
-  selectedSection.value = '';
+  selectedClass.value = ''
+  selectedSection.value = ''
 }
 
 // Table columns
@@ -169,41 +163,29 @@ const columns: ColumnDef<Assignment>[] = [
     cell: ({ row }) => h('div', { class: 'font-medium' }, row.getValue('section_name'))
   },
   {
-    accessorKey: 'subject_name',
-    header: 'Subject',
+    accessorKey: 'teacher_name',
+    header: 'Teacher',
     cell: ({ row }) => {
-      const isOptional = row.original.is_optional
+      const isClassTeacher = row.original.is_class_teacher
       return h('div', { class: 'flex items-center gap-2' }, [
-        h('span', row.getValue('subject_name')),
-        isOptional && h(Badge, { variant: 'outline', class: 'text-xs' }, () => 'Optional')
+        h('span', { class: 'font-medium' }, row.getValue('teacher_name')),
+        isClassTeacher && h(Badge, { variant: 'default', class: 'text-xs' }, () => [
+          h(UserCheck, { class: 'h-3 w-3 mr-1' }),
+          'Class Teacher'
+        ])
       ])
     }
   },
   {
-    accessorKey: 'teacher_name',
-    header: 'Teacher',
+    accessorKey: 'is_active',
+    header: 'Status',
     cell: ({ row }) => {
-      const teacherName = row.getValue('teacher_name') as string
-      const isUnassigned = teacherName === 'Unassigned'
-      return h('div', { 
-        class: isUnassigned ? 'text-muted-foreground italic' : '' 
-      }, teacherName)
+      const isActive = row.getValue('is_active') as boolean
+      return h(Badge, { 
+        variant: isActive ? 'default' : 'secondary',
+        class: 'text-xs'
+      }, () => isActive ? 'Active' : 'Inactive')
     }
-  },
-  {
-    accessorKey: 'periods_per_week',
-    header: 'Periods/Week',
-    cell: ({ row }) => h('div', { class: 'text-center' }, row.getValue('periods_per_week'))
-  },
-  {
-    accessorKey: 'max_marks',
-    header: 'Max Marks',
-    cell: ({ row }) => h('div', { class: 'text-center' }, row.getValue('max_marks'))
-  },
-  {
-    accessorKey: 'pass_marks',
-    header: 'Pass Marks',
-    cell: ({ row }) => h('div', { class: 'text-center' }, row.getValue('pass_marks'))
   },
   {
     id: 'actions',
@@ -233,7 +215,7 @@ const columns: ColumnDef<Assignment>[] = [
 </script>
 
 <template>
-  <Head title="Class Subject Assignments" />
+  <Head title="Class Teacher Assignments" />
   <AppLayout :breadcrumbs="breadcrumbs">
     <Toaster />
     
@@ -243,14 +225,14 @@ const columns: ColumnDef<Assignment>[] = [
         <CardHeader>
           <div class="flex items-center justify-between">
             <div>
-              <CardTitle class="text-xl font-bold">Subject Assignments</CardTitle>
+              <CardTitle class="text-xl font-bold">Teacher Assignments</CardTitle>
               <p class="text-sm text-muted-foreground mt-1">
-                Manage subject-teacher assignments for classes
+                Manage teacher assignments for classes and sections
               </p>
             </div>
             <Button @click="handleCreate">
               <Plus class="mr-2 h-4 w-4" />
-              Assign Subject
+              Assign Teacher
             </Button>
           </div>
         </CardHeader>
@@ -304,7 +286,7 @@ const columns: ColumnDef<Assignment>[] = [
             :columns="columns"
             :data="filteredAssignments"
             :loading="false"
-            title="Subject Assignments"
+            title="Teacher Assignments"
           />
         </CardContent>
       </Card>
@@ -317,11 +299,11 @@ const columns: ColumnDef<Assignment>[] = [
       <AlertDialogHeader>
         <AlertDialogTitle>Delete Assignment?</AlertDialogTitle>
         <AlertDialogDescription>
-          This action cannot be undone. This will permanently remove the subject assignment.
+          This action cannot be undone. This will permanently remove the teacher assignment.
           <div v-if="assignmentToDelete" class="mt-3 p-3 bg-red-50 border border-red-200 rounded-md text-sm">
-            <strong>{{ assignmentToDelete.subject_name }}</strong><br />
+            <strong>{{ assignmentToDelete.teacher_name }}</strong><br />
             Class: {{ assignmentToDelete.class_name }} - {{ assignmentToDelete.section_name }}<br />
-            Teacher: {{ assignmentToDelete.teacher_name }}
+            {{ assignmentToDelete.is_class_teacher ? 'Class Teacher' : 'Subject Teacher' }}
           </div>
         </AlertDialogDescription>
       </AlertDialogHeader>

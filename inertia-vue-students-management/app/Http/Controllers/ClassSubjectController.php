@@ -84,32 +84,11 @@ class ClassSubjectController extends Controller
      */
     public function create()
     {
-        $classes = Classes::where('is_active', 1)
-            ->select('id as value','name as label')
-            ->orderBy('name')
-            ->get();
-            
-
-        $subjects = Subject::where('is_active', 1)
-            ->select('id as value','name as label')
-            ->orderBy('name')
-            ->get();
-            
-
-        $teachers = Teachers::where('is_active', 1)
-            ->select('id as value','name as label')->get();
-            
-
-        $academicYears = DB::table('tbl_academic_years')
-            ->orderBy('start_date', 'desc')
-            ->select('id as value','academic_year as label')
-            ->get();
-           
-
-        $currentAcademicYear = DB::table('tbl_academic_years')
-             ->select('id as value','academic_year as label')
-             ->where('is_active', operator: 1)->first();
-
+        $classes = $this->studentService->getClassList();
+        $subjects = $this->classSubjectService->getSubjectList();
+        $teachers = $this->classSubjectService->getTeacherList();
+        $academicYears = $this->studentService->getAcademicYearList(); 
+        $currentAcademicYear = $this->classSubjectService->getCurrentAcademicYear();
         return Inertia::render('classSubject/Create', [
             'classes' => $classes,
             'subjects' => $subjects,
@@ -145,7 +124,8 @@ class ClassSubjectController extends Controller
             ]);
         }
         // dd($validated);
-        ClassSubject::create($validated);
+        $this->classSubjectService->create($validated);
+        // ClassSubject::create($validated);
 
         return redirect()->route('class-subjects.index')->with('success', 'Subject assigned successfully');
     }
@@ -155,47 +135,19 @@ class ClassSubjectController extends Controller
      */
     public function edit(ClassSubject $classSubject)
     {
-        $classes = Classes::where('is_active', 1)
-            ->orderBy('name')
-            ->get()
-            ->map(fn($c) => ['value' => (string)$c->id, 'label' => $c->name]);
+        $classes = $this->studentService->getClassList();
 
-        $sections = Section::where('class_id', $classSubject->class_id)
-            ->where('is_active', 1)
-            ->orderBy('name')
-            ->get()
-            ->map(fn($s) => ['value' => (string)$s->id, 'label' => $s->name]);
+        $sections = $this->studentService->getSectionList($classSubject->class_id);
 
-        $subjects = Subject::where('is_active', 1)
-            ->orderBy('name')
-            ->get()
-            ->map(fn($s) => ['value' => (string)$s->id, 'label' => $s->name]);
+        $subjects = $this->classSubjectService->getSubjectList();
 
-        $teachers = Teachers::where('is_active', 1)
-            ->orderBy('first_name')
-            ->get()
-            ->map(fn($t) => [
-                'value' => (string)$t->id,
-                'label' => $t->first_name . ' ' . $t->last_name
-            ]);
+        $teachers = $this->classSubjectService->getTeacherList();
 
-        $academicYears = DB::table('tbl_academic_years')->orderBy('start_date', 'desc')
-            ->get()
-            ->map(fn($y) => ['value' => (string)$y->id, 'label' => $y->name]);
-
-        return Inertia::render('ClassSubjects/Edit', [
-            'classSubject' => [
-                'id' => $classSubject->id,
-                'class_id' => (string)$classSubject->class_id,
-                'section_id' => (string)$classSubject->section_id,
-                'subject_id' => (string)$classSubject->subject_id,
-                'teacher_id' => $classSubject->teacher_id ? (string)$classSubject->teacher_id : null,
-                'academic_year_id' => (string)$classSubject->academic_year_id,
-                'is_optional' => $classSubject->is_optional,
-                'periods_per_week' => $classSubject->periods_per_week,
-                'max_marks' => $classSubject->max_marks,
-                'pass_marks' => $classSubject->pass_marks,
-            ],
+        $academicYears = $this->studentService->getAcademicYearList();
+        $classSubjectList = $this->classSubjectService->getClassSubjectById($classSubject->id);
+                              
+        return Inertia::render('classSubject/Edit', [
+            'classSubject' => $classSubjectList,
             'classes' => $classes,
             'sections' => $sections,
             'subjects' => $subjects,
@@ -209,39 +161,18 @@ class ClassSubjectController extends Controller
      */
     public function update(Request $request, ClassSubject $classSubject)
     {
-        $validated = $request->validate([
-            'class_id' => 'required|exists:tbl_classes,id',
-            'section_id' => 'required|exists:tbl_sections,id',
-            'subject_id' => 'required|exists:tbl_subjects,id',
-            'teacher_id' => 'nullable|exists:tbl_teachers,id',
-            'academic_year_id' => 'required|exists:tbl_academic_years,id',
-            'is_optional' => 'boolean',
-            'periods_per_week' => 'required|integer|min:0|max:50',
-            'max_marks' => 'required|numeric|min:0|max:1000',
-            'pass_marks' => 'required|numeric|min:0|max:1000',
-        ]);
-         dd($validated);
-        // Validate pass_marks <= max_marks
+        $validated = $request->validate($this->validation->classSubjectUpdateValidationRules($request, $classSubject->id));
         if ($validated['pass_marks'] > $validated['max_marks']) {
             return back()->withErrors(['pass_marks' => 'Pass marks cannot exceed max marks']);
         }
-       
-
-        // Check for duplicate (excluding current record)
-        $exists = ClassSubject::where('class_id', $validated['class_id'])
-            ->where('section_id', $validated['section_id'])
-            ->where('subject_id', $validated['subject_id'])
-            ->where('academic_year_id', $validated['academic_year_id'])
-            ->where('id', '!=', $classSubject->id)
-            ->exists();
-
+        $exists = $this->classSubjectService->checkIfDuplicateRecordExistById($classSubject->id);
         if ($exists) {
             return back()->withErrors([
                 'subject_id' => 'This subject is already assigned to this class-section for the selected academic year.'
             ]);
         }
 
-        $classSubject->update($validated);
+       $this->classSubjectService->update($classSubject->id, $validated);
 
         return redirect()->route('class-subjects.index')->with('success', 'Assignment updated successfully');
     }

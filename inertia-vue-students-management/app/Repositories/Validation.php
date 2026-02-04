@@ -134,7 +134,7 @@ class Validation
         return [
            
             'class_id' => 'required|exists:tbl_classes,id',
-            'section_id' => 'required|exists:tbl_sections,id',
+            'section_id' => 'required|exists:tbl_section,id',
             'subject_id' => 'required|exists:tbl_subjects,id',
             'teacher_id' => 'nullable|exists:tbl_teachers,id',
             'academic_year_id' => 'required|exists:tbl_academic_years,id',
