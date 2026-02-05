@@ -11,6 +11,10 @@ interface CommonServiceInterface
     public function getClassList();
     public function getSubjectList();
     public function getTeacherList();
+
+    public function academicYearById($academicYearId = null);
+
+    public function getClassTeacherForAcademicYear($academicYearId);
     
 }
 

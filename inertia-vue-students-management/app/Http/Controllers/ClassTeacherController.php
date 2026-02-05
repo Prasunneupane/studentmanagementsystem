@@ -31,7 +31,7 @@ class ClassTeacherController extends Controller
      */
     public function index(Request $request)
     {
-        $academicYearId = $this->classTeacherService->academicYearById($request);
+        $academicYearId = $this->commonService->academicYearById($request->academic_year_id);
         $classId = $request->input('class_id');
         $sectionId = $request->input('section_id');
 

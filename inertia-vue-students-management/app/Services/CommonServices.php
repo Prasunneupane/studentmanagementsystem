@@ -17,6 +17,15 @@ class CommonServices implements CommonServiceInterface
         //
     }
 
+    public function academicYearById($academicYearId = null){
+        if($academicYearId){
+            return $academicYearId;
+        }else{
+            $activeAcademicYear = \DB::table('tbl_academic_years')->where('is_active', 1)->first();
+            return $activeAcademicYear ? $activeAcademicYear->id : null;
+        }
+    }
+
     public function getClassList(){
         return Classes::select('id as value', 'name as label')->get()->toArray();
     }

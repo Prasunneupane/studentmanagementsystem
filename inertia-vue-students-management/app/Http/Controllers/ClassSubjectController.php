@@ -182,8 +182,9 @@ class ClassSubjectController extends Controller
      */
     public function destroy(ClassSubject $classSubject)
     {
-        $classSubject->delete();
-
+        
+        $classSubject->is_active = false;
+        $classSubject->update();
         return response()->json([
             'success' => true,
             'message' => 'Assignment deleted successfully'
