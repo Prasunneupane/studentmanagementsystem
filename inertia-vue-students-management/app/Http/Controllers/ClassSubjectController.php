@@ -100,6 +100,7 @@ class ClassSubjectController extends Controller
 
     /**
      * Store new assignment
+     * new ass8ghment
      */
     public function store(Request $request)
     {
