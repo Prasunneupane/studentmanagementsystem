@@ -101,6 +101,7 @@ class ClassSubjectController extends Controller
     /**
      * Store new assignment
      * new ass8ghment
+     * somewhere we need to change all the file name from classSubject to class-subject because in inertia we are using class-subject but in controller we are using classSubject so we need to change all the file name to class-subject
      */
     public function store(Request $request)
     {
