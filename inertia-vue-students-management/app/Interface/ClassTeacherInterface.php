@@ -11,5 +11,7 @@ interface ClassTeacherInterface
     
     public function create($data);
     public function getClassSubjectById($id);
+
+    public function getClassTeacherDataWithFilters($query);
 }
 
