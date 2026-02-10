@@ -38,7 +38,7 @@ class CheckPermission
 
         // Check if user has any of the required permissions
         $hasPermission = $this->checkPermissions($userPermissions, $permissions);
-
+        
         if (!$hasPermission) {
             // Log unauthorized access attempt
             Log::warning('Unauthorized access attempt', [

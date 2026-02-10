@@ -174,7 +174,7 @@ class ClassSubjectController extends Controller
             return back()->withErrors([
                 'subject_id' => 'This subject is already assigned to this class-section for the selected academic year.'
             ]);
-        }
+        } 
 
        $this->classSubjectService->update($classSubject->id, $validated);
 

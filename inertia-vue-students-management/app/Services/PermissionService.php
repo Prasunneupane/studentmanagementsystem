@@ -58,6 +58,7 @@ class PermissionService
             'teachers' => $this->crudPermissions($permissions, 'teachers'),
             'users' => $this->crudPermissions($permissions, 'users'),
             'classSubjects' => $this->crudPermissions($permissions, 'class_subjects'),
+            'classTeachers' => $this->crudPermissions($permissions, 'class_teachers'),
             'roles' => array_merge(
                 $this->crudPermissions($permissions, 'roles'),
                 ['canAssignPermissions' => in_array('assign_permissions', $permissions)]
@@ -135,8 +136,8 @@ class PermissionService
 
     public function bumpPermissionsVersion(): void
     {
-         if (!Cache::has('permissions_version')) {
-        Cache::forever('permissions_version', 2); // start at 2
+        if (!Cache::has('permissions_version')) {
+            Cache::forever('permissions_version', 2); // start at 2
         } else {
             Cache::increment('permissions_version');
         }

@@ -4,9 +4,12 @@ import { ShieldX, Home, ArrowLeft } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
-defineProps<{
+const props =defineProps<{
   message?: string;
+  previous: string;
 }>();
+console.log(props.previous,"props.vr");
+
 </script>
 
 <template>
@@ -37,7 +40,7 @@ defineProps<{
             variant="outline"
             class="flex-1"
           >
-            <Link href="$page.props.previous || '/dashboard'" class="flex items-center justify-center gap-2">
+            <Link :href="previous" class="flex items-center justify-center gap-2">
               <ArrowLeft class="w-4 h-4" />
               Go Back
             </Link>

@@ -109,7 +109,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Roles Management Routes
     Route::prefix('roles')->name('roles.')->group(function () {
         // View roles
-        Route::middleware(['permission:roles.view'])->group(function () {
+        Route::middleware(['permission:view_roles'])->group(function () {
             Route::get('/', [RolesController::class, 'index'])->name('index');
             Route::get('/{role}/permissions/get', [RolesController::class, 'getRolePermissions'])->name('permissions.get');
         });

@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 
-import { Loader2, Eye, Plus } from 'lucide-vue-next'
+import { Loader2, Eye, Plus, CheckSquare, Square } from 'lucide-vue-next'
 import { Toaster } from '@/components/ui/sonner'
 import { useToast } from '@/composables/useToast'
 import { usePermission } from '@/composables/usePermissions'
@@ -36,8 +36,64 @@ const props = defineProps<{
 
 /* -------------------- State -------------------- */
 const loadingPermissions = ref(false)
-const selectedPermissions = ref<number[]>([...props.rolePermissions]) // Use separate ref for permissions
+const selectedPermissions = ref<number[]>([...props.rolePermissions])
 const processing = ref(false)
+
+/* -------------------- Group Permissions by Module -------------------- */
+const groupedPermissions = computed(() => {
+  const groups: Record<string, { id: number; name: string; module?: string }[]> = {}
+  
+  props.allPermissions.forEach(permission => {
+    const moduleName = permission.module || 'General'
+    if (!groups[moduleName]) {
+      groups[moduleName] = []
+    }
+    groups[moduleName].push(permission)
+  })
+  
+  // Sort modules alphabetically
+  return Object.keys(groups)
+    .sort()
+    .reduce((acc, key) => {
+      acc[key] = groups[key]
+      return acc
+    }, {} as Record<string, { id: number; name: string; module?: string }[]>)
+})
+
+/* -------------------- Module Selection States -------------------- */
+const isModuleFullySelected = (moduleName: string) => {
+  const modulePermissions = groupedPermissions.value[moduleName]
+  return modulePermissions.every(p => selectedPermissions.value.includes(p.id))
+}
+
+const isModulePartiallySelected = (moduleName: string) => {
+  const modulePermissions = groupedPermissions.value[moduleName]
+  const selectedCount = modulePermissions.filter(p => 
+    selectedPermissions.value.includes(p.id)
+  ).length
+  return selectedCount > 0 && selectedCount < modulePermissions.length
+}
+
+const toggleModule = (moduleName: string) => {
+  const modulePermissions = groupedPermissions.value[moduleName]
+  const isFullySelected = isModuleFullySelected(moduleName)
+  
+  if (isFullySelected) {
+    // Deselect all permissions in this module
+    selectedPermissions.value = selectedPermissions.value.filter(
+      id => !modulePermissions.some(p => p.id === id)
+    )
+  } else {
+    // Select all permissions in this module
+    const modulePermissionIds = modulePermissions.map(p => p.id)
+    selectedPermissions.value = [
+      ...selectedPermissions.value.filter(
+        id => !modulePermissionIds.includes(id)
+      ),
+      ...modulePermissionIds
+    ]
+  }
+}
 
 /* -------------------- Role Options -------------------- */
 const roleOptions = computed<Option[]>(() =>
@@ -62,7 +118,6 @@ watch(
 
     loadingPermissions.value = true
 
-    // Fetch role permissions via Inertia visit
     router.get(
       route('roles.permissions.get', { role: newRole.value }),
       {},
@@ -71,7 +126,6 @@ watch(
         preserveScroll: true,
         only: ['rolePermissions'],
         onSuccess: (page) => {
-          // Update permissions based on fetched data
           selectedPermissions.value = [...((page.props.rolePermissions as number[]) || [])]
           loadingPermissions.value = false
           console.log('✅ Loaded permissions for role:', newRole.value, selectedPermissions.value)
@@ -93,6 +147,7 @@ watch(
   },
   { deep: true }
 )
+
 const togglePermission = (permissionId: number, checked: boolean) => {
   if (checked) {
     if (!selectedPermissions.value.includes(permissionId)) {
@@ -105,16 +160,14 @@ const togglePermission = (permissionId: number, checked: boolean) => {
   }
 }
 
-
 /* -------------------- Submit -------------------- */
 const handleSubmit = () => {
   if (!form.role_id) {
     toast.error('Please select a role')
     return
   }
- processing.value = true
+  processing.value = true
 
-  // Use router.post directly
   router.post(
     route('roles.permissions.assign'),
     {
@@ -128,7 +181,6 @@ const handleSubmit = () => {
         processing.value = false
       },
       onError: (errors) => {
-        
         toast.error('Failed to assign permissions')
         processing.value = false
       },
@@ -148,122 +200,142 @@ const handleSubmit = () => {
   >
     <Toaster position="top-right" />
 
-    <div class="container mx-auto p-6 max-w-7xl">
+    <div class="container mx-auto p-6 max-w-[1400px]">
       <Card>
         <!-- HEADER -->
         <CardHeader class="flex justify-between items-center">
           <div>
             <CardTitle>Assign Permissions to Role</CardTitle>
             <CardDescription>
-              Select a role and assign permissions
+              Select a role and assign permissions organized by module
             </CardDescription>
           </div>
           <div class="flex gap-3">
-          <Button v-if="can('roles.canView')" as-child>
-            <Link :href="route('roles.index')">
-              <Eye class="w-4 h-4 mr-2" /> View Roles
-            </Link>
-          </Button>
+            <Button v-if="can('roles.canView')" as-child>
+              <Link :href="route('roles.index')">
+                <Eye class="w-4 h-4 mr-2" /> View Roles
+              </Link>
+            </Button>
 
-          <Button v-if="can('roles.canCreate')" as-child>
-            <Link :href="route('roles.create')">
-              <Plus class="w-4 h-4 mr-2" /> Create Role
-            </Link>
-          </Button>
+            <Button v-if="can('roles.canCreate')" as-child>
+              <Link :href="route('roles.create')">
+                <Plus class="w-4 h-4 mr-2" /> Create Role
+              </Link>
+            </Button>
           </div>
         </CardHeader>
 
         <CardContent>
           <form @submit.prevent="handleSubmit" class="space-y-8">
-            <!-- CENTERED CONTENT -->
-            <div class="flex justify-center">
-              <div class="w-full max-w-3xl space-y-8">
-                <!-- Role Select -->
-                <div class="space-y-2">
-                  <Label>
-                    Role <span class="text-red-500">*</span>
-                  </Label>
-                  <SelectSearch
-                    v-model="form.role_id"
-                    :options="roleOptions"
-                    placeholder="Select role"
-                    :disabled="processing"
-                  />
-                  <p v-if="form.errors.role_id" class="text-sm text-red-600">
-                    {{ form.errors.role_id }}
-                  </p>
-                </div>
+            <!-- Role Select -->
+            <div class="max-w-md space-y-2">
+              <Label>
+                Role <span class="text-red-500">*</span>
+              </Label>
+              <SelectSearch
+                v-model="form.role_id"
+                :options="roleOptions"
+                placeholder="Select role"
+                :disabled="processing"
+              />
+              <p v-if="form.errors.role_id" class="text-sm text-red-600">
+                {{ form.errors.role_id }}
+              </p>
+            </div>
 
-                <!-- Permissions -->
-                <div class="space-y-3">
-                  <Label>
-                    Permissions 
-                    <span class="text-xs text-muted-foreground ml-2">
-                      ({{ selectedPermissions.length }} selected)
-                    </span>
-                  </Label>
+            <!-- Permissions Section -->
+            <div class="space-y-4">
+              <div class="flex items-center justify-between">
+                <Label class="text-lg font-semibold">
+                  Permissions
+                </Label>
+                <span class="text-sm text-muted-foreground bg-muted px-3 py-1 rounded-full">
+                  {{ selectedPermissions.length }} of {{ allPermissions.length }} selected
+                </span>
+              </div>
 
-                  <!-- Loading State -->
-                  <div
-                    v-if="loadingPermissions"
-                    class="flex items-center justify-center py-8"
+              <!-- Loading State -->
+              <div
+                v-if="loadingPermissions"
+                class="flex items-center justify-center py-12"
+              >
+                <Loader2 class="h-8 w-8 animate-spin text-primary" />
+                <span class="ml-3 text-muted-foreground">
+                  Loading permissions...
+                </span>
+              </div>
+
+              <!-- Permissions Grid by Module -->
+              <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <div
+                  v-for="(permissions, moduleName) in groupedPermissions"
+                  :key="moduleName"
+                  class="border rounded-lg overflow-hidden hover:shadow-md transition-shadow"
+                >
+                  <!-- Module Header -->
+                  <div 
+                    class="bg-muted/50 p-3 border-b cursor-pointer hover:bg-muted transition-colors flex items-center gap-2"
+                    @click="toggleModule(moduleName)"
                   >
-                    <Loader2 class="h-8 w-8 animate-spin text-primary" />
-                    <span class="ml-2 text-muted-foreground">
-                      Loading permissions...
-                    </span>
-                  </div>
-
-                  <!-- Permissions List -->
-                  <div v-else class="grid grid-cols-1 gap-4">
-                    <div
-                      v-for="permission in props.allPermissions"
-                      :key="permission.id"
-                      class="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50 transition-colors"
-                    >
-                      <input
-                          type="checkbox"
-                          :id="`perm-${permission.id}`"
-                          :value="permission.id"
-                          v-model="selectedPermissions"
-                          :disabled="processing"
-                          class="
-                            h-4 w-4 rounded border border-zinc-300
-                            accent-black
-                             focus:ring-black/40
-                            cursor-pointer
-                            disabled:cursor-not-allowed disabled:opacity-50
-                          "
-                        />
-
-
-                      <Label
-                        :for="`perm-${permission.id}`"
-                        class="cursor-pointer font-normal flex-1"
+                    <div class="flex-shrink-0">
+                      <CheckSquare 
+                        v-if="isModuleFullySelected(moduleName)"
+                        class="w-5 h-5 text-primary"
+                      />
+                      <div 
+                        v-else-if="isModulePartiallySelected(moduleName)"
+                        class="w-5 h-5 border-2 border-primary rounded flex items-center justify-center"
                       >
-                        {{ permission.name }}
-                        <span
-                          v-if="permission.module"
-                          class="text-xs text-muted-foreground ml-1"
-                        >
-                          ({{ permission.module }})
-                        </span>
-                      </Label>
+                        <div class="w-2.5 h-2.5 bg-primary rounded-sm"></div>
+                      </div>
+                      <Square 
+                        v-else
+                        class="w-5 h-5 text-muted-foreground"
+                      />
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <h3 class="font-semibold text-sm truncate">{{ moduleName }}</h3>
+                      <p class="text-xs text-muted-foreground">
+                        {{ permissions.filter(p => selectedPermissions.includes(p.id)).length }}/{{ permissions.length }} selected
+                      </p>
                     </div>
                   </div>
 
-                  <!-- <p
-                    v-if="form.errors"
-                    class="text-sm text-red-600"
-                  >
-                    {{ form.errors }}
-                  </p> -->
+                  <!-- Module Permissions -->
+                  <div class="p-3 space-y-2 max-h-64 overflow-y-auto">
+                    <div
+                      v-for="permission in permissions"
+                      :key="permission.id"
+                      class="flex items-start gap-2 p-1.5 rounded hover:bg-muted/30 transition-colors"
+                    >
+                      <input
+                        type="checkbox"
+                        :id="`perm-${permission.id}`"
+                        :value="permission.id"
+                        v-model="selectedPermissions"
+                        :disabled="processing"
+                        class="
+                          mt-0.5 h-4 w-4 rounded border border-zinc-300
+                          accent-black
+                          focus:ring-black/40
+                          cursor-pointer
+                          disabled:cursor-not-allowed disabled:opacity-50
+                        "
+                      />
+                      <Label
+                        :for="`perm-${permission.id}`"
+                        class="cursor-pointer font-normal text-sm leading-tight flex-1"
+                      >
+                        {{ permission.name }}
+                      </Label>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
 
             <!-- Submit -->
-            <div class="flex justify-end gap-3 border-t pt-6" >
+            <div class="flex justify-end gap-3 border-t pt-6">
               <Button
                 type="button"
                 variant="outline"
@@ -273,8 +345,11 @@ const handleSubmit = () => {
               >
                 <Link :href="route('roles.index')"> Cancel </Link>
               </Button>
-              <Button  class="cursor-pointer" type="submit" :disabled="processing || loadingPermissions"
-              v-if="can('roles.canAssignPermissions')"
+              <Button
+                class="cursor-pointer"
+                type="submit"
+                :disabled="processing || loadingPermissions"
+                v-if="can('roles.canAssignPermissions')"
               >
                 <Loader2
                   v-if="processing"

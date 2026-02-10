@@ -38,4 +38,9 @@ class CommonServices implements CommonServiceInterface
         return Teachers::select('id as value', 'name as label')->get()->toArray();
     }
 
+    public function getClassTeacherForAcademicYear($academicYearId){
+        return \DB::table('tbl_class_teachers')
+            ->where('academic_year_id', $academicYearId);
+    }
+
 }
