@@ -62,10 +62,9 @@ class ClassSubjectController extends Controller
                             'teacher',
                             'academicYear',
                         ]);
-
+        
         $classes = $this->studentService->getClassList();
-           
-
+        
         $academicYears = $this->studentService->getAcademicYearList();
         return Inertia::render('classSubject/Index', [
             'assignments' => $assignments,

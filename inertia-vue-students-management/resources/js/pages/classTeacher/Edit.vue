@@ -9,8 +9,9 @@ import { Checkbox } from '@/components/ui/checkbox'
 import CustomSelect from '../CustomSelect.vue'
 import { Toaster } from '@/components/ui/sonner'
 import { useToast } from '@/composables/useToast'
+import 'vue-sonner/style.css'
 import { Loader2, Save, X, UserCheck, AlertCircle } from 'lucide-vue-next'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+// import { Alert, AlertDescription } from '@/components/ui/alert'
 import axios from 'axios'
 
 const { toast } = useToast()
@@ -108,7 +109,7 @@ const handleSubmit = () => {
     is_class_teacher: data.is_class_teacher,
     is_active: data.is_active,
     _method: 'PUT',
-  })).post(`/class-teachers/${props.classTeacher.id}`, {
+  })).post(`/class-teacher/${props.classTeacher.id}`, {
     onSuccess: () => {
       toast.success('Assignment updated successfully')
     },
@@ -120,7 +121,7 @@ const handleSubmit = () => {
 }
 
 const handleCancel = () => {
-  router.visit('/class-teachers')
+  router.visit('/class-teacher')
 }
 </script>
 
@@ -220,7 +221,7 @@ const handleCancel = () => {
                 <div class="flex items-start space-x-3">
                   <Checkbox
                     id="is_class_teacher"
-                    v-model:checked="form.is_class_teacher"
+                    v-model="form.is_class_teacher"
                   />
                   <div class="grid gap-1.5 leading-none">
                     <Label for="is_class_teacher" class="font-medium cursor-pointer flex items-center gap-2">
@@ -243,7 +244,7 @@ const handleCancel = () => {
                 <div class="flex items-start space-x-3">
                   <Checkbox
                     id="is_active"
-                    v-model:checked="form.is_active"
+                    v-model="form.is_active"
                   />
                   <div class="grid gap-1.5 leading-none">
                     <Label for="is_active" class="font-medium cursor-pointer">

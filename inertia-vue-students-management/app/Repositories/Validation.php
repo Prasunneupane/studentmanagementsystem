@@ -146,7 +146,7 @@ class Validation
         ];
     }
 
-    public function classTeacherValidationRules($request)
+    public function classTeacherValidationRules($request,$id = null)
     {
           return [
             'class_id' => 'required|exists:tbl_classes,id',
@@ -156,6 +156,7 @@ class Validation
             'is_class_teacher' => 'boolean',
             'is_active' => 'boolean',
         ];
+        
     }
 
     public function classTeacherUpdateValidationRules($request, $classTeacherId)

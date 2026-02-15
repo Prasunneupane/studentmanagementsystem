@@ -17,5 +17,13 @@ interface ClassTeacherInterface
     public function unsetExistingClassTeacher($classId, $sectionId, $academicYearId );
 
     public function checkDuplicateAssignment($data);
+
+    public function getClassTeacherForAcademicYear($academicYearId);
+
+    public function checkDuplicateAssignmentForUpdate($data, $id);
+
+    public function update($id, $data);
+
+    public function unsetExistingClassTeacherForUpdate($validated,$currentId);
 }
 

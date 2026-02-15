@@ -19,6 +19,12 @@ class ClassTeacher extends Model
         'updated_by',
     ];
 
+    protected $appends = [
+    'class_name',
+    'section_name',
+    'teacher_name',
+    ];
+
 
     public function class()
     {
@@ -41,5 +47,29 @@ class ClassTeacher extends Model
     public function scopeIsClassTeacher($query)
     {
         return $query->where('is_class_teacher', 1);
+    }
+
+    public function scopeForAcademicYear($query, $yearId)
+    {
+        return $query->where('academic_year_id', $yearId);
+    }
+
+    public function getClassNameAttribute()
+    {
+        return $this->class?->name;
+    }
+
+    public function getSectionNameAttribute()
+    {
+        return $this->section?->name;
+    }
+
+    public function getSubjectNameAttribute()
+    {
+        return $this->subject?->name;
+    }
+    public function getTeacherNameAttribute()
+    {
+        return $this->teacher?->name;
     }
 }

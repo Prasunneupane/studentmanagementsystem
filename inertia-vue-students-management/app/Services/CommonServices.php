@@ -78,4 +78,23 @@ class CommonServices implements CommonServiceInterface
         
     }
 
+    public function getClassTeacherById($id): ?array{
+        $classTeacher = \DB::table('tbl_class_teachers')
+            ->where('id', $id)
+            ->first();
+
+        if ($classTeacher) {
+            return [
+                'id' => $classTeacher->id,
+                'class_id' => $classTeacher->class_id,
+                'section_id' => $classTeacher->section_id,
+                'teacher_id' => $classTeacher->teacher_id,
+                'academic_year_id' => $classTeacher->academic_year_id,
+                'is_class_teacher' => $classTeacher->is_class_teacher,
+                'is_active' => $classTeacher->is_active,
+            ];
+        }
+        return null;
+    }
+
 }

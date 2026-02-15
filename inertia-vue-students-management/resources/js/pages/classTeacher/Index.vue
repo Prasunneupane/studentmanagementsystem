@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import CustomSelect from '../CustomSelect.vue'
 import { Toaster } from '@/components/ui/sonner'
 import { useToast } from '@/composables/useToast'
+import 'vue-sonner/style.css'
 import { Edit, Trash2, Plus, Filter, UserCheck } from 'lucide-vue-next'
 import DataTable from '../students/Datatable.vue'
 import type { ColumnDef } from '@tanstack/vue-table'
@@ -121,7 +122,7 @@ const handleCreate = () => {
 }
 
 const handleEdit = (assignment: Assignment) => {
-  router.visit(`/class-teachers/${assignment.id}/edit`)
+  router.visit(`/class-teacher/${assignment.id}/edit`)
 }
 
 const handleDelete = (assignment: Assignment) => {
@@ -133,7 +134,7 @@ const confirmDelete = async () => {
   if (!assignmentToDelete.value) return
 
   try {
-    await axios.delete(`/class-teachers/${assignmentToDelete.value.id}`)
+    await axios.delete(`/class-teacher/${assignmentToDelete.value.id}`)
     toast.success('Assignment deleted successfully')
     
     router.reload({ only: ['assignments'] })
