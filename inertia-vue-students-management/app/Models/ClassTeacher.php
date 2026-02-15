@@ -19,6 +19,7 @@ class ClassTeacher extends Model
         'updated_by',
     ];
 
+
     public function class()
     {
         return $this->belongsTo(Classes::class, 'class_id');

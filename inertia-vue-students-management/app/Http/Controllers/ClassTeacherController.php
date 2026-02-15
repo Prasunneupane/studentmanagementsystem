@@ -2,11 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Interface\ClassTeacherInterface;
+use App\Interface\CommonServiceInterface;
 use App\Models\ClassTeacher;
 use App\Repositories\Validation;
-
-use App\Services\ClassTeacherService;
-use App\Services\CommonServices;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -17,9 +16,9 @@ class ClassTeacherController extends Controller
     private $classTeacherService;
 
     public function __construct(
-        CommonServices $commonService,
+        CommonServiceInterface $commonService,
         Validation $validation,
-        ClassTeacherService $classTeacherService
+        ClassTeacherInterface $classTeacherService
     ) {
         $this->commonService = $commonService;
         $this->validation = $validation;
@@ -78,8 +77,7 @@ class ClassTeacherController extends Controller
         $classes = $this->commonService->getClassList();
         $teachers = $this->commonService->getTeacherList();
         $academicYears = $this->commonService->getAcademicYearList();
-        $currentAcademicYear = $this->classTeacherService->getCurrentAcademicYear();
-
+        $currentAcademicYear = $this->commonService->getCurrentAcademicYear();
         return Inertia::render('classTeacher/Create', [
             'classes' => $classes,
             'teachers' => $teachers,
@@ -94,41 +92,20 @@ class ClassTeacherController extends Controller
     public function store(Request $request)
     {
         // Validation rules
-        $rules = [
-            'class_id' => 'required|exists:tbl_classes,id',
-            'section_id' => 'required|exists:tbl_sections,id',
-            'teacher_id' => 'required|exists:tbl_teachers,id',
-            'academic_year_id' => 'required|exists:tbl_academic_years,id',
-            'is_class_teacher' => 'boolean',
-            'is_active' => 'boolean',
-        ];
+       
 
-        $validated = $request->validate($rules);
-
-        // Set defaults
-        $validated['is_class_teacher'] = $validated['is_class_teacher'] ?? false;
-        $validated['is_active'] = $validated['is_active'] ?? true;
-        $validated['created_by'] = auth()->id();
-
+        $validated = $request->validate($this->validation->classTeacherValidationRules($request));
         // Check for duplicate
-        $exists = ClassTeacher::where('class_id', $validated['class_id'])
-            ->where('section_id', $validated['section_id'])
-            ->where('teacher_id', $validated['teacher_id'])
-            ->where('academic_year_id', $validated['academic_year_id'])
-            ->exists();
-
-        if ($exists) {
-            return back()->withErrors([
-                'teacher_id' => 'This teacher is already assigned to this class-section for the selected academic year.'
-            ]);
-        }
-
+        $this->classTeacherService->checkDuplicateAssignment(
+           $validated
+        );
         // If this teacher is marked as class teacher, unset any existing class teacher
         if ($validated['is_class_teacher']) {
-            ClassTeacher::where('class_id', $validated['class_id'])
-                ->where('section_id', $validated['section_id'])
-                ->where('academic_year_id', $validated['academic_year_id'])
-                ->update(['is_class_teacher' => false]);
+            $this->classTeacherService->unsetExistingClassTeacher(
+                $validated['class_id'],
+                $validated['section_id'],
+                $validated['academic_year_id']
+            );
         }
 
         $this->classTeacherService->create($validated);
@@ -220,6 +197,7 @@ class ClassTeacherController extends Controller
      */
     public function getSectionsByClass(Request $request)
     {
+        // dd($request->all());
         $sections = $this->commonService->getSectionList($request->input('class_id'));
         return response()->json($sections);
     }

@@ -3,6 +3,7 @@
 use App\Http\Controllers\ClassesController;
 use App\Http\Controllers\ClassSectionController;
 use App\Http\Controllers\ClassSubjectController;
+use App\Http\Controllers\ClassTeacherController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\RolesController;
 use App\Http\Controllers\StateDistricMunController;
@@ -209,6 +210,30 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/sections-by-class', [ClassSubjectController::class, 'getSectionsByClass'])
         ->name('sections-by-class');
 });
+
+    Route::prefix('class-teacher')->name('class-teacher.')->group(function () {
+
+        Route::middleware(['permission:view_class_teachers'])->group(function () {
+            Route::get('/', [ClassTeacherController::class, 'index'])->name('index');
+        });
+
+        Route::middleware(['permission:create_class_teachers'])->group(function () {
+            Route::get('/create', [ClassTeacherController::class, 'create'])->name('create');
+            Route::post('/', [ClassTeacherController::class, 'store'])->name('store');
+        });
+
+        Route::middleware(['permission:edit_class_teachers'])->group(function () {
+            Route::get('/{classTeacher}/edit', [ClassTeacherController::class, 'edit'])->name('edit');
+            Route::put('/{classTeacher}', [ClassTeacherController::class, 'update'])->name('update');
+        });
+
+        // Route::middleware(['permission:delete_class_teachers'])->group(function () {
+        //     Route::delete('/{classSubject}', [ClassSubjectController::class, 'destroy'])->name('destroy');
+        // });
+
+        Route::get('/sections-by-class', [ClassTeacherController::class, 'getSectionsByClass'])
+            ->name('sections-by-class');
+    });
 
     Route::get('get-districts-by-state_id', [StudentsController::class, 'get_districts_by_state_id'])->name('get_districts_by_state_id');
     Route::get('get-municipalities-by-district_id', [StudentsController::class, 'get_municipalities_by_district_id'])->name('get_municipalities_by_district_id');

@@ -241,7 +241,7 @@ const mainNavItems = computed((): NavItem[] => {
         masterSettingsItems.push(usersItem);
       }
     }
-
+    // ClassSubjectMap sub-section start
     if (permissions.value.classSubjects.canManage) {
       const userItems: NavItem[] = [];
       
@@ -272,6 +272,40 @@ const mainNavItems = computed((): NavItem[] => {
         masterSettingsItems.push(usersItem);
       }
     }
+    // ClassSubjectMap sub-section end
+
+    // ClassTeacherMap sub-section start
+    if (permissions.value.classTeachers.canManage) {
+      const userItems: NavItem[] = [];
+      
+      if (permissions.value.classTeachers.canCreate) {
+        userItems.push({
+          title: 'Add Class Teacher Mapping',
+          href: '/class-teacher/create',
+          icon: FilePlusIcon,
+        });
+      }
+      
+      if (permissions.value.classTeachers.canView) {
+        userItems.push({
+          title: 'View Class Subject Mapping',
+          href: '/class-teacher',
+          icon: Eye,
+        });
+      }
+
+      if (userItems.length > 0) {
+        const usersItem: NavItem = {
+          title: 'ClassTeacherMap',
+          icon: Users,
+          items: userItems,
+          isActive: false,
+        };
+        usersItem.isActive = isRouteActive(usersItem);
+        masterSettingsItems.push(usersItem);
+      }
+    }
+    // ClassTeacherMap sub-section end
 
     if (masterSettingsItems.length > 0) {
       const masterSettings: NavItem = {

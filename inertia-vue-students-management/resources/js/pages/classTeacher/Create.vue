@@ -9,8 +9,9 @@ import { Checkbox } from '@/components/ui/checkbox'
 import CustomSelect from '../CustomSelect.vue'
 import { Toaster } from '@/components/ui/sonner'
 import { useToast } from '@/composables/useToast'
+import 'vue-sonner/style.css'
 import { Loader2, Save, X, UserCheck, AlertCircle } from 'lucide-vue-next'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+// import { Alert, AlertDescription } from '@/components/ui/alert'
 import axios from 'axios'
 
 const { toast } = useToast()
@@ -55,7 +56,7 @@ watch(() => form.class_id, async (newClass) => {
   
   loadingSections.value = true
   try {
-    const response = await axios.get('/class-teachers/sections-by-class', {
+    const response = await axios.get('/class-teacher/sections-by-class', {
       params: { class_id: newClass }
     })
     sections.value = response.data
@@ -91,15 +92,18 @@ const handleSubmit = () => {
     toast.error('Please fill all required fields correctly')
     return
   }
+  console.log('RAW FORM:', form)
+  console.log('CLASS TEACHER:', form.is_class_teacher, typeof form.is_class_teacher)
+  console.log('ACTIVE:', form.is_active, typeof form.is_active)
 
-  form.transform((data) => ({
-    class_id: extractValue(data.class_id),
-    section_id: extractValue(data.section_id),
-    teacher_id: extractValue(data.teacher_id),
-    academic_year_id: extractValue(data.academic_year_id),
-    is_class_teacher: data.is_class_teacher,
-    is_active: data.is_active,
-  })).post('/class-teachers', {
+  form.transform((data) => {
+   console.log('TRANSFORM DATA:', data)
+    return {
+    ...data,
+    is_class_teacher: !!data.is_class_teacher,
+    is_active: !!data.is_active,
+  }}).post('/class-teacher/', {
+  
     onSuccess: () => {
       toast.success('Teacher assigned successfully')
     },
@@ -211,7 +215,8 @@ const handleCancel = () => {
                 <div class="flex items-start space-x-3">
                   <Checkbox
                     id="is_class_teacher"
-                    v-model:checked="form.is_class_teacher"
+                    v-model="form.is_class_teacher"
+                    
                   />
                   <div class="grid gap-1.5 leading-none">
                     <Label for="is_class_teacher" class="font-medium cursor-pointer flex items-center gap-2">
@@ -226,7 +231,7 @@ const handleCancel = () => {
 
                 <Alert v-if="form.is_class_teacher" variant="default" class="border-blue-200 bg-blue-50">
                   <AlertCircle class="h-4 w-4 text-blue-600" />
-                  <AlertDescription class="text-blue-800">
+                  <AlertDescription class="text-blue-800">  
                     Marking as class teacher will automatically unset any existing class teacher for this section.
                   </AlertDescription>
                 </Alert>
@@ -234,9 +239,9 @@ const handleCancel = () => {
                 <div class="flex items-start space-x-3">
                   <Checkbox
                     id="is_active"
-                    v-model:checked="form.is_active"
+                    v-model="form.is_active"
                   />
-                  <div class="grid gap-1.5 leading-none">
+                  <div class="grid gap-.5 leading-none">
                     <Label for="is_active" class="font-medium cursor-pointer">
                       Active Status
                     </Label>
