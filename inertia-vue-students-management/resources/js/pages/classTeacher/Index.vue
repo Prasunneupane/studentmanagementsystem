@@ -56,6 +56,7 @@ interface Props {
     section_id?: number
   }
 }
+// an tha thyo malai
 
 const props = defineProps<Props>()
 
