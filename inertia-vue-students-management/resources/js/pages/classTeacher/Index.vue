@@ -91,7 +91,7 @@ const filteredAssignments = computed(() => {
 
 // Tallo flat bhada deko xaina 
 // KT lera aauxa 
-
+ 
 // Load sections when class changes
 watch(selectedClass, async (newClass) => {
   selectedSection.value = ''

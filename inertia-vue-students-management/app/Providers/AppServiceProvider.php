@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Contracts\Interface\TermsInterface;
 use App\Interface\ClassSubjectInterface;
 use App\Interface\ClassTeacherInterface;
 use App\Interface\CommonServiceInterface;
@@ -26,6 +27,7 @@ use App\Services\ClassSubjectService;
 use App\Services\ClassTeacherService;
 use App\Services\CommonServices;
 use App\Services\GuardianService;
+use App\Services\TermsServices;
 use Illuminate\Support\ServiceProvider;
 use App\Contracts\StudentRepositoryInterface;
 use App\Contracts\StudentServiceInterface;
@@ -52,6 +54,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(ClassSubjectInterface::class, ClassSubjectService::class);
         $this->app->bind(CommonServiceInterface::class, CommonServices::class);
         $this->app->bind(ClassTeacherInterface::class, ClassTeacherService::class);
+                
+        $this->app->bind(TermsInterface::class, TermsServices::class);
     }
 
     /**
