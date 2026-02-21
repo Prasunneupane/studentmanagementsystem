@@ -56,6 +56,7 @@ class PermissionService
             'guardians' => $this->crudPermissions($permissions, 'guardians'),
             'subjects' => $this->crudPermissions($permissions, 'subjects'),
             'teachers' => $this->crudPermissions($permissions, 'teachers'),
+            'terms' => $this->crudPermissions($permissions, 'terms'),
             'users' => $this->crudPermissions($permissions, 'users'),
             'classSubjects' => $this->crudPermissions($permissions, 'class_subjects'),
             'classTeachers' => $this->crudPermissions($permissions, 'class_teachers'),

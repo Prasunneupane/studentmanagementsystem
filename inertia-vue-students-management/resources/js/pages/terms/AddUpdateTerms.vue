@@ -21,10 +21,14 @@ const { toast } = useToast()
 const { can } = usePermission();
 // -------- PROPS ----------
 const props = defineProps({
-  subject: {
+  academicYears: {
     type: Object,
     default: null
-  }
+  },
+  terms: {
+    type: Object,
+    default: null
+  },
 })
 
 // -------- HELPERS ----------
@@ -36,7 +40,7 @@ const formatType = (type: string) => {
     .join(' ')
 }
 
-const isEdit = computed(() => !!props.subject)
+const isEdit = computed(() => !!props.terms)
 
 // Dropdown options
 const sections = [
@@ -49,13 +53,13 @@ const defaultSubjectType = { value: 'core', label: 'Core' }
 
 // -------- FORM INIT ----------
 const form = useForm({
-  name: props.subject?.name || '',
-  code: props.subject?.code || '',
-  type: props.subject
-    ? { value: props.subject.type, label: formatType(props.subject.type) }
+  name: props.terms?.name || '',
+  code: props.terms?.code || '',
+  type: props.terms
+    ? { value: props.terms.type, label: formatType(props.terms.type) }
     : defaultSubjectType,
-  description: props.subject?.description || '',
-  is_active: props.subject?.is_active?.toString() || '1',
+  description: props.terms?.description || '',
+  is_active: props.terms?.is_active?.toString() || '1',
 })
 
 const errors = ref<Record<string, string>>({})
@@ -66,7 +70,7 @@ const handleSubmit = () => {
 
   const payload = {
     onSuccess: () => {
-      toast.success(isEdit.value ? "Subject updated successfully." : "Subject added successfully.")
+      toast.success(isEdit.value ? "Term updated successfully." : "Term added successfully.")
 
       if (!isEdit.value) {
         form.reset()
@@ -85,21 +89,21 @@ const handleSubmit = () => {
   }
 
   if (isEdit.value) {
-    form.put(route('subjects.update', props.subject.id), payload)
+    form.put(route('terms.update', props.terms.id), payload)
   } else {
-    form.post(route('subjects.store'), payload)
+    form.post(route('terms.store'), payload)
   }
 }
 
 </script>
 
 <template>
-  <Head :title="isEdit ? 'Edit Subject' : 'Add Subject'" />
+  <Head :title="isEdit ? 'Edit Term' : 'Add Term'" />
 
   <AppLayout 
     :breadcrumbs="[
-      { title: 'Subjects', href: '/subjects' },
-      { title: isEdit ? 'Edit Subject' : 'Add Subject', href: '' }
+      { title: 'Terms', href: '/terms' },
+      { title: isEdit ? 'Edit Term' : 'Add Term', href: '' }
     ]"
   >
     <Toaster position="top-right" />
@@ -109,17 +113,17 @@ const handleSubmit = () => {
       <Card>
         <CardHeader>
           <CardTitle>
-            {{ isEdit ? 'Edit Subject' : 'Add Subject' }}
+            {{ isEdit ? 'Edit Term' : 'Add Term' }}
 
-            <Button v-if="can('subjects.canView')" as-child class="ml-auto float-right">
-              <Link :href="route('subjects.index')">
-                <Eye class="w-4 h-4 mr-2" /> View Subjects
+            <Button v-if="can('terms.canView')" as-child class="ml-auto float-right">
+              <Link :href="route('terms.index')">
+                <Eye class="w-4 h-4 mr-2" /> View Terms
               </Link>
             </Button>
           </CardTitle>
 
           <CardDescription>
-            {{ isEdit ? 'Update the subject details below.' : 'Fill in the details to add a new subject.' }}
+            {{ isEdit ? 'Update the term details below.' : 'Fill in the details to add a new term.' }}
           </CardDescription>
         </CardHeader>
 
@@ -129,13 +133,13 @@ const handleSubmit = () => {
             <!-- Row 1: Name + Code -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div class="space-y-2">
-                <Label for="name">Subject Name <span class="text-red-500">*</span></Label>
+                <Label for="name">Term Name <span class="text-red-500">*</span></Label>
                 <Input id="name" v-model="form.name" placeholder="e.g. Mathematics" />
                 <p v-if="form.errors.name" class="text-sm text-red-600">{{ form.errors.name }}</p>
               </div>
 
               <div class="space-y-2">
-                <Label for="code">Subject Code <span class="text-red-500">*</span></Label>
+                <Label for="code">Term Code <span class="text-red-500">*</span></Label>
                 <Input id="code" v-model="form.code" placeholder="e.g. MATH101" />
                 <p v-if="form.errors.code" class="text-sm text-red-600">{{ form.errors.code }}</p>
               </div>
@@ -145,11 +149,11 @@ const handleSubmit = () => {
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               
               <div class="space-y-2">
-                <Label for="type">Subject Type <span class="text-red-500">*</span></Label>
+                <Label for="type">Term Type <span class="text-red-500">*</span></Label>
                 <SelectSearch
                   v-model="form.type"
                   :options="sections"
-                  placeholder="Select subject type"
+                  placeholder="Select term type"
                 />
                 <p v-if="form.errors.type" class="text-sm text-red-600">{{ form.errors.type }}</p>
               </div>
@@ -178,11 +182,11 @@ const handleSubmit = () => {
             </div>
 
             <!-- Actions -->
-            <div class="flex justify-end gap-4 pt-6 border-t" v-if="can('subjects.canCreate') || can('subjects.canEdit')">
+            <div class="flex justify-end gap-4 pt-6 border-t" v-if="can('terms.canCreate') || can('terms.canEdit')">
               
               <Button type="submit" :disabled="form.processing" class="cursor-pointer">
                 <Loader2 v-if="form.processing" class="mr-2 h-4 w-4 animate-spin" />
-                {{ isEdit ? 'Update Subject' : 'Add Subject' }}
+                {{ isEdit ? 'Update Term' : 'Add Term' }}
               </Button>
 
             </div>

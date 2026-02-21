@@ -2,43 +2,24 @@
 
 namespace App\Services;
 
-use App\Contracts\Interface\TermsInterface;
+use App\Interface\TermsInterface;
+use App\Models\Terms;
 
 class TermsServices implements TermsInterface
 {
     /**
      * Create a new class instance.
      */
-    public function __construct()
+   
+    public function getAllTerms()
     {
-        //
-    }
-
-    public function index()
-    {
-        // --- IGNORE ---
-    }
-
-    public function create()
-    {
-        // --- IGNORE ---
+        return Terms::all();
     }
 
     public function store($request)
     {
         // --- IGNORE ---
     }
-
-    public function show($id)
-    {
-        // --- IGNORE ---
-    }
-
-    public function edit($id)
-    {
-        // --- IGNORE ---
-    }
-
     public function update($request, $id)
     {
         // --- IGNORE ---

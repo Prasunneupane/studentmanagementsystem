@@ -2,7 +2,7 @@
 
 namespace App\Providers;
 
-use App\Contracts\Interface\TermsInterface;
+use App\Interface\TermsInterface;
 use App\Interface\ClassSubjectInterface;
 use App\Interface\ClassTeacherInterface;
 use App\Interface\CommonServiceInterface;

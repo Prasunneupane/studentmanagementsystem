@@ -10,6 +10,7 @@ use App\Http\Controllers\StateDistricMunController;
 use App\Http\Controllers\StudentsController;
 use App\Http\Controllers\SubjectController;
 use App\Http\Controllers\TeachersController;
+use App\Http\Controllers\TermsController;
 use App\Http\Controllers\UserCheckController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -233,6 +234,30 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::get('/sections-by-class', [ClassTeacherController::class, 'getSectionsByClass'])
             ->name('sections-by-class');
+    });
+    // Terms Management Routes
+    Route::prefix('terms')->name('terms.')->group(function () {
+        // View terms
+        Route::middleware(['permission:view_terms'])->group(function () {
+            Route::get('/', [TermsController::class, 'index'])->name('index');
+        });
+
+        // Create terms
+        Route::middleware(['permission:create_terms'])->group(function () {
+            Route::get('/create', [TermsController::class, 'create'])->name('create');
+            Route::post('/store', [TermsController::class, 'store'])->name('store');
+        });
+
+        // Edit terms
+        Route::middleware(['permission:edit_terms'])->group(function () {
+            Route::get('/edit/{term}', [TermsController::class, 'edit'])->name('edit');
+            Route::put('/update/{term}', [TermsController::class, 'update'])->name('update');
+        });
+
+        // Delete terms
+        Route::middleware(['permission:delete_terms'])->group(function () {
+            Route::put('/delete/{term}', [TermsController::class, 'destroy'])->name('delete');
+        });
     });
 
     Route::get('get-districts-by-state_id', [StudentsController::class, 'get_districts_by_state_id'])->name('get_districts_by_state_id');

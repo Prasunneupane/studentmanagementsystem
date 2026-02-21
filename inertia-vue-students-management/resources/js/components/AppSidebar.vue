@@ -9,7 +9,7 @@ import { computed } from 'vue';
 import { 
   BookOpen, Folder, LayoutGrid, FilePlusIcon, Settings, 
   UserPlus, Eye, Users, Book, BookUser, UserRoundCheck, 
-  UserRoundPlus 
+  UserRoundPlus, CalendarRange, CalendarPlus, UserCheck, UserX, UserMinus
 } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
 
@@ -139,6 +139,39 @@ const mainNavItems = computed((): NavItem[] => {
       };
       teacherManagement.isActive = isRouteActive(teacherManagement);
       items.push(teacherManagement);
+    }
+  }
+
+   // Terms Management
+  if (permissions.value.terms.canManage) {
+    const termsItems: NavItem[] = [];
+    
+    if (permissions.value.terms.canCreate) {
+      termsItems.push({
+        title: 'Add Terms',
+        href: '/terms/create',
+        icon: CalendarPlus,
+      });
+    }
+    
+    if (permissions.value.terms.canView) {
+      termsItems.push({
+        title: 'View Terms',
+        href: '/terms',
+        icon: Eye,
+      });
+    }
+
+    if (termsItems.length > 0) {
+      const termsManagement: NavItem = {
+        title: 'Terms Management',
+        href: '/',
+        icon: CalendarRange,
+        items: termsItems,
+        isActive: false,
+      };
+      termsManagement.isActive = isRouteActive(termsManagement);
+      items.push(termsManagement);
     }
   }
 

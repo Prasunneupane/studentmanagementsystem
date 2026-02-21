@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Contracts\Interface\TermsInterface;
+use App\Interface\TermsInterface;
 use App\Interface\CommonServiceInterface;
 use App\Models\Terms;
 use Illuminate\Http\Request;
@@ -33,7 +33,11 @@ class TermsController extends Controller
      */
     public function create()
     {
-        //
+        $academicYears = $this->commonService->getAcademicYearList();
+
+        return inertia( 'terms/AddUpdateTerms',[
+            'academicYears' => $academicYears
+        ]);
     }
 
     /**
