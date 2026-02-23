@@ -17,6 +17,8 @@ test('it can create a term', function () {
         'end_date' => '2024-06-30',
     ]);
 
+    // ek nindra sutera
+
     $response->assertStatus(201);
     $this->assertDatabaseHas('tbl_terms', [
         'name' => 'Term 1',
