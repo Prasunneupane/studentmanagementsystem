@@ -18,11 +18,15 @@ class TermsServices implements TermsInterface
 
     public function store($request)
     {
-        // --- IGNORE ---
+        return Terms::create($request);
     }
     public function update($request, $id)
     {
-        // --- IGNORE ---
+        $term = Terms::findOrFail($id);
+        if(!$term) {
+            throw new \Exception("Term not found", 404);
+        }
+        return $term->update($request);
     }
 
     public function destroy($id)

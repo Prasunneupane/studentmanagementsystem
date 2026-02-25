@@ -5,7 +5,8 @@ import { Head, useForm } from '@inertiajs/vue3'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
+// import { Textarea } from '@/components/ui/textarea'
+import CustomSelect from '../CustomSelect.vue'
 import SelectSearch from "@/components/ui/select/Select-Search.vue";
 import {
   Card, CardContent, CardDescription, CardHeader, CardTitle
@@ -15,51 +16,56 @@ import { Loader2, Eye } from 'lucide-vue-next'
 import { Link } from '@inertiajs/vue3'
 import { Toaster } from '@/components/ui/sonner'
 import { useToast } from '@/composables/useToast'
+import DatePicker from '@/components/ui/datepicker/DatePicker.vue'
 import 'vue-sonner/style.css'
 import { usePermission } from '@/composables/usePermissions'
 const { toast } = useToast()
 const { can } = usePermission();
 // -------- PROPS ----------
+interface Option {
+  value: string | number
+  label: string
+}
+
 const props = defineProps({
   academicYears: {
-    type: Object,
-    default: null
+    type: Array as () => Option[],
+    default: () => []
   },
   terms: {
     type: Object,
     default: null
   },
+  currentAcademicYear: {
+    type: Object,
+    default: null
+  }
 })
 
-// -------- HELPERS ----------
-const formatType = (type: string) => {
-  if (!type) return ''
-  return type
-    .split('_')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ')
-}
+
 
 const isEdit = computed(() => !!props.terms)
 
-// Dropdown options
-const sections = [
-  { value: 'core', label: 'Core' },
-  { value: 'extra_curricular', label: 'Extra Curricular' },
-  { value: 'optional', label: 'Optional' },
-]
+const fromDateValue = computed(() => {
+ 
+  return new Date()
+})
 
-const defaultSubjectType = { value: 'core', label: 'Core' }
+const toDateValue = computed(() => {
+  return new Date()
+})
+// Dropdown options
+const academicYears = props.academicYears as Option[]
+
+const defaultAcademicYearType = props.currentAcademicYear?.value || (academicYears.length > 0 ? academicYears[0].value : '')
 
 // -------- FORM INIT ----------
 const form = useForm({
   name: props.terms?.name || '',
-  code: props.terms?.code || '',
-  type: props.terms
-    ? { value: props.terms.type, label: formatType(props.terms.type) }
-    : defaultSubjectType,
-  description: props.terms?.description || '',
-  is_active: props.terms?.is_active?.toString() || '1',
+  term_number: props.terms?.term_number  || '',
+  academic_year_id: props.currentAcademicYear?.value || '' as string,
+  start_date: props.terms?.start_date || fromDateValue,
+  end_date: props.terms?.end_date || toDateValue,
 })
 
 const errors = ref<Record<string, string>>({})
@@ -74,8 +80,8 @@ const handleSubmit = () => {
 
       if (!isEdit.value) {
         form.reset()
-        form.type = defaultSubjectType
-        form.is_active = '1'
+        form.academic_year_id = defaultAcademicYearType
+       
       }
     },
 
@@ -129,57 +135,59 @@ const handleSubmit = () => {
 
         <CardContent>
           <form @submit.prevent="handleSubmit" class="space-y-8">
-
+              
             <!-- Row 1: Name + Code -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div class="space-y-2">
+                <Label for="type">Academic Year <span class="text-red-500">*</span></Label>
+                  <CustomSelect
+                    v-model="form.academic_year_id"
+                    :options="academicYears"
+                    placeholder="Select Academic Year"
+                />
+                <p v-if="form.errors.academic_year_id" class="text-sm text-red-600">{{ form.errors.academic_year_id }}</p>
+              </div>
+              <div class="space-y-2">
                 <Label for="name">Term Name <span class="text-red-500">*</span></Label>
-                <Input id="name" v-model="form.name" placeholder="e.g. Mathematics" />
+                <Input id="name" v-model="form.name" placeholder="e.g. First Term, Second Term" />
                 <p v-if="form.errors.name" class="text-sm text-red-600">{{ form.errors.name }}</p>
               </div>
 
-              <div class="space-y-2">
-                <Label for="code">Term Code <span class="text-red-500">*</span></Label>
-                <Input id="code" v-model="form.code" placeholder="e.g. MATH101" />
-                <p v-if="form.errors.code" class="text-sm text-red-600">{{ form.errors.code }}</p>
-              </div>
+             
             </div>
 
             <!-- Row 2: Type + Status -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              
-              <div class="space-y-2">
-                <Label for="type">Term Type <span class="text-red-500">*</span></Label>
-                <SelectSearch
-                  v-model="form.type"
-                  :options="sections"
-                  placeholder="Select term type"
-                />
-                <p v-if="form.errors.type" class="text-sm text-red-600">{{ form.errors.type }}</p>
+               <div class="space-y-2">
+                <Label for="code">Term Number <span class="text-red-500">*</span></Label>
+                <Input id="code" v-model="form.term_number" placeholder="e.g. 1, 2, 3..." />
+                <p v-if="form.errors.term_number" class="text-sm text-red-600">{{ form.errors.term_number }}</p>
               </div>
+              
 
               <div class="space-y-3">
-                <Label>Status <span class="text-red-500">*</span></Label>
-                <RadioGroup v-model="form.is_active" class="flex flex-row gap-8">
-                  <div class="flex items-center space-x-2">
-                    <RadioGroupItem value="1" id="active" />
-                    <Label for="active" class="cursor-pointer font-normal">Active</Label>
-                  </div>
+                <Label>Start Date <span class="text-red-500">*</span></Label>
+                <DatePicker
+                  :model-value="form.start_date"
+                  placeholder="Start Date"
+                  :error="form.errors.start_date"
+                  />
 
-                  <div class="flex items-center space-x-2">
-                    <RadioGroupItem value="0" id="inactive" />
-                    <Label for="inactive" class="cursor-pointer font-normal">Inactive</Label>
-                  </div>
-                </RadioGroup>
               </div>
+               <div class="space-y-2">
+              <Label for="description">End Date <span class="text-red-500">*</span></Label>
+              <DatePicker
+                :model-value="form.end_date"
+                placeholder="End Date"
+                :error="form.errors.end_date"
+              />
+               <p v-if="form.errors.end_date" class="text-sm text-red-600">{{ form.errors.end_date }}</p>
+            </div>
 
             </div>
 
             <!-- Description -->
-            <div class="space-y-2">
-              <Label for="description">Description (Optional)</Label>
-              <Textarea id="description" v-model="form.description" rows="4" placeholder="Brief description..." />
-            </div>
+           
 
             <!-- Actions -->
             <div class="flex justify-end gap-4 pt-6 border-t" v-if="can('terms.canCreate') || can('terms.canEdit')">
