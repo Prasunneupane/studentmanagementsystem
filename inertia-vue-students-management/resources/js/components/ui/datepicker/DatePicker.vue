@@ -21,148 +21,138 @@ import {
   SelectValue,
 } from "@/components/ui/shadcnselect"
 
-// ✅ Props with model value support
 interface Props {
   monthYearSelector?: boolean
-  modelValue?: Date | null
+  modelValue?: Date | string | null
+  placeholder?: string
+  error?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
   monthYearSelector: false,
-  modelValue: null
+  modelValue: null,
+  placeholder: "Pick a date",
+  error: "",
 })
 
-// ✅ Emits
 const emit = defineEmits<{
   'update:modelValue': [value: Date | null]
 }>()
 
-// ✅ State
 const value = ref<DateValue>()
 const open = ref(false)
-const placeholder = ref<DateValue>(today(getLocalTimeZone()))
+const placeholderDate = ref<DateValue>(today(getLocalTimeZone()))
 const calendarKey = ref(0)
 
-// ✅ Convert JavaScript Date to DateValue
-const dateToDateValue = (date: Date | null): DateValue | undefined => {
+const dateToDateValue = (date: Date | string | null): DateValue | undefined => {
   if (!date) return undefined
-  return new CalendarDate(date.getFullYear(), date.getMonth() + 1, date.getDate())
+  const d = typeof date === "string" ? new Date(date) : date
+  if (isNaN(d.getTime())) return undefined
+  return new CalendarDate(d.getFullYear(), d.getMonth() + 1, d.getDate())
 }
 
-// ✅ Convert DateValue to JavaScript Date
 const dateValueToDate = (dateValue: DateValue): Date => {
   return new Date(dateValue.year, dateValue.month - 1, dateValue.day)
 }
 
-// ✅ Watch for external model value changes
-watch(() => props.modelValue, (newDate) => {
-  if (newDate) {
-    value.value = dateToDateValue(newDate)
-    // Update placeholder to show the correct month/year
-    placeholder.value = dateToDateValue(newDate) || today(getLocalTimeZone())
-  } else {
-    value.value = undefined
-  }
-}, { immediate: true })
+watch(
+  () => props.modelValue,
+  (newDate) => {
+    if (newDate) {
+      value.value = dateToDateValue(newDate)
+      placeholderDate.value = dateToDateValue(newDate) || today(getLocalTimeZone())
+    } else {
+      value.value = undefined
+    }
+  },
+  { immediate: true }
+)
 
-// ✅ Format date as YYYY-MM-DD
 const formattedDate = computed(() => {
-  if (!value.value) return "Pick a date"
-  const year = value.value.year.toString().padStart(4, '0')
-  const month = value.value.month.toString().padStart(2, '0')
-  const day = value.value.day.toString().padStart(2, '0')
+  if (!value.value) return null
+  const year = value.value.year.toString().padStart(4, "0")
+  const month = value.value.month.toString().padStart(2, "0")
+  const day = value.value.day.toString().padStart(2, "0")
   return `${year}-${month}-${day}`
 })
 
-// ✅ Month & Year arrays
 const months = Array.from({ length: 12 }, (_, i) => ({
   label: new Date(2000, i).toLocaleString("en", { month: "long" }),
   value: (i + 1).toString(),
 }))
 const years = Array.from({ length: 50 }, (_, i) => (2000 + i).toString())
 
-// ✅ Handle date selection → close popover and emit the date
 const onSelectDate = (d: DateValue | undefined) => {
   if (!d) return
   value.value = d
   open.value = false
-  
-  // Convert DateValue to JavaScript Date WITHOUT timezone conversion
-  const jsDate = dateValueToDate(d)
-  emit('update:modelValue', jsDate)
+  emit("update:modelValue", dateValueToDate(d))
 }
 
-// ✅ Handle month/year change
-const handleMonthYearChange = (part: 'month' | 'year', v: string | null) => {
-  if (!v || !placeholder.value) return
+const handleMonthYearChange = (part: "month" | "year", v: string | null) => {
+  if (!v || !placeholderDate.value) return
   const newValue = Number(v)
-  if (newValue === placeholder.value[part]) return
-  placeholder.value = placeholder.value.set({ [part]: newValue })
+  if (newValue === placeholderDate.value[part]) return
+  placeholderDate.value = placeholderDate.value.set({ [part]: newValue })
   calendarKey.value++
 }
 </script>
 
 <template>
-  <Popover v-model:open="open" class="w-full">
+  <Popover v-model:open="open">
     <PopoverTrigger as-child>
       <Button
         variant="outline"
         :class="cn(
-          'w-full justify-start text-left font-normal',
+          'w-full h-10 justify-start text-left font-normal px-3',
           !value && 'text-muted-foreground',
+          error && 'border-red-500 focus-visible:ring-red-500'
         )"
       >
-        <CalendarIcon class="mr-2 h-4 w-4" />
-        {{ formattedDate }}
+        <CalendarIcon class="mr-2 h-4 w-4 shrink-0" />
+        <span class="flex-1 truncate">
+          {{ formattedDate ?? placeholder }}
+        </span>
       </Button>
     </PopoverTrigger>
 
-    <PopoverContent class="w-auto p-2">
-      <!-- ✅ Month + Year selector (optional) -->
+    <PopoverContent class="w-auto p-2" align="start">
+      <!-- Month + Year selector (optional) -->
       <div v-if="monthYearSelector" class="flex gap-2 mb-2">
         <Select
-          :default-value="placeholder?.month?.toString() ?? ''"
+          :default-value="placeholderDate?.month?.toString() ?? ''"
           @update:model-value="(v) => handleMonthYearChange('month', v?.toString() ?? null)"
         >
           <SelectTrigger class="w-[120px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem
-              v-for="m in months"
-              :key="m.value"
-              :value="m.value"
-            >
+            <SelectItem v-for="m in months" :key="m.value" :value="m.value">
               {{ m.label }}
             </SelectItem>
           </SelectContent>
         </Select>
 
         <Select
-          :default-value="placeholder?.year?.toString() ?? ''"
+          :default-value="placeholderDate?.year?.toString() ?? ''"
           @update:model-value="(v) => handleMonthYearChange('year', v?.toString() ?? null)"
         >
           <SelectTrigger class="w-[100px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem
-              v-for="y in years"
-              :key="y"
-              :value="y"
-            >
+            <SelectItem v-for="y in years" :key="y" :value="y">
               {{ y }}
             </SelectItem>
           </SelectContent>
         </Select>
       </div>
 
-      <!-- ✅ Calendar -->
+      <!-- Calendar -->
       <Calendar
         :key="calendarKey"
-        class="w-full"
         v-model="value"
-        :placeholder="placeholder as DateValue"
+        :placeholder="placeholderDate as DateValue"
         initial-focus
         @update:model-value="onSelectDate"
       />

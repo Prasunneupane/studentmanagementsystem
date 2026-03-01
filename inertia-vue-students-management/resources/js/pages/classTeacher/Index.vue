@@ -100,7 +100,7 @@ watch(selectedClass, async (newClass) => {
   if (!newClass) return
   
   try {
-    const response = await axios.get('/class-teachers/sections-by-class', {
+    const response = await axios.get('/class-teacher/sections-by-class', {
       params: { class_id: newClass }
     })
     sections.value = response.data
@@ -112,7 +112,7 @@ watch(selectedClass, async (newClass) => {
 // Reload when academic year changes
 watch(selectedAcademicYear, (newYear) => {
   if (newYear) {
-    router.get('/class-teachers', {
+    router.get('/class-teacher', {
       academic_year_id: newYear,
     }, {
       preserveState: true,
@@ -122,7 +122,7 @@ watch(selectedAcademicYear, (newYear) => {
 })
 
 const handleCreate = () => {
-  router.visit('/class-teachers/create')
+  router.visit('/class-teacher/create')
 }
 
 const handleEdit = (assignment: Assignment) => {

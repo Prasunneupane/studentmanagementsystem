@@ -52,6 +52,18 @@ export interface Teacher{
   created_by:string;
 }
 
+export interface Terms{
+  id:number;
+  name:string;
+  term_number:string;
+  academic_year_id:string;
+  start_date:string;
+  end_date:string;
+  is_active:boolean;
+  created_by:string;
+  updated_by:string;
+}
+
 export function useStudentData(form?: any) {
   const students = ref<Student[]>([]);
   const loading = ref(false);

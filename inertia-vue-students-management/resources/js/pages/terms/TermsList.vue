@@ -20,19 +20,19 @@ import { Toaster } from '@/components/ui/sonner'
 import 'vue-sonner/style.css'
 import { useToast } from '@/composables/useToast'
 import type { ColumnDef } from '@tanstack/vue-table'
-import { useStudentData, type Subject } from '@/composables/fetchData'
+import { useStudentData, type Terms } from '@/composables/fetchData'
 
 import {usePermission} from '@/composables/usePermissions'
 
 const {can} = usePermission();
 
 const { toast } = useToast()
-const props = defineProps<{ subjects: Subject[] }>()
-const subject = ref(props.subjects)
-const selectedSubject = ref<Subject | null>(null)
+const props = defineProps<{ terms: Terms[] }>()
+const terms = ref(props.terms)
+const selectedTerms = ref<Terms | null>(null)
 const isDeleteOpen = ref(false)
 const breadcrumbs = [
-  { title: 'Subjects', href: '/subjects' },
+  { title: 'Terms', href: '/terms' },
   // { title: 'View Subjects', href: '/subjects/create' }
 ]
 const {
@@ -46,15 +46,15 @@ const formatType = (value: string) => {
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ')
 }
-const columns: ColumnDef<Subject>[] = [
+const columns: ColumnDef<Terms>[] = [
   { accessorKey: 'id', header: 'ID', cell: ({ row }) => h('div', { class: 'font-medium' }, row.getValue('id')) },
-  { accessorKey: 'name', header: 'Subject Name' },
-  { accessorKey: 'code', header: 'Subject Code' },
+  { accessorKey: 'name', header: 'Term Name' },
+  { accessorKey: 'term_number', header: 'Term Number' },
   // { accessorKey: 'code', header: 'Subject Code' },
-  { accessorKey: 'type', header: 'Subject Type',cell: ({ row }) => {
-      const value = row.getValue('type') as string
-      return h('div', formatType(value))
-    } },
+  // { accessorKey: 'type', header: 'Subject Type',cell: ({ row }) => {
+  //     const value = row.getValue('type') as string
+  //     return h('div', formatType(value))
+  //   } },
   {
     accessorKey: 'is_active',
     header: 'Status',
@@ -78,25 +78,25 @@ const columns: ColumnDef<Subject>[] = [
     cell: ({ row }) => {
       const subject = row.original
       return h('div', { class: 'flex items-center gap-2' }, [
-        can('subjects.canEdit') &&
+        can('terms.canEdit') &&
         h(Button, { variant: 'ghost', size: 'sm', class: 'h-8 w-8 p-0 cursor-pointer', title: 'Edit', onClick: () => handleEdit(subject) }, () => h(Edit, { class: 'h-4 w-4' })),
-        can('subjects.canDelete') &&
+        can('terms.canDelete') &&
         h(Button, { variant: 'ghost', size: 'sm', class: 'h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 cursor-pointer', title: 'Delete', onClick: () => handleDelete(subject) }, () => h(Trash2, { class: 'h-4 w-4' })),
       ])
     },
   },
 ]
-const handleEdit = (subject?: Subject) => {
-  const s = subject 
-  console.log(s,"studentdetails");
-  if (s) router.get(route('subjects.edit', s.id));
+const handleEdit = (term?: Terms) => {
+  const s = term 
+  console.log(s,"termdetails");
+  if (s) router.get(route('terms.edit', s.id));
   
   // if (s) startEdit(s)
 }
 
-const handleDelete = (subject?: Subject) => {
-  if (subject) {
-    selectedSubject.value = subject
+const handleDelete = (term?: Terms) => {
+  if (term) {
+    selectedTerms.value = term
     isDeleteOpen.value = true
   }
 }
@@ -110,36 +110,36 @@ const confirmDelete = async (id: string | number | null) => {
 
   try {
     router.put(
-      route('subjects.delete', id),
+      route('terms.delete', id),
       {}, // Data object (empty since you're just soft deleting)
       {
         preserveScroll: true,
         onSuccess: () => {
-          toast.success('Subject deleted successfully')
+          toast.success('Term deleted successfully')
           // Remove from local list immediately
-          subject.value = subject.value.filter(s => s.id !== id)
+          terms.value = terms.value.filter(s => s.id !== id)
           isDeleteOpen.value = false
-          selectedSubject.value = null
+          selectedTerms.value = null
         },
         onError: (errors) => {
-          toast.error('Failed to delete subject')
+          toast.error('Failed to delete term')
           console.error(errors)
         },
         onFinish: () => {
           isDeleteOpen.value = false
-          selectedSubject.value = null
+          selectedTerms.value = null
         }
       }
     )
   } catch (err) {
-    toast.error('Failed to delete subject')
+    toast.error('Failed to delete term')
     console.error(err)
   }
 }
 </script>
 
 <template>
-  <Head title="View Subjects" />
+  <Head title="View Terms" />
   <AppLayout :breadcrumbs="breadcrumbs">
     <Toaster />
 
@@ -150,18 +150,18 @@ const confirmDelete = async (id: string | number | null) => {
       <Card class="w-full shadow-lg rounded-2xl">
         <CardHeader>
           <CardTitle class="text-xl font-bold">
-            Subject List 
-                <Button v-if="can('subjects.canCreate')" as-child class="ml-auto float-right">
-                  <Link :href="route('subjects.create')">
+            Term List 
+                <Button v-if="can('terms.canCreate')" as-child class="ml-auto float-right">
+                  <Link :href="route('terms.create')">
                     <Plus class="w-4 h-4 mr-2" />
-                    Create Subject
+                    Create Term
                   </Link>
                 </Button>
           </CardTitle>
         </CardHeader>
         
         <CardContent class="pt-6">
-          <DataTable :columns="columns" :data="subject" :loading="loading" title="Subject List" />
+          <DataTable :columns="columns" :data="terms" :loading="loading" title="Term List" />
         </CardContent>
       </Card>
     </div>
@@ -169,11 +169,11 @@ const confirmDelete = async (id: string | number | null) => {
 
   <DialogueDelete
      v-model="isDeleteOpen"
-    :title="'Delete Subject'"
-    :description="'Are you sure you want to delete this subject? This action cannot be undone.'"
-    :item-name="selectedSubject?.name"
-    :item-id="selectedSubject?.id"
-    @confirm="confirmDelete(selectedSubject?.id ?? null)"
+    :title="'Delete Term'"
+    :description="'Are you sure you want to delete this term? This action cannot be undone.'"
+    :item-name="selectedTerms?.name"
+    :item-id="selectedTerms?.id"
+    @confirm="confirmDelete(selectedTerms?.id ?? null)"
   />
 </template>
 

@@ -41,8 +41,16 @@ const props = defineProps({
     default: null
   }
 })
+console.log(props.terms,"terms");
 
-
+const formatDate = (val: any): string => {
+  if (!val) return ''
+  const d = val instanceof Date ? val : new Date(val)
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
 
 const isEdit = computed(() => !!props.terms)
 
@@ -62,11 +70,12 @@ const defaultAcademicYearType = props.currentAcademicYear?.value || (academicYea
 // -------- FORM INIT ----------
 const form = useForm({
   name: props.terms?.name || '',
-  term_number: props.terms?.term_number  || '',
-  academic_year_id: props.currentAcademicYear?.value || '' as string,
-  start_date: props.terms?.start_date || fromDateValue,
-  end_date: props.terms?.end_date || toDateValue,
+  term_number: props.terms?.term_number || '',
+  academic_year_id: props.terms?.academic_year_id || defaultAcademicYearType,
+  start_date: props.terms?.start_date || formatDate(new Date()),  // ✅ string not Date
+  end_date: props.terms?.end_date || formatDate(new Date()),      // ✅ string not Date
 })
+console.log(form,"forms value");
 
 const errors = ref<Record<string, string>>({})
 
@@ -171,7 +180,8 @@ const handleSubmit = () => {
                   :model-value="form.start_date"
                   placeholder="Start Date"
                   :error="form.errors.start_date"
-                  />
+                 @update:model-value="(val) => { console.log('val:', val, typeof val); form.start_date = formatDate(val) }"
+                />
 
               </div>
                <div class="space-y-2">
@@ -180,6 +190,7 @@ const handleSubmit = () => {
                 :model-value="form.end_date"
                 placeholder="End Date"
                 :error="form.errors.end_date"
+               @update:model-value="(val) => form.end_date = formatDate(val)"
               />
                <p v-if="form.errors.end_date" class="text-sm text-red-600">{{ form.errors.end_date }}</p>
             </div>

@@ -13,12 +13,19 @@ class TermsServices implements TermsInterface
    
     public function getAllTerms()
     {
-        return Terms::all();
+        return Terms::where('is_active', true)->get();
     }
 
     public function store($request)
     {
-        return Terms::create($request);
+        // dd($request);
+        $data =[
+            ...$request,
+            'is_active' => true,
+            'created_by' => auth()->id(),
+        ];
+        // dd($data);
+        return Terms::create($data);
     }
     public function update($request, $id)
     {
@@ -26,12 +33,20 @@ class TermsServices implements TermsInterface
         if(!$term) {
             throw new \Exception("Term not found", 404);
         }
-        return $term->update($request);
+            $data =[
+                ...$request,
+                'updated_by' => auth()->id(),
+            ];
+        return $term->update($data);
     }
 
     public function destroy($id)
     {
-        // --- IGNORE ---
+        $term = Terms::findOrFail($id);
+        if(!$term) {
+            throw new \Exception("Term not found", 404);
+        }
+        return $term->update(['is_active' => false]);
     }
 
     

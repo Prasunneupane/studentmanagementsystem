@@ -115,7 +115,7 @@ const handleSubmit = () => {
 }
 
 const handleCancel = () => {
-  router.visit('/class-teachers')
+  router.visit('/class-teacher')
 }
 </script>
 

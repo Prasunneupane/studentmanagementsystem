@@ -31,8 +31,8 @@ class TermsController extends Controller
     public function index()
     {
         $TermsList = $this->termsService->getAllTerms();
-
-        return inertia('terms/Index', [
+        // dd($TermsList);
+        return inertia('terms/TermsList', [
             'terms' => $TermsList
         ]);
     }
@@ -46,7 +46,8 @@ class TermsController extends Controller
         $currentAcademicYear = $this->commonService->getCurrentAcademicYear();
         return inertia( 'terms/AddUpdateTerms',[
             'academicYears' => $academicYears,
-            'currentAcademicYear' => $currentAcademicYear
+            'currentAcademicYear' => $currentAcademicYear,
+            
         ]);
     }
 
@@ -56,9 +57,10 @@ class TermsController extends Controller
     public function store(Request $request)
     {
         //  
-        $request->validate($this->validation->termValidationRules($request));
-       
-        $this->termsService->store($request->all());
+        // dd($request);
+        $validatedData = $request->validate($this->validation->termValidationRules($request));
+        // dd($validatedData);
+        $this->termsService->store($validatedData);
 
         return redirect()->route('terms.index')->with('success', 'Term created successfully.');
     }
@@ -77,6 +79,11 @@ class TermsController extends Controller
     public function edit(Terms $terms)
     {
         //
+        $academicYears = $this->commonService->getAcademicYearList();
+        return inertia( 'terms/AddUpdateTerms',[
+            'terms' => $terms,
+            'academicYears' => $academicYears,
+        ]);
     }
 
     /**
@@ -84,7 +91,10 @@ class TermsController extends Controller
      */
     public function update(Request $request, Terms $terms)
     {
-        //
+        $validatedData = $request->validate($this->validation->termUpdateValidationRules($request, $terms->id));
+        $this->termsService->update($validatedData, $terms->id);
+
+        return redirect()->route('terms.index')->with('success', 'Term updated successfully.');
     }
 
     /**
@@ -92,6 +102,7 @@ class TermsController extends Controller
      */
     public function destroy(Terms $terms)
     {
-        //
+        $this->termsService->destroy($terms->id);
+        return redirect()->route('terms.index')->with('success', 'Term deleted successfully.');
     }
 }

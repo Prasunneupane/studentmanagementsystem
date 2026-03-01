@@ -250,13 +250,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         // Edit terms
         Route::middleware(['permission:edit_terms'])->group(function () {
-            Route::get('/edit/{term}', [TermsController::class, 'edit'])->name('edit');
-            Route::put('/update/{term}', [TermsController::class, 'update'])->name('update');
+            Route::get('/edit/{terms}', [TermsController::class, 'edit'])->name('edit');
+            Route::put('/update/{terms}', [TermsController::class, 'update'])->name('update');
         });
 
         // Delete terms
         Route::middleware(['permission:delete_terms'])->group(function () {
-            Route::put('/delete/{term}', [TermsController::class, 'destroy'])->name('delete');
+            Route::put('/delete/{terms}', [TermsController::class, 'destroy'])->name('delete');
         });
     });
 

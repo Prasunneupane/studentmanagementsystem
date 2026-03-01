@@ -410,7 +410,7 @@ const handlePdfExport = () => {
           <!-- No Data -->
           <TableRow v-else-if="!table.getRowModel().rows?.length">
             <TableCell :colspan="table.getAllColumns().length" class="h-24 text-center text-gray-600">
-              No data found. Please try again with another date.
+              No data found. Please try again .
             </TableCell>
           </TableRow>
 

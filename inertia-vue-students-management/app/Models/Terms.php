@@ -13,6 +13,9 @@ class Terms extends Model
         'name',
         'academic_year_id',
         'term_number',
+        'is_active',
+        'created_by',
+        'updated_by',
         'start_date',
         'end_date',
     ];
