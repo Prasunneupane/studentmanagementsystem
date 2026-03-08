@@ -36,6 +36,7 @@ class UserServices
             'is_active'=>1,
             'created_by'=>JWTAuth::user()->id,
         ];
+        dd($data);
         $user = $this->userService->createUsers($data);
         return $user;
     }

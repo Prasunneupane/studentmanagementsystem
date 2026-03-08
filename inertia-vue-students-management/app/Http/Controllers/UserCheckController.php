@@ -41,6 +41,7 @@ class UserCheckController extends Controller
     {
         
         $userList = $this->userService->getAllUsers();
+        dd($userList);
         return Inertia::render('user/UserList',[
             'users' => $userList
         ]); 
@@ -67,7 +68,9 @@ class UserCheckController extends Controller
     {
         
         $data =$request->validate($this->dataValidation->userValidationRules($request));
+        // dd($data);
         $this->userService->createUsers($data);
+
         return to_route('users.index',)->with('success', 'User created successfully.');
        
     }
