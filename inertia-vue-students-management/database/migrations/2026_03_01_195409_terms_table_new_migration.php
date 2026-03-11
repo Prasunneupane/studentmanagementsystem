@@ -23,7 +23,6 @@ return new class extends Migration {
             $table->integer('created_by');
             $table->integer('updated_by')->nullable();
             $table->timestamps();
-
             $table->foreign('academic_year_id')
                 ->references('id')
                 ->on('tbl_academic_years')

@@ -65,7 +65,7 @@ class PermissionService
                 ['canAssignPermissions' => in_array('assign_permissions', $permissions)]
             ),
             'permissions' => $this->crudPermissions($permissions, 'permissions'),
-
+            'exams' => $this->crudPermissions($permissions, 'exams'),
             'settings' => [
                 'canView' => in_array('view_settings', $permissions),
                 'canEdit' => in_array('edit_settings', $permissions),

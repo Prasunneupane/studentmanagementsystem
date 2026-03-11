@@ -175,6 +175,39 @@ const mainNavItems = computed((): NavItem[] => {
     }
   }
 
+   // Exam Management
+  if (permissions.value.exams.canManage) {
+    const examItems: NavItem[] = [];
+    
+    if (permissions.value.exams.canCreate) {
+      examItems.push({
+        title: 'Add Exam',
+        href: '/exams/create',
+        icon: CalendarPlus,
+      });
+    }
+    
+    if (permissions.value.exams.canView) {
+      examItems.push({
+        title: 'View Exams',
+        href: '/exams',
+        icon: Eye,
+      });
+    }
+
+    if (examItems.length > 0) {
+      const examManagement: NavItem = {
+        title: 'Exam Management',
+        href: '/',
+        icon: CalendarRange,
+        items: examItems,
+        isActive: false,
+      };
+      examManagement.isActive = isRouteActive(examManagement);
+      items.push(examManagement);
+    }
+  }
+
   // Master Settings
   if (permissions.value.canManageMasterSettings) {
     const masterSettingsItems: NavItem[] = [];

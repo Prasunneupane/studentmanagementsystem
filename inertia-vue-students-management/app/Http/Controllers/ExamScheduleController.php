@@ -2,17 +2,17 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Exam;
+use App\Models\ExamSchedule;
 use Illuminate\Http\Request;
 
-class ExamController extends Controller
+class ExamScheduleController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
     public function index()
     {
-        
+        //
     }
 
     /**
@@ -34,7 +34,7 @@ class ExamController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Exam $exam)
+    public function show(ExamSchedule $examSchedule)
     {
         //
     }
@@ -42,7 +42,7 @@ class ExamController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(Exam $exam)
+    public function edit(ExamSchedule $examSchedule)
     {
         //
     }
@@ -50,7 +50,7 @@ class ExamController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Exam $exam)
+    public function update(Request $request, ExamSchedule $examSchedule)
     {
         //
     }
@@ -58,7 +58,7 @@ class ExamController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Exam $exam)
+    public function destroy(ExamSchedule $examSchedule)
     {
         //
     }
