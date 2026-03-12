@@ -17,6 +17,8 @@ interface CommonServiceInterface
     public function getCurrentAcademicYear();
     public function getSectionList($classId);
     public function getClassTeacherById($id): ?array;
+    public function getClassessWithSections();
+    public function getTermsList();
     
 }
 

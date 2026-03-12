@@ -7,6 +7,7 @@ use App\Models\AcademicYears;
 use App\Models\Classes;
 use App\Models\Subject;
 use App\Models\Teachers;
+use App\Models\Terms;
 
 class CommonServices implements CommonServiceInterface
 {
@@ -97,4 +98,26 @@ class CommonServices implements CommonServiceInterface
         return null;
     }
 
+    public function getClassessWithSections(){
+        // dd(Classes::with('sections')->get());
+        return Classes::with('sections:id,name')
+                ->where('is_active', 1)
+                ->get(['id', 'name', ])
+                ->map(fn($c) => [
+                    'id'       => (string) $c->id,
+                    'name'     => $c->name,
+                    'sections' => $c->sections->map(fn($s) => [
+                        'id'   => (string) $s->id,
+                        'name' => $s->name,
+            ])
+        ]);
+    }
+
+    public function getTermsList(){
+        return Terms::where('is_active', 1)
+            ->select('id as value', 'name as label')
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->toArray();
+    }
 }

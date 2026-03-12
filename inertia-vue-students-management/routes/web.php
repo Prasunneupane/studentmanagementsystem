@@ -4,6 +4,7 @@ use App\Http\Controllers\ClassesController;
 use App\Http\Controllers\ClassSectionController;
 use App\Http\Controllers\ClassSubjectController;
 use App\Http\Controllers\ClassTeacherController;
+use App\Http\Controllers\ExamController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\RolesController;
 use App\Http\Controllers\StateDistricMunController;
@@ -257,6 +258,31 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // Delete terms
         Route::middleware(['permission:delete_terms'])->group(function () {
             Route::put('/delete/{terms}', [TermsController::class, 'destroy'])->name('delete');
+        });
+    });
+
+    // Exam Management Routes
+    Route::prefix('exams')->name('exams.')->group(function () {
+        // View exams
+        Route::middleware(['permission:view_exams'])->group(function () {
+            Route::get('/', [ExamController::class, 'index'])->name('index');
+        });
+
+        // Create exams
+        Route::middleware(['permission:create_exams'])->group(function () {
+            Route::get('/create', [ExamController::class, 'create'])->name('create');
+            Route::post('/store', [ExamController::class, 'store'])->name('store');
+        });
+
+        // Edit exams
+        Route::middleware(['permission:edit_exams'])->group(function () {
+            Route::get('/edit/{exam}', [ExamController::class, 'edit'])->name('edit');
+            Route::put('/update/{exam}', [ExamController::class, 'update'])->name('update');
+        });
+
+        // Delete exams
+        Route::middleware(['permission:delete_exams'])->group(function () {
+            Route::delete('/delete/{exam}', [ExamController::class, 'destroy'])->name('delete');
         });
     });
 

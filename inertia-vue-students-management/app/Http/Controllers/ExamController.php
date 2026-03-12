@@ -2,14 +2,27 @@
 
 namespace App\Http\Controllers;
 
+use App\Interface\CommonServiceInterface;
 use App\Models\Exam;
+use App\Repositories\Validation;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class ExamController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
+   private  CommonServiceInterface $commonServices;
+   private $validation;
+    public function __construct(
+        CommonServiceInterface $commonServices,
+        Validation $validation
+    )
+    {
+        $this->commonServices = $commonServices;
+        $this->validation = $validation;
+    }
     public function index()
     {
         
@@ -20,7 +33,16 @@ class ExamController extends Controller
      */
     public function create()
     {
-        //
+        $currentYear = $this->commonServices->getCurrentAcademicYear();
+        $classesSection = $this->commonServices->getClassessWithSections();
+        $academicYears = $this->commonServices->getAcademicYearList();
+        $termsList = $this->commonServices->getTermsList();
+        return Inertia::render('exams/ExamCreate', [
+            'classes' => $classesSection,
+            'academicYears' => $academicYears,
+            'terms' => $termsList, 
+            'currentAcademicYear' => $currentYear
+        ]);
     }
 
     /**
@@ -28,7 +50,7 @@ class ExamController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        
     }
 
     /**
