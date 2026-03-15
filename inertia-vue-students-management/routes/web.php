@@ -5,6 +5,7 @@ use App\Http\Controllers\ClassSectionController;
 use App\Http\Controllers\ClassSubjectController;
 use App\Http\Controllers\ClassTeacherController;
 use App\Http\Controllers\ExamController;
+use App\Http\Controllers\ExamScheduleController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\RolesController;
 use App\Http\Controllers\StateDistricMunController;
@@ -284,6 +285,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::middleware(['permission:delete_exams'])->group(function () {
             Route::delete('/delete/{exam}', [ExamController::class, 'destroy'])->name('delete');
         });
+        Route::get('/{exam}/schedule',  [ExamScheduleController::class, 'create'])->name('exams.schedule');
+        Route::post('/{exam}/schedule', [ExamScheduleController::class, 'store'])->name('exams.schedule.store');
+
     });
 
     Route::get('get-districts-by-state_id', [StudentsController::class, 'get_districts_by_state_id'])->name('get_districts_by_state_id');

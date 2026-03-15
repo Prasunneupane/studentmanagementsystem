@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Interface\CommonServiceInterface;
+use App\Interface\ExamScheduleInterface;
 use App\Models\Exam;
 use App\Models\ExamClass;
 use App\Models\ExamSchedule;
 use App\Models\Subject;
+use App\Repositories\Validation;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -15,10 +17,19 @@ class ExamScheduleController extends Controller
     /**
      * Display a listing of the resource.
      */
-    private $commonServices;
-    public function __construct(CommonServiceInterface $commonServices)
+    private CommonServiceInterface $commonServices;
+    private $validation;
+
+    private ExamScheduleInterface  $examSchedule;
+    public function __construct(
+        CommonServiceInterface $commonServices,
+        Validation $validation,
+        ExamScheduleInterface $examSchedule
+    )
     {
         $this->commonServices = $commonServices;
+        $this->validation = $validation;
+        $this->examSchedule = $examSchedule;
     }
     
     public function index()
@@ -29,30 +40,14 @@ class ExamScheduleController extends Controller
    public function create(Exam $exam)
     {
         // Load which classes/sections are in this exam
-        $examClasses = ExamClass::where('exam_id', $exam->id)
-            ->get(['class_id', 'section_id'])
-            ->map(fn($ec) => [
-                'class_id'   => (string) $ec->class_id,
-                'section_id' => $ec->section_id ? (string) $ec->section_id : null,
-            ]);
+        $examClasses = $this->examSchedule->getClassSectionByExamId($exam->id);
 
         // Unique class IDs
         $classIds = $examClasses->pluck('class_id')->unique()->values();
-
+        
         // Classes with sections
-        $classes = SchoolClass::with('sections:id,class_id,name')
-            ->whereIn('id', $classIds)
-            ->orderBy('grade_level')
-            ->get(['id', 'name'])
-            ->map(fn($c) => [
-                'id'       => (string) $c->id,
-                'name'     => $c->name,
-                'sections' => $c->sections->map(fn($s) => [
-                    'id'   => (string) $s->id,
-                    'name' => $s->name,
-                ])->values(),
-            ]);
-
+        $classes = $this->commonServices->getClassessWithSections();
+            
         // Subjects per class (from class_subjects for this academic year)
         $subjectsByClass = [];
         foreach ($classIds as $classId) {

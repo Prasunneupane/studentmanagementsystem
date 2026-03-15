@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
+import DatePicker from '@/components/ui/datepicker/DatePicker.vue'
 import CustomSelect from '../CustomSelect.vue'
 import { Toaster } from '@/components/ui/sonner'
 import { useToast } from '@/composables/useToast'
@@ -27,6 +28,14 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+const formatDate = (val: any): string => {
+  if (!val) return ''
+  const d = val instanceof Date ? val : new Date(val)
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
 
 const breadcrumbs = [
   { title: 'Exams', href: '/exams' },
@@ -134,6 +143,8 @@ const toggleSection = (classId: string, sectionId: string) => {
     }
   }
 }
+// 756966921 insno
+// 307265202 claimcode
 
 const selectAllClasses = () => {
   const allSelected = props.classes.every(cls => classSelections.value[cls.id]?.all)
@@ -221,6 +232,7 @@ const handleSubmit = () => {
 </script>
 
 <template>
+
   <Head title="Create Exam" />
   <AppLayout :breadcrumbs="breadcrumbs">
     <Toaster />
@@ -237,23 +249,17 @@ const handleSubmit = () => {
                 'bg-primary border-primary text-primary-foreground': currentStep === step.number,
                 'bg-green-500 border-green-500 text-white': currentStep > step.number,
                 'bg-muted border-border text-muted-foreground': currentStep < step.number,
-              }"
-            >
+              }">
               <CheckCircle2 v-if="currentStep > step.number" class="w-5 h-5" />
               <span v-else>{{ step.number }}</span>
             </div>
-            <span
-              class="text-sm font-medium hidden sm:block"
-              :class="currentStep === step.number ? 'text-primary' : 'text-muted-foreground'"
-            >
+            <span class="text-sm font-medium hidden sm:block"
+              :class="currentStep === step.number ? 'text-primary' : 'text-muted-foreground'">
               {{ step.title }}
             </span>
           </div>
-          <div
-            v-if="i < steps.length - 1"
-            class="flex-1 h-0.5 mx-3 transition-all duration-300"
-            :class="currentStep > step.number ? 'bg-green-500' : 'bg-border'"
-          />
+          <div v-if="i < steps.length - 1" class="flex-1 h-0.5 mx-3 transition-all duration-300"
+            :class="currentStep > step.number ? 'bg-green-500' : 'bg-border'" />
         </template>
       </div>
 
@@ -280,24 +286,15 @@ const handleSubmit = () => {
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div class="space-y-2">
                 <Label for="name">Exam Name <span class="text-red-500">*</span></Label>
-                <Input
-                  id="name"
-                  v-model="form.name"
-                  placeholder="e.g. First Terminal Exam"
-                  :class="{ 'border-red-500': step1Errors.name && form.name !== '' }"
-                />
+                <Input id="name" v-model="form.name" placeholder="e.g. First Terminal Exam"
+                  :class="{ 'border-red-500': step1Errors.name && form.name !== '' }" />
                 <p v-if="step1Errors.name && form.name !== ''" class="text-sm text-red-600">{{ step1Errors.name }}</p>
               </div>
 
               <div class="space-y-2">
                 <Label for="exam_type">Exam Type <span class="text-red-500">*</span></Label>
-                <CustomSelect
-                  id="exam_type"
-                  v-model="form.exam_type"
-                  :options="examTypeOptions"
-                  placeholder="Select Exam Type"
-                  :class="{ 'border-red-500': step1Errors.exam_type }"
-                />
+                <CustomSelect id="exam_type" v-model="form.exam_type" :options="examTypeOptions"
+                  placeholder="Select Exam Type" :class="{ 'border-red-500': step1Errors.exam_type }" />
                 <p v-if="step1Errors.exam_type" class="text-sm text-red-600">{{ step1Errors.exam_type }}</p>
               </div>
             </div>
@@ -306,61 +303,38 @@ const handleSubmit = () => {
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div class="space-y-2">
                 <Label for="academic_year_id">Academic Year <span class="text-red-500">*</span></Label>
-                <CustomSelect
-                  id="academic_year_id"
-                  v-model="form.academic_year_id"
-                  :options="academicYears"
-                  placeholder="Select Academic Year"
-                  :class="{ 'border-red-500': step1Errors.academic_year_id }"
-                />
-                <p v-if="step1Errors.academic_year_id" class="text-sm text-red-600">{{ step1Errors.academic_year_id }}</p>
+                <CustomSelect id="academic_year_id" v-model="form.academic_year_id" :options="academicYears"
+                  placeholder="Select Academic Year" :class="{ 'border-red-500': step1Errors.academic_year_id }" />
+                <p v-if="step1Errors.academic_year_id" class="text-sm text-red-600">{{ step1Errors.academic_year_id }}
+                </p>
               </div>
 
               <div class="space-y-2">
                 <Label for="term_id">Term <span class="text-muted-foreground text-xs">(optional)</span></Label>
-                <CustomSelect
-                  id="term_id"
-                  v-model="form.term_id"
-                  :options="terms"
-                  placeholder="Select Term"
-                />
+                <CustomSelect id="term_id" v-model="form.term_id" :options="terms" placeholder="Select Term" />
               </div>
             </div>
 
             <!-- Dates + Weightage -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div class="space-y-2">
-                <Label for="start_date">Start Date <span class="text-red-500">*</span></Label>
-                <Input
-                  id="start_date"
-                  type="date"
-                  v-model="form.start_date"
-                  :class="{ 'border-red-500': step1Errors.start_date }"
-                />
+                <Label>Start Date <span class="text-red-500">*</span></Label>
+                <DatePicker :model-value="form.start_date" placeholder="Start Date" :error="form.errors.start_date"
+                  @update:model-value="(val) => { console.log('val:', val, typeof val); form.start_date = formatDate(val) }" />
                 <p v-if="step1Errors.start_date" class="text-sm text-red-600">{{ step1Errors.start_date }}</p>
               </div>
 
               <div class="space-y-2">
-                <Label for="end_date">End Date <span class="text-red-500">*</span></Label>
-                <Input
-                  id="end_date"
-                  type="date"
-                  v-model="form.end_date"
-                  :class="{ 'border-red-500': step1Errors.end_date }"
-                />
+                <Label for="description">End Date <span class="text-red-500">*</span></Label>
+                <DatePicker :model-value="form.end_date" placeholder="End Date" :error="form.errors.end_date"
+                  @update:model-value="(val) => form.end_date = formatDate(val)" />
                 <p v-if="step1Errors.end_date" class="text-sm text-red-600">{{ step1Errors.end_date }}</p>
               </div>
 
               <div class="space-y-2">
-                <Label for="weightage">Weightage (%) <span class="text-muted-foreground text-xs">(optional)</span></Label>
-                <Input
-                  id="weightage"
-                  type="number"
-                  v-model="form.weightage"
-                  placeholder="100"
-                  min="0"
-                  max="100"
-                />
+                <Label for="weightage">Weightage (%) <span
+                    class="text-muted-foreground text-xs">(optional)</span></Label>
+                <Input id="weightage" type="number" v-model="form.weightage" placeholder="100" min="0" max="100" />
               </div>
             </div>
 
@@ -370,7 +344,8 @@ const handleSubmit = () => {
                 <Checkbox id="is_published" v-model="form.is_published" />
                 <div class="grid gap-1 leading-none">
                   <Label for="is_published" class="font-medium cursor-pointer">Publish Immediately</Label>
-                  <p class="text-sm text-muted-foreground">Make this exam visible to teachers and students right away</p>
+                  <p class="text-sm text-muted-foreground">Make this exam visible to teachers and students right away
+                  </p>
                 </div>
               </div>
             </div>
@@ -408,10 +383,8 @@ const handleSubmit = () => {
               </div>
             </div>
             <!-- Selection count badge -->
-            <div
-              v-if="totalSelectedCount > 0"
-              class="px-3 py-1.5 bg-primary/10 text-primary rounded-full text-sm font-semibold"
-            >
+            <div v-if="totalSelectedCount > 0"
+              class="px-3 py-1.5 bg-primary/10 text-primary rounded-full text-sm font-semibold">
               {{ totalSelectedCount }} section{{ totalSelectedCount !== 1 ? 's' : '' }} selected
             </div>
           </div>
@@ -422,12 +395,8 @@ const handleSubmit = () => {
 
             <!-- Select All -->
             <div class="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border">
-              <Checkbox
-                id="select_all"
-                :checked="allClassesSelected"
-                :indeterminate="!allClassesSelected && someClassesSelected"
-                @update:checked="selectAllClasses"
-              />
+              <Checkbox id="select_all" :checked="allClassesSelected"
+                :indeterminate="!allClassesSelected && someClassesSelected" @update:checked="selectAllClasses" />
               <Label for="select_all" class="font-semibold cursor-pointer text-sm">
                 Select All Classes & Sections
               </Label>
@@ -435,26 +404,15 @@ const handleSubmit = () => {
 
             <!-- Class rows -->
             <div class="space-y-3">
-              <div
-                v-for="cls in classes"
-                :key="cls.id"
-                class="border rounded-xl overflow-hidden transition-all duration-200"
-                :class="(classSelections[cls.id]?.all || classSelections[cls.id]?.sections.size > 0)
+              <div v-for="cls in classes" :key="cls.id"
+                class="border rounded-xl overflow-hidden transition-all duration-200" :class="(classSelections[cls.id]?.all || classSelections[cls.id]?.sections.size > 0)
                   ? 'border-primary/40 bg-primary/5'
-                  : 'border-border bg-card'"
-              >
+                  : 'border-border bg-card'">
                 <!-- Class header row -->
-                <div
-                  class="flex items-center gap-3 p-3 cursor-pointer hover:bg-muted/30 transition-colors"
-                  @click="toggleClass(cls.id)"
-                >
-                  <Checkbox
-                    :id="`class_${cls.id}`"
-                    :checked="isClassChecked(cls.id)"
-                    :indeterminate="isClassIndeterminate(cls.id)"
-                    @update:checked="toggleClass(cls.id)"
-                    @click.stop
-                  />
+                <div class="flex items-center gap-3 p-3 cursor-pointer hover:bg-muted/30 transition-colors"
+                  @click="toggleClass(cls.id)">
+                  <Checkbox :id="`class_${cls.id}`" :checked="isClassChecked(cls.id)"
+                    :indeterminate="isClassIndeterminate(cls.id)" @update:checked="toggleClass(cls.id)" @click.stop />
                   <Label :for="`class_${cls.id}`" class="font-semibold cursor-pointer flex-1">
                     {{ cls.name }}
                   </Label>
@@ -465,22 +423,14 @@ const handleSubmit = () => {
 
                 <!-- Section checkboxes -->
                 <div class="flex flex-wrap gap-2 px-10 pb-3">
-                  <div
-                    v-for="section in cls.sections"
-                    :key="section.id"
+                  <div v-for="section in cls.sections" :key="section.id"
                     class="flex items-center gap-2 px-3 py-1.5 rounded-lg border cursor-pointer transition-all duration-150 text-sm"
                     :class="isSectionChecked(cls.id, section.id)
                       ? 'bg-primary text-primary-foreground border-primary'
                       : 'bg-background border-border hover:border-primary/50'"
-                    @click="toggleSection(cls.id, section.id)"
-                  >
-                    <Checkbox
-                      :id="`section_${cls.id}_${section.id}`"
-                      :checked="isSectionChecked(cls.id, section.id)"
-                      @update:checked="toggleSection(cls.id, section.id)"
-                      @click.stop
-                      class="pointer-events-none"
-                    />
+                    @click="toggleSection(cls.id, section.id)">
+                    <Checkbox :id="`section_${cls.id}_${section.id}`" :checked="isSectionChecked(cls.id, section.id)"
+                      @update:checked="toggleSection(cls.id, section.id)" @click.stop class="pointer-events-none" />
                     <span class="font-medium">Section {{ section.name }}</span>
                   </div>
                 </div>
@@ -502,11 +452,7 @@ const handleSubmit = () => {
                 <Button type="button" variant="outline" @click="router.visit('/exams')">
                   <X class="mr-2 h-4 w-4" /> Cancel
                 </Button>
-                <Button
-                  type="button"
-                  @click="handleSubmit"
-                  :disabled="!step2Valid || form.processing"
-                >
+                <Button type="button" @click="handleSubmit" :disabled="!step2Valid || form.processing">
                   <Loader2 v-if="form.processing" class="mr-2 h-4 w-4 animate-spin" />
                   <Save v-else class="mr-2 h-4 w-4" />
                   {{ form.processing ? 'Saving...' : 'Save & Set Schedule' }}
@@ -523,5 +469,7 @@ const handleSubmit = () => {
 </template>
 
 <style scoped>
-.border-red-500 { border-color: rgb(239 68 68) !important; }
+.border-red-500 {
+  border-color: rgb(239 68 68) !important;
+}
 </style>
