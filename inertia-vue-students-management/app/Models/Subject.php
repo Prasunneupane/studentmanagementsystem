@@ -16,4 +16,9 @@ class Subject extends Model
         'is_active',
         'description',
     ];
+
+    public function classSubjects()
+    {
+        return $this->hasMany(ClassSubject::class, 'subject_id');
+    }
 }

@@ -42,28 +42,30 @@ class ExamScheduleController extends Controller
         // Load which classes/sections are in this exam
         $examClasses = $this->examSchedule->getClassSectionByExamId($exam->id);
 
+        
         // Unique class IDs
-        $classIds = $examClasses->pluck('class_id')->unique()->values();
+        $classIds = $this->examSchedule->getUniqueClassIds($examClasses);
         
         // Classes with sections
         $classes = $this->commonServices->getClassessWithSections();
             
         // Subjects per class (from class_subjects for this academic year)
-        $subjectsByClass = [];
-        foreach ($classIds as $classId) {
-            $subjectsByClass[(string) $classId] = Subject::whereHas('classSubjects', function ($q) use ($classId, $exam) {
-                    $q->where('class_id', $classId)
-                      ->where('academic_year_id', $exam->academic_year_id);
-                })
-                ->get(['id', 'name', 'code'])
-                ->map(fn($s) => [
-                    'id'   => (string) $s->id,
-                    'name' => $s->name,
-                    'code' => $s->code ?? '',
-                ])
-                ->values()
-                ->toArray();
-        }
+        $subjectsByClass = $this->examSchedule->getSubjectsByClass($classIds, $exam);
+        
+        // foreach ($classIds as $classId) {
+        //     $subjectsByClass[(string) $classId] = Subject::whereHas('classSubjects', function ($q) use ($classId, $exam) {
+        //             $q->where('class_id', $classId)
+        //               ->where('academic_year_id', $exam->academic_year_id);
+        //         })
+        //         ->get(['id', 'name', 'code'])
+        //         ->map(fn($s) => [
+        //             'id'   => (string) $s->id,
+        //             'name' => $s->name,
+        //             'code' => $s->code ?? '',
+        //         ])
+        //         ->values()
+        //         ->toArray();
+        // }
 
         return Inertia::render('Exams/Schedule', [
             'exam'           => $exam->only('id', 'name', 'exam_type', 'start_date', 'end_date', 'academic_year_id'),
