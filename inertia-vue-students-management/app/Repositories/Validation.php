@@ -192,4 +192,50 @@ class Validation
             'end_date' => 'required|date|after_or_equal:start_date',
         ];
     }
+
+    public function validateExam($request)
+    {
+        return $request->validate([
+          'name'             => 'required|string|max:150',
+            'exam_type'        => 'required|in:unit_test,midterm,final,semester,annual',
+            'academic_year_id' => 'required|exists:tbl_academic_years,id',
+            'term_id'          => 'nullable|exists:tbl_terms,id',
+            'start_date'       => 'required|date',
+            'end_date'         => 'required|date|after_or_equal:start_date',
+            'weightage'        => 'nullable|numeric|min:0|max:100',
+            'is_published'     => 'boolean',
+              //     // exam_classes array validation
+            'exam_classes'                => 'required|array|min:1',
+            'exam_classes.*.class_id'     => 'required|exists:tbl_classes,id',
+            'exam_classes.*.section_id'   => 'nullable|exists:tbl_section,id',
+        ]);
+
+        //  $data = $request->validate([
+           
+
+      
+        // ]);
+
+        // DB::transaction(function () use ($data, &$exam) {
+        //     $exam = Exam::create([
+        //         'name'             => $data['name'],
+        //         'exam_type'        => $data['exam_type'],
+        //         'academic_year_id' => $data['academic_year_id'],
+        //         'term_id'          => $data['term_id'] ?? null,
+        //         'start_date'       => $data['start_date'],
+        //         'end_date'         => $data['end_date'],
+        //         'weightage'        => $data['weightage'] ?? 100,
+        //         'is_published'     => $data['is_published'] ?? false,
+        //     ]);
+
+        //     // Bulk insert exam_classes
+        //     $insertRows = collect($data['exam_classes'])->map(fn($ec) => [
+        //         'exam_id'    => $exam->id,
+        //         'class_id'   => $ec['class_id'],
+        //         'section_id' => $ec['section_id'] ?? null,
+        //     ])->toArray();
+
+        //     ExamClass::insert($insertRows);
+        // });
+    }
 }

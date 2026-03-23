@@ -112,4 +112,6 @@ class ClassSubject extends Model
     {
         return $this->teacher?->name;
     }
+
+    
 }

@@ -41,7 +41,7 @@ class ExamScheduleController extends Controller
     {
         // Load which classes/sections are in this exam
         $examClasses = $this->examSchedule->getClassSectionByExamId($exam->id);
-
+        // dd($examClasses);
         
         // Unique class IDs
         $classIds = $this->examSchedule->getUniqueClassIds($examClasses);
@@ -67,7 +67,7 @@ class ExamScheduleController extends Controller
         //         ->toArray();
         // }
 
-        return Inertia::render('Exams/Schedule', [
+        return Inertia::render('exams/ExamSchedule', [
             'exam'           => $exam->only('id', 'name', 'exam_type', 'start_date', 'end_date', 'academic_year_id'),
             'examClasses'    => $examClasses,
             'classes'        => $classes,

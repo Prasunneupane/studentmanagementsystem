@@ -21,7 +21,7 @@ interface Section { id: string; name: string }
 interface ClassWithSections { id: string; name: string; sections: Section[] }
 
 interface Props {
-  classes: ClassWithSections[]       // classes WITH their sections pre-loaded
+  classes: ClassWithSections[]
   academicYears: Option[]
   terms: Option[]
   currentAcademicYear: Option | null
@@ -84,8 +84,6 @@ const step1Errors = computed(() => {
 })
 
 // ─── Step 2: Class/Section Selection ─────────────────────────────
-// selectedSections: { [classId]: Set<sectionId> | 'all' }
-// We store as: { classId: { all: bool, sections: Set<string> } }
 interface ClassSelection { all: boolean; sections: Set<string> }
 const classSelections = ref<Record<string, ClassSelection>>({})
 
@@ -105,20 +103,24 @@ const isSectionChecked = (classId: string, sectionId: string) => {
   return sel?.all || sel?.sections.has(sectionId) || false
 }
 
+// FIX: Force reactivity by spreading the object after mutations
+const forceUpdate = () => {
+  classSelections.value = { ...classSelections.value }
+}
+
 const toggleClass = (classId: string) => {
   const sel = classSelections.value[classId]
   const cls = props.classes.find(c => c.id === classId)
   if (!sel || !cls) return
 
   if (sel.all || sel.sections.size > 0) {
-    // Deselect all
     sel.all = false
     sel.sections.clear()
   } else {
-    // Select all sections
     sel.all = true
     sel.sections.clear()
   }
+  forceUpdate()
 }
 
 const toggleSection = (classId: string, sectionId: string) => {
@@ -127,7 +129,6 @@ const toggleSection = (classId: string, sectionId: string) => {
   if (!sel || !cls) return
 
   if (sel.all) {
-    // Was all selected — switch to individual tracking, remove this one
     sel.all = false
     cls.sections.forEach(s => { if (s.id !== sectionId) sel.sections.add(s.id) })
   } else {
@@ -135,26 +136,26 @@ const toggleSection = (classId: string, sectionId: string) => {
       sel.sections.delete(sectionId)
     } else {
       sel.sections.add(sectionId)
-      // If all sections now selected, mark as 'all'
       if (sel.sections.size === cls.sections.length) {
         sel.all = true
         sel.sections.clear()
       }
     }
   }
+  forceUpdate()
 }
-// 756966921 insno
-// 307265202 claimcode
 
+// FIX: selectAllClasses now also calls forceUpdate
 const selectAllClasses = () => {
   const allSelected = props.classes.every(cls => classSelections.value[cls.id]?.all)
   props.classes.forEach(cls => {
     classSelections.value[cls.id] = { all: !allSelected, sections: new Set() }
   })
+  forceUpdate()
 }
 
 const allClassesSelected = computed(() =>
-  props.classes.every(cls => classSelections.value[cls.id]?.all)
+  props.classes.length > 0 && props.classes.every(cls => classSelections.value[cls.id]?.all)
 )
 const someClassesSelected = computed(() =>
   props.classes.some(cls => {
@@ -163,14 +164,17 @@ const someClassesSelected = computed(() =>
   })
 )
 
-// Build payload for submission
+// FIX: Always expand "all" into individual section_ids — never send null
 const buildClassPayload = () => {
-  const result: Array<{ class_id: string; section_id: string | null }> = []
+  const result: Array<{ class_id: string; section_id: string }> = []
   props.classes.forEach(cls => {
     const sel = classSelections.value[cls.id]
     if (!sel) return
     if (sel.all) {
-      result.push({ class_id: cls.id, section_id: null })
+      // Expand to individual section IDs
+      cls.sections.forEach(section => {
+        result.push({ class_id: cls.id, section_id: section.id })
+      })
     } else {
       sel.sections.forEach(sId => {
         result.push({ class_id: cls.id, section_id: sId })
@@ -216,7 +220,7 @@ const handleSubmit = () => {
     ...data,
     is_published: !!data.is_published,
     exam_classes: buildClassPayload(),
-  })).post('/exams', {
+  })).post('/exams/store', {
     onSuccess: (page: any) => {
       const examId = page.props?.exam?.id
       toast.success('Exam created! Now set the schedule.')
@@ -320,7 +324,7 @@ const handleSubmit = () => {
               <div class="space-y-2">
                 <Label>Start Date <span class="text-red-500">*</span></Label>
                 <DatePicker :model-value="form.start_date" placeholder="Start Date" :error="form.errors.start_date"
-                  @update:model-value="(val) => { console.log('val:', val, typeof val); form.start_date = formatDate(val) }" />
+                  @update:model-value="(val) => { form.start_date = formatDate(val) }" />
                 <p v-if="step1Errors.start_date" class="text-sm text-red-600">{{ step1Errors.start_date }}</p>
               </div>
 
@@ -395,9 +399,13 @@ const handleSubmit = () => {
 
             <!-- Select All -->
             <div class="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border">
-              <Checkbox id="select_all" :checked="allClassesSelected"
-                :indeterminate="!allClassesSelected && someClassesSelected" @update:checked="selectAllClasses" />
-              <Label for="select_all" class="font-semibold cursor-pointer text-sm">
+              <Checkbox
+                id="select_all"
+                :checked="allClassesSelected"
+                :indeterminate="!allClassesSelected && someClassesSelected"
+                @update:checked="selectAllClasses"
+              />
+              <Label for="select_all" class="font-semibold cursor-pointer text-sm" @click="selectAllClasses">
                 Select All Classes & Sections
               </Label>
             </div>
@@ -405,15 +413,22 @@ const handleSubmit = () => {
             <!-- Class rows -->
             <div class="space-y-3">
               <div v-for="cls in classes" :key="cls.id"
-                class="border rounded-xl overflow-hidden transition-all duration-200" :class="(classSelections[cls.id]?.all || classSelections[cls.id]?.sections.size > 0)
+                class="border rounded-xl overflow-hidden transition-all duration-200"
+                :class="(classSelections[cls.id]?.all || classSelections[cls.id]?.sections.size > 0)
                   ? 'border-primary/40 bg-primary/5'
                   : 'border-border bg-card'">
+
                 <!-- Class header row -->
                 <div class="flex items-center gap-3 p-3 cursor-pointer hover:bg-muted/30 transition-colors"
                   @click="toggleClass(cls.id)">
-                  <Checkbox :id="`class_${cls.id}`" :checked="isClassChecked(cls.id)"
-                    :indeterminate="isClassIndeterminate(cls.id)" @update:checked="toggleClass(cls.id)" @click.stop />
-                  <Label :for="`class_${cls.id}`" class="font-semibold cursor-pointer flex-1">
+                  <Checkbox
+                    :id="`class_${cls.id}`"
+                    :checked="isClassChecked(cls.id)"
+                    :indeterminate="isClassIndeterminate(cls.id)"
+                    @update:checked="toggleClass(cls.id)"
+                    @click.stop
+                  />
+                  <Label :for="`class_${cls.id}`" class="font-semibold cursor-pointer flex-1 pointer-events-none">
                     {{ cls.name }}
                   </Label>
                   <span class="text-xs text-muted-foreground">
@@ -421,16 +436,24 @@ const handleSubmit = () => {
                   </span>
                 </div>
 
-                <!-- Section checkboxes -->
+                <!-- FIX: Section pills — use light tinted bg so checkbox stays visible -->
                 <div class="flex flex-wrap gap-2 px-10 pb-3">
-                  <div v-for="section in cls.sections" :key="section.id"
-                    class="flex items-center gap-2 px-3 py-1.5 rounded-lg border cursor-pointer transition-all duration-150 text-sm"
+                  <div
+                    v-for="section in cls.sections"
+                    :key="section.id"
+                    class="flex items-center gap-2 px-3 py-1.5 rounded-lg border cursor-pointer transition-all duration-150 text-sm select-none"
                     :class="isSectionChecked(cls.id, section.id)
-                      ? 'bg-primary text-primary-foreground border-primary'
-                      : 'bg-background border-border hover:border-primary/50'"
-                    @click="toggleSection(cls.id, section.id)">
-                    <Checkbox :id="`section_${cls.id}_${section.id}`" :checked="isSectionChecked(cls.id, section.id)"
-                      @update:checked="toggleSection(cls.id, section.id)" @click.stop class="pointer-events-none" />
+                      ? 'bg-primary/10 text-primary border-primary font-semibold'
+                      : 'bg-background border-border hover:border-primary/50 text-foreground'"
+                    @click="toggleSection(cls.id, section.id)"
+                  >
+                    <Checkbox
+                      :id="`section_${cls.id}_${section.id}`"
+                      :checked="isSectionChecked(cls.id, section.id)"
+                      @update:checked="toggleSection(cls.id, section.id)"
+                      @click.stop
+                      class="pointer-events-none"
+                    />
                     <span class="font-medium">Section {{ section.name }}</span>
                   </div>
                 </div>

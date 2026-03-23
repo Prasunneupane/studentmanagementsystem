@@ -19,6 +19,9 @@ interface CommonServiceInterface
     public function getClassTeacherById($id): ?array;
     public function getClassessWithSections();
     public function getTermsList();
+
+    
+    
     
 }
 

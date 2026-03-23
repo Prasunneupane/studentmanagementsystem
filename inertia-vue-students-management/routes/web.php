@@ -285,8 +285,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::middleware(['permission:delete_exams'])->group(function () {
             Route::delete('/delete/{exam}', [ExamController::class, 'destroy'])->name('delete');
         });
-        Route::get('/{exam}/schedule',  [ExamScheduleController::class, 'create'])->name('exams.schedule');
-        Route::post('/{exam}/schedule', [ExamScheduleController::class, 'store'])->name('exams.schedule.store');
+        Route::get('/{exam}/schedule',  [ExamScheduleController::class, 'create'])->name('schedule');
+        Route::post('/{exam}/schedule', [ExamScheduleController::class, 'store'])->name('schedule.store');
 
     });
 

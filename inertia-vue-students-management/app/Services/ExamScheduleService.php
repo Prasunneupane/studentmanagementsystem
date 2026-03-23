@@ -4,18 +4,23 @@ namespace App\Services;
 
 use App\Interface\ExamScheduleInterface;
 use App\Models\ClassSubject;
+use App\Models\Exam;
 use App\Models\ExamClass;
 use App\Models\Subject;
+use DB;
+use Illuminate\Database\Console\Migrations\RollbackCommand;
+use Illuminate\Database\Eloquent\Collection;
+use Log;
 
 
 class ExamScheduleService implements ExamScheduleInterface
 {
     public function getClassSectionByExamId($examId)
     {
-        return  ExamClass::where('exam_id', $examId)
+        return ExamClass::where('exam_id', $examId)
             ->get(['class_id', 'section_id'])
             ->map(fn($ec) => [
-                'class_id'   => (string) $ec->class_id,
+                'class_id' => (string) $ec->class_id,
                 'section_id' => $ec->section_id ? (string) $ec->section_id : null,
             ]);
     }
@@ -25,21 +30,90 @@ class ExamScheduleService implements ExamScheduleInterface
         return $examClasses->pluck('class_id')->unique()->values();
     }
 
+    // public function getSubjectsByClass($classIds, $exam)
+    // {
+    //     $subjectsByClass = [];
+    //     foreach ($classIds as $classId) {
+    //         $subjectsByClass[(string) $classId] = ClassSubject::whereHas('classSubjects', function ($q) use ($classId, $exam) {
+    //             $q->where('class_id', $classId)
+    //                 ->where('academic_year_id', $exam->academic_year_id);
+    //         })
+    //             ->get(['id', 'name', 'code'])
+    //             ->map(fn($s) => [
+    //                 'id' => $s->id,
+    //                 'name' => $s->name,
+    //                 'code' => $s->code,
+    //             ]);
+    //     }
+    //     return $subjectsByClass;
+    // }
+
     public function getSubjectsByClass($classIds, $exam)
     {
-        $subjectsByClass = [];
-        foreach ($classIds as $classId) {
-            $subjectsByClass[(string) $classId] = ClassSubject::whereHas('classSubjects', function ($q) use ($classId, $exam) {
-                    $q->where('class_id', $classId)
-                      ->where('academic_year_id', $exam->academic_year_id);
-                })
-                ->get(['id', 'name', 'code'])
-                ->map(fn($s) => [
-                    'id' => $s->id,
-                    'name' => $s->name,
-                    'code' => $s->code,
+        return ClassSubject::whereIn('class_id', $classIds)
+            ->where('academic_year_id', $exam->academic_year_id)
+            ->with('subject')
+            ->get()
+            ->groupBy('class_id')
+            ->map(function ($items) {
+                return $items->map(fn($cs) => [
+                    'id' => $cs->subject->id,
+                    'name' => $cs->subject->name,
+                    'code' => $cs->subject->code,
                 ]);
+            });
+    }
+
+
+
+    public function createExam(array $data)
+    {
+        try {
+
+            $exam = DB::transaction(function () use ($data) {
+
+                $exam = Exam::create([
+                    'name' => $data['name'],
+                    'exam_type' => $data['exam_type'],
+                    'academic_year_id' => $data['academic_year_id'],
+                    'term_id' => $data['term_id'] ?? null,
+                    'start_date' => $data['start_date'],
+                    'end_date' => $data['end_date'],
+                    'weightage' => $data['weightage'] ?? 100,
+                    'created_by' => auth()->id(),
+                    'is_published' => $data['is_published'] ?? false,
+                ]);
+
+                $insertRows = collect($data['exam_classes'])->map(fn($ec) => [
+                    'exam_id' => $exam->id,
+                    'class_id' => $ec['class_id'],
+                    'section_id' => $ec['section_id'] ?? null,
+                ])->toArray();
+
+                ExamClass::insert($insertRows);
+
+                return $exam;
+            });
+
+            return $exam;
+
+        } catch (\Exception $e) {
+
+            // ✅ Log to Laravel log file
+            Log::error('Exam Creation Failed', [
+                'message' => $e->getMessage(),
+                'data' => $data,
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            // ✅ OPTIONAL: Save to DB log table
+            // DB::table('error_logs')->insert([
+            //     'message' => $e->getMessage(),
+            //     'context' => json_encode($data),
+            //     'created_at' => now(),
+            // ]);
+
+            throw $e;
         }
-        return $subjectsByClass;
     }
 }

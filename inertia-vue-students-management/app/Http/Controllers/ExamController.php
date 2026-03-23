@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Interface\CommonServiceInterface;
+use App\Interface\ExamScheduleInterface;
 use App\Models\Exam;
 use App\Repositories\Validation;
 use Illuminate\Http\Request;
@@ -14,14 +15,17 @@ class ExamController extends Controller
      * Display a listing of the resource.
      */
    private  CommonServiceInterface $commonServices;
+   private ExamScheduleInterface $examScheduleService;
    private $validation;
     public function __construct(
         CommonServiceInterface $commonServices,
+        ExamScheduleInterface $examScheduleService,
         Validation $validation
     )
     {
         $this->commonServices = $commonServices;
         $this->validation = $validation;
+        $this->examScheduleService = $examScheduleService;
     }
     public function index()
     {
@@ -50,7 +54,12 @@ class ExamController extends Controller
      */
     public function store(Request $request)
     {
-        
+        $data = $this->validation->validateExam($request);
+        // dd($data);
+        $exam = $this->examScheduleService->createExam($data);
+        // dd($exam);
+        return redirect()->route('exams.schedule', $exam->id)
+            ->with('exam', $exam);
     }
 
     /**
