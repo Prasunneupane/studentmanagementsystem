@@ -148,7 +148,7 @@ class ClassSubjectController extends Controller
 
         $academicYears = $this->studentService->getAcademicYearList();
         $classSubjectList = $this->classSubjectService->getClassSubjectById($classSubject->id);
-        dd($classSubjectList);                    
+        // dd($classSubjectList);                    
         return Inertia::render('classSubject/Edit', [
             'classSubject' => $classSubjectList,
             'classes' => $classes,

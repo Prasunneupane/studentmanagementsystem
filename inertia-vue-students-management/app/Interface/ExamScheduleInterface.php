@@ -14,4 +14,6 @@ interface ExamScheduleInterface
     public function getSubjectsByClass(Collection $classIds, $exam);
 
     public function createExam(array $data);
+
+    public function saveExamSchedule($exam, array $schedules);
 }

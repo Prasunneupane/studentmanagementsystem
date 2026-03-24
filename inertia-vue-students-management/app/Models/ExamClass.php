@@ -8,4 +8,9 @@ class ExamClass extends Model
 {
     //
     protected $table = 'tbl_exam_classes';
+    protected $fillable = [
+        'exam_id',
+        'class_id',
+        'section_id',
+    ];
 }

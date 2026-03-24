@@ -6,6 +6,7 @@ use App\Interface\ExamScheduleInterface;
 use App\Models\ClassSubject;
 use App\Models\Exam;
 use App\Models\ExamClass;
+use App\Models\ExamSchedule;
 use App\Models\Subject;
 use DB;
 use Illuminate\Database\Console\Migrations\RollbackCommand;
@@ -113,6 +114,45 @@ class ExamScheduleService implements ExamScheduleInterface
             //     'created_at' => now(),
             // ]);
 
+            throw $e;
+        }
+    }
+
+    public function saveExamSchedule($exam, array $schedules)
+    {
+        try {
+            $examSchedule = DB::transaction(function () use ($exam, $schedules) {
+
+                // Delete existing schedules for this exam
+                ExamClass::where('exam_id', $exam->id)->delete();
+                // dd($schedules);
+                // Insert new schedules
+                $insertRows = collect($schedules)->map(fn($s) => [
+                    'exam_id' => $exam->id,
+                    'class_id' => $s['class_id'],
+                    'section_id' => $s['section_id'] ?? null,
+                    'subject_id' => $s['subject_id']?? null,
+                    'exam_date' => $s['exam_date']?? null,
+                    'start_time' => $s['start_time']?? null,
+                    'end_time' => $s['end_time']?? null,
+                    'room_no' => $s['room_no'] ?? null,
+                    'max_theory_marks' => $s['max_theory_marks'] ?? null,
+                    'max_practical_marks' => $s['max_practical_marks'] ?? null, 
+                    'max_total_marks' => $s['max_total_marks'] ?? null,
+                    'pass_marks' => $s['pass_marks'] ?? null,
+
+                ])->toArray();
+                // dd($insertRows);
+                ExamSchedule::insert($insertRows);
+            });
+            return $examSchedule;
+        } catch (\Exception $e) {
+            Log::error('Failed to save exam schedule', [
+                'message' => $e->getMessage(),
+                'exam_id' => $exam->id,
+                'schedules' => $schedules,
+                'trace' => $e->getTraceAsString(),
+            ]);
             throw $e;
         }
     }

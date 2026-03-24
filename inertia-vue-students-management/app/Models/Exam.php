@@ -24,4 +24,16 @@ class Exam extends Model
     {
         return $this->hasMany(ExamClass::class, 'exam_id');
     }
+
+    public function academicYear()
+    {
+        return $this->belongsTo(AcademicYears::class, 'academic_year_id');
+    }
+
+    public function term()
+    {
+        return $this->belongsTo(Terms::class, 'term_id');
+    }
+
+    
 }

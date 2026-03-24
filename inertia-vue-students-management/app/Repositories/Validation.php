@@ -209,33 +209,23 @@ class Validation
             'exam_classes.*.class_id'     => 'required|exists:tbl_classes,id',
             'exam_classes.*.section_id'   => 'nullable|exists:tbl_section,id',
         ]);
+    }
 
-        //  $data = $request->validate([
-           
-
-      
-        // ]);
-
-        // DB::transaction(function () use ($data, &$exam) {
-        //     $exam = Exam::create([
-        //         'name'             => $data['name'],
-        //         'exam_type'        => $data['exam_type'],
-        //         'academic_year_id' => $data['academic_year_id'],
-        //         'term_id'          => $data['term_id'] ?? null,
-        //         'start_date'       => $data['start_date'],
-        //         'end_date'         => $data['end_date'],
-        //         'weightage'        => $data['weightage'] ?? 100,
-        //         'is_published'     => $data['is_published'] ?? false,
-        //     ]);
-
-        //     // Bulk insert exam_classes
-        //     $insertRows = collect($data['exam_classes'])->map(fn($ec) => [
-        //         'exam_id'    => $exam->id,
-        //         'class_id'   => $ec['class_id'],
-        //         'section_id' => $ec['section_id'] ?? null,
-        //     ])->toArray();
-
-        //     ExamClass::insert($insertRows);
-        // });
+    public function validateExamSchedule($request)
+    {
+        return $request->validate([
+            'schedules'                        => 'required|array|min:1',
+            'schedules.*.class_id'             => 'required|exists:tbl_classes,id',
+            'schedules.*.section_id'           => 'nullable|exists:tbl_section,id',
+            'schedules.*.subject_id'           => 'required|exists:tbl_subjects,id',
+            'schedules.*.exam_date'            => 'required|date',
+            'schedules.*.start_time'           => 'nullable|date_format:H:i',
+            'schedules.*.end_time'             => 'nullable|date_format:H:i',
+            'schedules.*.room_no'              => 'nullable|string|max:50',
+            'schedules.*.max_theory_marks'     => 'nullable|numeric|min:0',
+            'schedules.*.max_practical_marks'  => 'nullable|numeric|min:0',
+            'schedules.*.max_total_marks'      => 'nullable|numeric|min:0',
+            'schedules.*.pass_marks'           => 'nullable|numeric|min:0',
+        ]);
     }
 }

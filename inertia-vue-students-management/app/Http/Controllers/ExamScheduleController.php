@@ -81,46 +81,11 @@ class ExamScheduleController extends Controller
      */
     public function store(Request $request, Exam $exam)
     {
-        $data = $request->validate([
-            'schedules'                        => 'required|array|min:1',
-            'schedules.*.class_id'             => 'required|exists:classes,id',
-            'schedules.*.section_id'           => 'nullable|exists:sections,id',
-            'schedules.*.subject_id'           => 'required|exists:subjects,id',
-            'schedules.*.exam_date'            => 'required|date',
-            'schedules.*.start_time'           => 'nullable|date_format:H:i',
-            'schedules.*.end_time'             => 'nullable|date_format:H:i',
-            'schedules.*.room_no'              => 'nullable|string|max:50',
-            'schedules.*.max_theory_marks'     => 'nullable|numeric|min:0',
-            'schedules.*.max_practical_marks'  => 'nullable|numeric|min:0',
-            'schedules.*.max_total_marks'      => 'nullable|numeric|min:0',
-            'schedules.*.pass_marks'           => 'nullable|numeric|min:0',
-        ]);
+        $data = $this->validation->validateExamSchedule($request);
 
-        DB::transaction(function () use ($data, $exam) {
-            // Delete existing schedules for this exam before re-inserting
-            ExamSchedule::where('exam_id', $exam->id)->delete();
+        $this->examSchedule->saveExamSchedule($exam, $data['schedules']);
 
-            $rows = collect($data['schedules'])->map(fn($s) => [
-                'exam_id'              => $exam->id,
-                'class_id'             => $s['class_id'],
-                'section_id'           => $s['section_id'] ?? null,
-                'subject_id'           => $s['subject_id'],
-                'exam_date'            => $s['exam_date'],
-                'start_time'           => $s['start_time'] ?? null,
-                'end_time'             => $s['end_time'] ?? null,
-                'room_no'              => $s['room_no'] ?? null,
-                'max_theory_marks'     => $s['max_theory_marks'] ?? 80,
-                'max_practical_marks'  => $s['max_practical_marks'] ?? 20,
-                'max_total_marks'      => $s['max_total_marks'] ?? 100,
-                'pass_marks'           => $s['pass_marks'] ?? 40,
-                'created_at'           => now(),
-                'updated_at'           => now(),
-            ])->toArray();
-
-            ExamSchedule::insert($rows);
-        });
-
-        return redirect()->route('exams.show', $exam->id)
+        return redirect()->route('exams.index')
             ->with('success', 'Exam schedule saved successfully.');
     }
 
