@@ -98,8 +98,8 @@
 import { reactive } from 'vue'
 import { router } from '@inertiajs/vue3'
 import { Calendar, RefreshCw } from 'lucide-vue-next'
-import StatCard from '@/Components/StatCard.vue'
-import ExamCard from '@/Components/ExamCard.vue'
+import StatCard from '../exams/StatCard.vue'
+import ExamCard from '../exams/ExamCard.vue'
 import {
   Select,
   SelectContent,
