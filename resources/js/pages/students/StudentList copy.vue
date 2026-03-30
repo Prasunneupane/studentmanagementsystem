@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-vue-next';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { useLocationData, type Student } from '@/composables/fetchData';
+import { useStudentData, type Student } from '@/composables/fetchData';
 import DataTable from '../students/Datatable.vue';
 import DatePicker from '@/components/ui/datepicker/DatePicker.vue'; // Adjust path if needed
 import type { ColumnDef } from '@tanstack/vue-table';

@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Loader2, ChevronRight, ChevronDown } from 'lucide-vue-next';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { useLocationData, type Student } from '@/composables/fetchData';
+import { useStudentData, type Student } from '@/composables/fetchData';
 import DatePicker from '@/components/ui/datepicker/DatePicker.vue';
 import type { ColumnDef } from '@tanstack/vue-table';
 import {
@@ -51,7 +51,7 @@ const {
   loading,
   errorMessage,
   fetchStudentListByDateRange,
-} = useLocationData(form);
+} = useStudentData(form);
 
 // Expandable Row States
 const expandedRows = ref<Set<number>>(new Set());
