@@ -54,7 +54,7 @@ class ExamController extends Controller
         ];
         
         // Get academic years for filter
-        $academicYears = AcademicYears::orderBy('name', 'desc')->get();
+        $academicYears = AcademicYears::orderBy('id', 'desc')->get();
         
         return Inertia::render('exams/Index', [
             'exams' => $exams,
