@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::create('tbl_class_teachers', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('class_id')->constrained('classes');
-            $table->foreignId('section_id')->nullable()->constrained('sections');
+            $table->foreignId('class_id')->constrained('tbl_classes');
+            $table->foreignId('section_id')->nullable()->constrained('tbl_section');
             $table->foreignId('teacher_id')->constrained('tbl_teachers');
             $table->foreignId('academic_year_id')->constrained('tbl_academic_years');
             $table->boolean('is_class_teacher')->default(false);

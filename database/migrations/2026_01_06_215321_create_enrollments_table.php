@@ -61,8 +61,8 @@ return new class extends Migration {
 
             // Foreign key constraints
             $table->foreign('student_id')->references('id')->on('students')->cascadeOnDelete();
-            $table->foreign('class_id')->references('id')->on('classes');
-            $table->foreign('section_id')->references('id')->on('sections');
+            $table->foreign('class_id')->references('id')->on('tbl_classes');
+            $table->foreign('section_id')->references('id')->on('tbl_section');
             $table->foreign('academic_year_id')->references('id')->on('tbl_academic_years');
 
         });

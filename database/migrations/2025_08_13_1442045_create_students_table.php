@@ -21,7 +21,7 @@ return new class extends Migration
             $table->string('age');
             $table->date('date_of_birth');
             $table->foreignId('class_id')
-                  ->constrained('classes') // references 'id' on 'classes'
+                  ->constrained('tbl_classes') // references 'id' on 'classes'
                   ->onDelete('cascade');
             $table->string('section_id')->nullable();
             $table->string('father_name')->nullable();
