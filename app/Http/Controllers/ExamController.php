@@ -17,32 +17,31 @@ class ExamController extends Controller
     /**
      * Display a listing of the resource.
      */
-   private  CommonServiceInterface $commonServices;
-   private ExamScheduleInterface $examScheduleService;
-   private $validation;
+    private CommonServiceInterface $commonServices;
+    private ExamScheduleInterface $examScheduleService;
+    private $validation;
     public function __construct(
         CommonServiceInterface $commonServices,
         ExamScheduleInterface $examScheduleService,
         Validation $validation
-    )
-    {
+    ) {
         $this->commonServices = $commonServices;
         $this->validation = $validation;
         $this->examScheduleService = $examScheduleService;
     }
-     public function index(Request $request)
+    public function index(Request $request)
     {
         $exams = Exam::with(['academicYear', 'term'])
             ->when($request->academic_year_id, fn($q) => $q->where('academic_year_id', $request->academic_year_id))
             ->when($request->exam_type, fn($q) => $q->where('exam_type', $request->exam_type))
-            ->when($request->status, function($q, $status) {
+            ->when($request->status, function ($q, $status) {
                 if ($status !== 'all') {
                     $q->where('status', $status);
                 }
             })
             ->orderBy('start_date', 'desc')
             ->paginate(12);
-        
+
         // Get counts for dashboard stats
         $stats = [
             'total_exams' => Exam::count(),
@@ -52,10 +51,10 @@ class ExamController extends Controller
             'draft_exams' => Exam::where('status', 'draft')->count(),
             'published_exams' => Exam::where('is_published', true)->count(),
         ];
-        
+
         // Get academic years for filter
         $academicYears = AcademicYears::orderBy('id', 'desc')->get();
-        
+
         return Inertia::render('exams/Index', [
             'exams' => $exams,
             'stats' => $stats,
@@ -63,7 +62,7 @@ class ExamController extends Controller
             'academicYears' => $academicYears,
         ]);
     }
-    
+
     /**
      * Display the specified exam details with schedules
      */
@@ -84,16 +83,16 @@ class ExamController extends Controller
                 ->orderBy('class_id')
                 ->orderBy('section_id'),
         ]);
-        
+
         // Bulk-load class_subjects (with teacher) for all relevant classes
         $classIds = $exam->examClasses->pluck('class_id')->unique();
-        
+
         $classSubjectMap = ClassSubject::whereIn('class_id', $classIds)
             ->with('teacher:id,first_name,last_name')
             ->get()
             ->groupBy('class_id')
             ->map(fn($rows) => $rows->keyBy('subject_id'));
-        
+
         // Group exam_classes by class for better frontend structure
         $examClasses = $exam->examClasses
             ->groupBy('class_id')
@@ -101,11 +100,11 @@ class ExamController extends Controller
                 $first = $rows->first();
                 $classId = $first->class_id;
                 $csMap = $classSubjectMap[$classId] ?? collect();
-                
+
                 // Group schedules by date for calendar view
                 $allSchedules = $rows->flatMap(fn($ec) => $ec->schedules);
                 $schedulesByDate = $allSchedules->groupBy(fn($sch) => $sch->exam_date->format('Y-m-d'));
-                
+
                 return [
                     'class_id' => $classId,
                     'class_name' => $first->class?->name ?? 'Unknown Class',
@@ -120,7 +119,7 @@ class ExamController extends Controller
                                 $teacherName = $teacher
                                     ? trim("{$teacher->first_name} {$teacher->last_name}")
                                     : null;
-                                
+
                                 return [
                                     'id' => $sch->id,
                                     'subject_id' => $sch->subject_id,
@@ -157,7 +156,7 @@ class ExamController extends Controller
                 ];
             })
             ->values();
-        
+
         return Inertia::render('exams/Show', [
             'exam' => [
                 'id' => $exam->id,
@@ -179,7 +178,7 @@ class ExamController extends Controller
             'examClasses' => $examClasses,
         ]);
     }
-    
+
     /**
      * Print-friendly view of exam schedule
      */
@@ -192,13 +191,13 @@ class ExamController extends Controller
             'examClasses.section',
             'examClasses.schedules.subject',
         ]);
-        
+
         return Inertia::render('exams/Print', [
             'exam' => $exam,
             'examClasses' => $exam->examClasses->groupBy('class_id'),
         ]);
     }
-    
+
     private function getExamTypeLabel($type)
     {
         return [
@@ -209,7 +208,7 @@ class ExamController extends Controller
             'annual' => 'Annual',
         ][$type] ?? ucfirst($type);
     }
-    
+
     private function getStatusLabel($status)
     {
         return [
@@ -219,7 +218,7 @@ class ExamController extends Controller
             'completed' => 'Completed',
         ][$status] ?? ucfirst($status);
     }
-    
+
     private function getStatusColor($status)
     {
         return [
@@ -242,7 +241,7 @@ class ExamController extends Controller
         return Inertia::render('exams/ExamCreate', [
             'classes' => $classesSection,
             'academicYears' => $academicYears,
-            'terms' => $termsList, 
+            'terms' => $termsList,
             'currentAcademicYear' => $currentYear
         ]);
     }
@@ -263,7 +262,7 @@ class ExamController extends Controller
     /**
      * Display the specified resource.
      */
-    
+
     /**
      * Show the form for editing the specified resource.
      */
@@ -286,5 +285,79 @@ class ExamController extends Controller
     public function destroy(Exam $exam)
     {
         //
+    }
+
+    public function scheduleIndex(Request $request)
+    {
+        $exams = $this->examScheduleService->getAllSchedulesForIndex();
+
+        $academicYears = AcademicYears::orderBy('id', 'desc')->get()
+            ->map(fn($y) => ['value' => (string) $y->id, 'label' => $y->name]);
+
+        return Inertia::render('exams/ScheduleIndex', [
+            'exams' => $exams,
+            'academicYears' => $academicYears,
+            'filters' => $request->only(['academic_year_id', 'exam_type', 'status', 'search']),
+        ]);
+    }
+
+    // ── View schedule detail for one exam (used by the slide-over) ───
+    public function scheduleShow(int $id)
+    {
+        $exam = $this->examScheduleService->getExamWithDetails($id);
+        // dd($exam);
+        $groupedSchedule = $this->examScheduleService->getScheduleGroupedByClass($id);
+        
+        if (!$exam)
+            abort(404);
+        // dd($groupedSchedule);
+        return Inertia::render('exams/Schedule', [
+            'exam' => $exam,
+            'groupedSchedule' => $groupedSchedule,
+        ]);
+    }
+
+    // ── Delete a schedule row ────────────────────────────────────────
+    public function scheduleDestroy(int $id)
+    {
+        $this->examScheduleService->deleteSchedule($id);
+        return back()->with('success', 'Schedule deleted successfully.');
+    }
+
+    // ── Toggle is_active on parent exam ─────────────────────────────
+    public function toggleActive(int $id)
+    {
+        $exam = $this->examScheduleService->toggleActive($id);
+        return back()->with('success', 'Status updated.');
+    }
+
+    public function schedule(int $id)
+    {
+        $exam = $this->examScheduleService->getExamWithDetails($id);
+
+        if (!$exam) {
+            abort(404);
+        }
+        
+        $groupedSchedule = $this->examScheduleService->getScheduleGroupedByClass($id);
+        
+        // Unique classes enrolled in this exam (from exam_classes)
+        $classes = $exam->examClasses
+            ->groupBy('class_id')
+            ->map(fn($rows) => [
+                'class_id' => $rows->first()->class_id,
+                'class_name' => $rows->first()->class->name ?? 'N/A',
+                'sections' => $rows->map(fn($r) => [
+                    'section_id' => $r->section_id,
+                    'section_name' => $r->section->name ?? 'N/A',
+                ])->values(),
+            ])
+            ->values();
+        // dd($classes);
+        return Inertia::render('exams/Schedule', [
+            'exam' => $exam,
+            'groupedSchedule' => $groupedSchedule,
+            'classes' => $classes,
+        ]);
     }
 }

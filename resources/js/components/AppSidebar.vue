@@ -190,7 +190,7 @@ const mainNavItems = computed((): NavItem[] => {
     if (permissions.value.exams.canView) {
       examItems.push({
         title: 'View Exams',
-        href: '/exams',
+        href: '/exams/exam-schedules',
         icon: Eye,
       });
     }

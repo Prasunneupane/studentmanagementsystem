@@ -16,4 +16,10 @@ interface ExamScheduleInterface
     public function createExam(array $data);
 
     public function saveExamSchedule($exam, array $schedules);
+     public function getScheduleByExam(int $examId): array;
+    public function getScheduleGroupedByClass(int $examId): array;
+    public function getExamWithDetails(int $examId): ?object;
+    public function getAllSchedulesForIndex(): \Illuminate\Pagination\LengthAwarePaginator;
+    public function deleteSchedule(int $scheduleId): bool;
+    public function toggleActive(int $scheduleId): object;
 }

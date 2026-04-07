@@ -23,7 +23,7 @@ Route::get('/', function () {
 })->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    
+
     // Dashboard - accessible to all authenticated users
     Route::get('/dashboard', function () {
         return Inertia::render('Dashboard');
@@ -32,18 +32,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Student Management Routes
     Route::prefix('students')->name('students.')->group(function () {
         // View students list - requires students.view permission
-            Route::middleware(['permission:students.create'])->group(function () {
+        Route::middleware(['permission:students.create'])->group(function () {
             Route::get('/create', [StudentsController::class, 'create'])->name('create');
             Route::post('/store', [StudentsController::class, 'store'])->name('store');
         });
         Route::middleware(['permission:students.view'])->group(function () {
             Route::get('/', [StudentsController::class, 'index'])->name('index');
             Route::get('/{student}', [StudentsController::class, 'show'])->name('show');
-             Route::get('/load/by-date-range', [StudentsController::class, 'loadByDateRange'])->name('load.by.date.range');
-        
-            });
+            Route::get('/load/by-date-range', [StudentsController::class, 'loadByDateRange'])->name('load.by.date.range');
 
-    // Edit student - requires students.edit permission
+        });
+
+        // Edit student - requires students.edit permission
         Route::middleware(['permission:students.edit'])->group(function () {
             Route::get('/{student}/edit', [StudentsController::class, 'edit'])->name('edit');
             Route::put('/{student}', [StudentsController::class, 'update'])->name('update');
@@ -57,7 +57,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/{student}/guardians', [StudentsController::class, 'storeGuardian'])->name('guardians.store');
         Route::put('/guardians/{guardian}', [StudentsController::class, 'updateGuardian'])->name('guardians.update');
         Route::delete('/guardians/{guardian}', [StudentsController::class, 'destroyGuardian'])->name('guardians.destroy');
-        
+
     });
 
     // Subject Management Routes
@@ -192,27 +192,27 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Class-Subject Assignment Routes
     Route::prefix('class-subjects')->name('class-subjects.')->group(function () {
 
-    Route::middleware(['permission:view_class_subjects'])->group(function () {
-        Route::get('/', [ClassSubjectController::class, 'index'])->name('index');
-    });
+        Route::middleware(['permission:view_class_subjects'])->group(function () {
+            Route::get('/', [ClassSubjectController::class, 'index'])->name('index');
+        });
 
-    Route::middleware(['permission:create_class_subjects'])->group(function () {
-        Route::get('/create', [ClassSubjectController::class, 'create'])->name('create');
-        Route::post('/', [ClassSubjectController::class, 'store'])->name('store');
-    });
+        Route::middleware(['permission:create_class_subjects'])->group(function () {
+            Route::get('/create', [ClassSubjectController::class, 'create'])->name('create');
+            Route::post('/', [ClassSubjectController::class, 'store'])->name('store');
+        });
 
-    Route::middleware(['permission:edit_class_subjects'])->group(function () {
-        Route::get('/{classSubject}/edit', [ClassSubjectController::class, 'edit'])->name('edit');
-        Route::put('/{classSubject}', [ClassSubjectController::class, 'update'])->name('update');
-    });
+        Route::middleware(['permission:edit_class_subjects'])->group(function () {
+            Route::get('/{classSubject}/edit', [ClassSubjectController::class, 'edit'])->name('edit');
+            Route::put('/{classSubject}', [ClassSubjectController::class, 'update'])->name('update');
+        });
 
-    Route::middleware(['permission:delete_class_subjects'])->group(function () {
-        Route::delete('/{classSubject}', [ClassSubjectController::class, 'destroy'])->name('destroy');
-    });
+        Route::middleware(['permission:delete_class_subjects'])->group(function () {
+            Route::delete('/{classSubject}', [ClassSubjectController::class, 'destroy'])->name('destroy');
+        });
 
-    Route::get('/sections-by-class', [ClassSubjectController::class, 'getSectionsByClass'])
-        ->name('sections-by-class');
-});
+        Route::get('/sections-by-class', [ClassSubjectController::class, 'getSectionsByClass'])
+            ->name('sections-by-class');
+    });
 
     Route::prefix('class-teacher')->name('class-teacher.')->group(function () {
 
@@ -285,15 +285,22 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::middleware(['permission:delete_exams'])->group(function () {
             Route::delete('/delete/{exam}', [ExamController::class, 'destroy'])->name('delete');
         });
-        Route::get('/{exam}/schedule',  [ExamScheduleController::class, 'create'])->name('schedule');
+        Route::get('/exam-schedules', [ExamController::class, 'scheduleIndex'])->name('exam-schedules.index');
+        Route::get('/exam-schedules/{id}', [ExamController::class, 'scheduleShow'])->name('exam-schedules.show');
+        Route::delete('/exam-schedules/{id}', [ExamController::class, 'scheduleDestroy'])->name('exam-schedules.destroy');
+        Route::patch('/exam-schedules/{id}/toggle', [ExamController::class, 'toggleActive'])->name('exam-schedules.toggle');
+        
+        Route::get('/{id}/schedule', [ExamController::class, 'schedule']);
+
+        Route::get('/{exam}/schedule', [ExamScheduleController::class, 'create'])->name('schedule');
         Route::post('/{exam}/schedule', [ExamScheduleController::class, 'store'])->name('schedule.store');
 
     });
 
     Route::get('get-districts-by-state_id', [StudentsController::class, 'get_districts_by_state_id'])->name('get_districts_by_state_id');
     Route::get('get-municipalities-by-district_id', [StudentsController::class, 'get_municipalities_by_district_id'])->name('get_municipalities_by_district_id');
-    Route::get('get-sections-by-class_id', [ClassSectionController::class, 'get_sections_by_class_id'])->name('get_sections_by_class_id');  
+    Route::get('get-sections-by-class_id', [ClassSectionController::class, 'get_sections_by_class_id'])->name('get_sections_by_class_id');
 });
 
-require __DIR__.'/settings.php';
-require __DIR__.'/auth.php';
+require __DIR__ . '/settings.php';
+require __DIR__ . '/auth.php';

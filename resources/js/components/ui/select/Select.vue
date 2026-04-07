@@ -6,7 +6,7 @@ import {
   SelectIcon,
   SelectContent,
   SelectViewport,
-} from "radix-vue"
+} from "@/components/ui/select"
 import { ChevronDown } from "lucide-vue-next"
 
 // 👇 This line declares that <Select v-model="country"> works
