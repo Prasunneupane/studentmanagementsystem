@@ -292,8 +292,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         
         Route::get('/{id}/schedule', [ExamController::class, 'schedule']);
 
-        Route::get('/{exam}/schedule', [ExamScheduleController::class, 'create'])->name('schedule');
-        Route::post('/{exam}/schedule', [ExamScheduleController::class, 'store'])->name('schedule.store');
+        // Route::get('/{exam}/schedule', [ExamScheduleController::class, 'create'])->name('schedule');
+        // Route::post('/{exam}/schedule', [ExamScheduleController::class, 'store'])->name('schedule.store');
 
     });
 

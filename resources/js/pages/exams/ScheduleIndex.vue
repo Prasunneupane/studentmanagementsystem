@@ -11,8 +11,14 @@ import 'vue-sonner/style.css'
 import {
   Search, Eye, Trash2, X, ChevronDown, ChevronRight,
   Calendar, BookOpen, Users, CheckCircle2, AlertTriangle,
-  ToggleLeft, ToggleRight, Plus
+  ToggleLeft, ToggleRight, Plus,
+  Printer,
+  FileText,
+  FileSpreadsheet
 } from 'lucide-vue-next'
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const { toast } = useToast()
 
@@ -209,23 +215,26 @@ const panelGroups  = ref<ClassGroup[]>([])
 const collapsed    = ref<Record<string, boolean>>({})
 
 const openPanel = async (exam: Exam) => {
-  panelExam.value  = exam
-  panelGroups.value = []
-  panelOpen.value  = true
-  panelLoading.value = true
-  collapsed.value  = {}
+  // panelExam.value  = exam
+  // panelGroups.value = []
+  // panelOpen.value  = true
+  // panelLoading.value = true
+  // collapsed.value  = {}
 
-  try {
-    const res = await fetch(`/exams/${exam.id}/schedule`, {
-      headers: { 'X-Inertia': 'true', 'X-Inertia-Version': '', Accept: 'application/json' },
-    })
-    const json = await res.json()
-    panelGroups.value = json.props?.groupedSchedule ?? []
-  } catch {
-    toast.error('Failed to load schedule details')
-  } finally {
-    panelLoading.value = false
-  }
+  // try {
+  //   const res = await fetch(`/exams/${exam.id}/schedule`, {
+  //     headers: { 'X-Inertia': 'true', 'X-Inertia-Version': '', Accept: 'application/json' },
+  //   })
+  //   const json = await res.json()
+  //   panelGroups.value = json.props?.groupedSchedule ?? []
+  // } catch {
+  //   toast.error('Failed to load schedule details')
+  // } finally {
+  //   panelLoading.value = false
+  // }
+  route.visit('exams/exam-schedules/' + exam.id, {
+    method: 'get',
+  })
 }
 
 const closePanel = () => {
@@ -249,6 +258,193 @@ let ci = 0
 const subjColor = (name: string) => {
   if (!colorMap[name]) colorMap[name] = colorPool[ci++ % colorPool.length]
   return colorMap[name]
+}
+
+const headers = ['S.No', 'Exam', 'Type', 'Period', 'Schedules', 'Status', 'Active']
+const data = props.exams.data.map((e, i) => [
+  (props.exams.from + i).toString(),
+  e.name,
+  typeLabel[e.exam_type] ?? e.exam_type,
+  `${fmt(e.start_date)} → ${fmt(e.end_date)}`,
+  `${e.exam_schedules_count} schedule${e.exam_schedules_count !== 1 ? 's' : ''}`,
+  getCfg(e.status).label,
+  e.is_active ? 'True' : 'False',
+])
+const printSchedule = () => {
+  const title = 'Exam Schedules List'
+   const printWindow = window.open('', '_blank');
+  if (!printWindow) return;
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>${title}</title>
+      <style>
+        @media print {
+          @page {
+            size: A4;
+           
+          }
+          body {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+        }
+        body {
+          font-family: Arial, sans-serif;
+          padding: 20px;
+          margin: 0;
+        }
+        h1 {
+          text-align: center;
+          margin-bottom: 20px;
+          font-size: 24px;
+          color: #333;
+        }
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-top: 20px;
+        }
+        th, td {
+          border: 1px solid #ddd;
+          padding: 12px 8px;
+          text-align: left;
+          font-size: 12px;
+        }
+        th {
+          background-color: #f3f4f6;
+          font-weight: bold;
+          color: #374151;
+        }
+        tr:nth-child(even) {
+          background-color: #f9fafb;
+        }
+        tr:hover {
+          background-color: #f3f4f6;
+        }
+        .no-print {
+          display: none;
+        }
+        .print-info {
+          text-align: center;
+          margin-top: 20px;
+          font-size: 11px;
+          color: #666;
+        }
+      </style>
+    </head>
+    <body>
+      <h1>${title}</h1>
+      <p style="text-align: center; color: #666; margin-bottom: 20px;">
+        Generated on ${new Date().toLocaleString()}
+      </p>
+      <table>
+        <thead>
+          <tr>
+            ${headers.map(h => `<th>${h}</th>`).join('')}
+          </tr>
+        </thead>
+        <tbody>
+          ${data.map(row => `
+            <tr>
+              ${row.map(cell => `<td>${cell}</td>`).join('')}
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      <div class="print-info">
+        Total Records: ${data.length}
+      </div>
+    </body>
+    </html>
+  `;
+
+  printWindow.document.write(htmlContent);
+  printWindow.document.close();
+  
+  // Wait for content to load then print
+  printWindow.onload = () => {
+    printWindow.focus();
+    printWindow.print();
+  };
+   printWindow.onafterprint = function() {
+    printWindow.close();
+  };
+}
+
+const exportToExcel = () => {
+  
+    
+    // Create worksheet
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
+    
+    // Set column widths
+    const colWidths = headers.map(() => ({ wch: 15 }));
+    ws['!cols'] = colWidths;
+    
+    // Create workbook
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Data');
+    
+    // Generate filename
+    const filename = `${'data'}_${new Date().toISOString().split('T')[0]}.xlsx`;
+    
+    // Save file
+    XLSX.writeFile(wb, filename);
+}
+
+const printPDF = () => {
+  const title =  'Exam Schedules List';
+  
+  // Create PDF
+  const doc = new jsPDF('l', 'mm', 'a4'); // landscape, millimeters, A4
+  
+  // Add title
+  doc.setFontSize(16);
+  doc.text(title, 14, 15);
+  
+  // Add date
+  doc.setFontSize(10);
+  doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 22);
+  
+  // Add table
+  autoTable(doc, {
+    head: [headers],
+    body: data,
+    startY: 28,
+    styles: {
+      fontSize: 9,
+      cellPadding: 3,
+    },
+    headStyles: {
+      fillColor: [59, 130, 246], // Blue color
+      textColor: 255,
+      fontStyle: 'bold',
+    },
+    alternateRowStyles: {
+      fillColor: [249, 250, 251], // Light gray
+    },
+    margin: { top: 28, right: 14, bottom: 14, left: 14 },
+  });
+  
+  // Add footer
+  const pageCount = doc.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.text(
+      `Page ${i} of ${pageCount}`,
+      doc.internal.pageSize.getWidth() / 2,
+      doc.internal.pageSize.getHeight() - 10,
+      { align: 'center' }
+    );
+  }
+  
+  // Save PDF
+  const filename = `${'data'}_${new Date().toISOString().split('T')[0]}.pdf`;
+  doc.save(filename);
 }
 </script>
 
@@ -337,14 +533,32 @@ const subjColor = (name: string) => {
             <Button variant="outline" size="sm" @click="cancelDelete" :disabled="deleting">Cancel</Button>
             <Button size="sm" class="bg-red-600 hover:bg-red-700 text-white" @click="doDelete" :disabled="deleting">
               <Trash2 class="w-3.5 h-3.5 mr-1.5" />
-              {{ deleting ? 'Deleting...' : 'Yes, Delete' }}
+                {{ deleting ? 'Deleting...' : 'Yes, Delete' }}
             </Button>
           </div>
         </div>
       </div>
 
       <!-- ── Table ───────────────────────────────────────────── -->
+      <div class="flex items-center justify-end  gap-2">
+        
+        <Button variant="outline" v-if="exams.data.length >0" size="sm" class=" text-black float-right gap-2" @click="printPDF">
+          <FileText class="h-4 w-4" />  
+             PDF 
+          </Button>  
+        
+          <Button variant="outline" v-if="exams.data.length >0" size="sm" class=" text-black float-right gap-2" @click="exportToExcel">
+             <FileSpreadsheet class="h-4 w-4" />
+            Excel
+          </Button>
+          <Button variant="outline" v-if="exams.data.length >0" size="sm" class=" text-black float-right gap-2" @click="printSchedule">
+            <Printer class="h-4 w-4" />
+            Print
+          </Button>
+          
+      </div>
       <div class="bg-card border rounded-2xl overflow-hidden">
+        
         <div class="overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
@@ -436,13 +650,13 @@ const subjColor = (name: string) => {
                 <!-- Actions -->
                 <td class="px-4 py-3">
                   <div class="flex items-center gap-2">
-                    <Button size="sm" variant="outline" class="h-7 px-2.5 text-xs" @click="openPanel(exam)">
-                      <Eye class="w-3.5 h-3.5 mr-1" /> View
+                    <Button size="sm" variant="outline" class="h-7 px-2.5 text-xs" @click="router.visit(`/exams/exam-schedules/${exam?.id}`)">
+                      <Eye class="w-3.5 h-3.5 mr-1" /> 
                     </Button>
                     <Button size="sm" variant="outline"
                       class="h-7 px-2.5 text-xs text-red-600 border-red-200 hover:bg-red-50"
                       @click="confirmDelete(exam.id)">
-                      <Trash2 class="w-3.5 h-3.5 mr-1" /> Delete
+                      <Trash2 class="w-3.5 h-3.5 mr-1" /> 
                     </Button>
                   </div>
                 </td>
