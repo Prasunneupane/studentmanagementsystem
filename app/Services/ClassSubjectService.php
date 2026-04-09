@@ -53,7 +53,7 @@ class ClassSubjectService implements ClassSubjectInterface
     }
 
     public function getTeacherList(){
-        return Teachers::select('id as value', 'name as label')->get()->toArray();
+        return Teachers::select('id as value', 'name as label')->where('is_active', 1)->get()->toArray();
     }
 
     public function getCurrentAcademicYear(){
@@ -67,6 +67,7 @@ class ClassSubjectService implements ClassSubjectInterface
 
     public function create($data){
         $data['created_by'] = auth()->user()->id;
+        // dd($data);
         return ClassSubject::create($data);
     }
 

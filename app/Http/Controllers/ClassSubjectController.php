@@ -188,6 +188,7 @@ class ClassSubjectController extends Controller
         
         $classSubject->is_active = false;
         $classSubject->update();
+        // dd($classSubject);
         return response()->json([
             'success' => true,
             'message' => 'Assignment deleted successfully'
