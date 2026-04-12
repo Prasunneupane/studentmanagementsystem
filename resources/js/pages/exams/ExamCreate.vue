@@ -356,10 +356,10 @@ const handleSubmit = () => {
 
             <!-- Actions -->
             <div class="flex justify-end gap-3 pt-4 border-t">
-              <Button type="button" variant="outline" @click="router.visit('/exams')">
+              <Button type="button" class="cursor-pointer" variant="outline" @click="router.visit('/exams')">
                 <X class="mr-2 h-4 w-4" /> Cancel
               </Button>
-              <Button type="button" @click="goToStep2" :disabled="Object.keys(step1Errors).length > 0">
+              <Button type="button" class="cursor-pointer" @click="goToStep2" :disabled="Object.keys(step1Errors).length > 0">
                 Next: Select Classes
                 <ChevronRight class="ml-2 h-4 w-4" />
               </Button>

@@ -13,7 +13,7 @@ class SectionSeeder extends Seeder
      */
     public function run(): void
     {
-        $sections = range('A', 'H'); // generates ['A','B','C',...,'H']
+        $sections = range('A', 'J'); // generates ['A','B','C',...,'H']
 
         foreach ($sections as $letter) {
             DB::table('tbl_section')->insert([

@@ -1,34 +1,62 @@
 <?php
-// app/Services/PermissionService_php
 
 namespace App\Services;
 
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 class PermissionService
 {
+    private const CACHE_TTL  = 3600;
+    private const VERSION_KEY = 'permissions_version';
+
     /* ======================================================
-     | CORE: VERSIONED PERMISSION RESOLUTION
+     | VERSION MANAGEMENT
+     ====================================================== */
+
+    public function getVersion(): int
+    {
+        return (int) Cache::get(self::VERSION_KEY, 1);
+    }
+
+    public function bumpVersion(): void
+    {
+        if (!Cache::has(self::VERSION_KEY)) {
+            Cache::forever(self::VERSION_KEY, 1);
+        } else {
+            Cache::increment(self::VERSION_KEY);
+        }
+    }
+
+    public function clearUserCache(int $userId): void
+    {
+        $version = $this->getVersion();
+        Cache::forget("user_permissions_{$userId}_v{$version}");
+        Cache::forget("user_is_super_admin_{$userId}_v{$version}");
+    }
+
+    /* ======================================================
+     | CORE: PERMISSION RESOLUTION
+     | Works with YOUR existing User/Roles/Permission models
+     | as-is — no model changes needed
      ====================================================== */
 
     public function getUserPermissions(User $user): array
     {
-        $version = Cache::get('permissions_version');
+        $version = $this->getVersion();
 
-        if (!$version) {
-            Cache::forever('permissions_version', 1);
-            $version = 1;
-        }
-        // dd($version);
         return Cache::remember(
             "user_permissions_{$user->id}_v{$version}",
-            3600,
+            self::CACHE_TTL,
             function () use ($user) {
-                return $user->roles()
-                    ->where('tbl_roles.is_active', true)
-                    ->with(['permissions' => function ($query) {
-                        $query->where('tbl_permissions.is_active', true);
+                // Uses User::roles() which is tbl_user_roles pivot
+                // Uses Roles::permissions() which is tbl_role_permission pivot
+                $slugs = $user->roles()
+                    ->wherePivot('is_active', true)        // tbl_user_roles.is_active
+                    ->where('tbl_roles.is_active', true)   // active roles only
+                    ->with(['permissions' => function ($q) {
+                        $q->where('tbl_permissions.is_active', true); // active perms only
                     }])
                     ->get()
                     ->pluck('permissions')
@@ -37,110 +65,125 @@ class PermissionService
                     ->unique()
                     ->values()
                     ->toArray();
+
+                Log::debug('[PermissionService] Resolved permissions', [
+                    'user_id' => $user->id,
+                    'count'   => count($slugs),
+                    'slugs'   => $slugs,
+                ]);
+
+                return $slugs;
             }
         );
     }
 
     /* ======================================================
-     | NAVIGATION / UI PERMISSIONS
-     ====================================================== */
-
-    public function getNavigationItems(User $user): array
-    {
-        $permissions = $this->getUserPermissions($user);
-        // dd($permissions);
-        return [
-            'canViewDashboard' => true,
-
-            'students' => $this->crudPermissions($permissions, 'students'),
-            'guardians' => $this->crudPermissions($permissions, 'guardians'),
-            'subjects' => $this->crudPermissions($permissions, 'subjects'),
-            'teachers' => $this->crudPermissions($permissions, 'teachers'),
-            'terms' => $this->crudPermissions($permissions, 'terms'),
-            'users' => $this->crudPermissions($permissions, 'users'),
-            'classSubjects' => $this->crudPermissions($permissions, 'class_subjects'),
-            'classTeachers' => $this->crudPermissions($permissions, 'class_teachers'),
-            'roles' => array_merge(
-                $this->crudPermissions($permissions, 'roles'),
-                ['canAssignPermissions' => in_array('assign_permissions', $permissions)]
-            ),
-            'permissions' => $this->crudPermissions($permissions, 'permissions'),
-            'exams' => $this->crudPermissions($permissions, 'exams'),
-            'settings' => [
-                'canView' => in_array('view_settings', $permissions),
-                'canEdit' => in_array('edit_settings', $permissions),
-            ],
-
-            'canManageMasterSettings' => $this->hasAny($permissions, [
-                'view_roles', 'create_roles', 'edit_roles', 'delete_roles',
-                'view_permissions', 'create_permissions', 'edit_permissions', 'delete_permissions',
-                'view_users', 'create_users', 'edit_users', 'delete_users',
-            ]),
-
-            'auth' => [
-                'isSuperAdmin' => $this->isSuperAdmin($user),
-                'user' => $user->only(['id', 'name', 'email']),
-                'roles' => $user->roles->pluck('name'),
-                'permissions' => $permissions,
-            ],
-        ];
-    }
-
-    /* ======================================================
-     | HELPERS
-     ====================================================== */
-
-    private function crudPermissions(array $permissions, string $resource): array
-    {
-        return [
-            'canManage' => $this->hasAny($permissions, [
-                "view_{$resource}",
-                "create_{$resource}",
-                "edit_{$resource}",
-                "delete_{$resource}",
-            ]),
-            'canView' => in_array("view_{$resource}", $permissions),
-            'canCreate' => in_array("create_{$resource}", $permissions),
-            'canEdit' => in_array("edit_{$resource}", $permissions),
-            'canDelete' => in_array("delete_{$resource}", $permissions),
-        ];
-    }
-
-    public function hasAny(array $userPermissions, array $required): bool
-    {
-        return !empty(array_intersect($userPermissions, $required));
-    }
-
-    public function hasAll(array $userPermissions, array $required): bool
-    {
-        return empty(array_diff($required, $userPermissions));
-    }
-
-    /* ======================================================
-     | SUPER ADMIN (VERSIONED)
+     | SUPER ADMIN CHECK (versioned cache)
      ====================================================== */
 
     public function isSuperAdmin(User $user): bool
     {
-        $version = Cache::get('permissions_version', 1);
+        $version = $this->getVersion();
 
         return Cache::remember(
             "user_is_super_admin_{$user->id}_v{$version}",
-            3600,
-            fn () => $user->roles()->where('name', 'Super Admin')->exists()
+            self::CACHE_TTL,
+            fn () => $user->roles()
+                ->wherePivot('is_active', true)
+                ->where('tbl_roles.name', 'Super Admin')
+                ->exists()
         );
     }
 
     /* ======================================================
-     | GLOBAL INVALIDATION (🔥 THIS IS THE KEY)
+     | PERMISSION CHECKS
      ====================================================== */
 
-    public function bumpPermissionsVersion(): void
+    /**
+     * User has at least one of the given permission slugs.
+     * Super admin always returns true.
+     */
+    public function hasAny(User $user, array $requiredSlugs): bool
     {
-        if (!Cache::has('permissions_version')) {
-            Cache::forever('permissions_version', 2); // start at 2
-        } else {
-            Cache::increment('permissions_version');
+        if ($this->isSuperAdmin($user)) {
+            return true;
         }
+
+        if (empty($requiredSlugs)) {
+            return true;
+        }
+
+        $userPermissions = $this->getUserPermissions($user);
+
+        return !empty(array_intersect($requiredSlugs, $userPermissions));
+    }
+
+    /**
+     * User has ALL of the given permission slugs.
+     * Super admin always returns true.
+     */
+    public function hasAll(User $user, array $requiredSlugs): bool
+    {
+        if ($this->isSuperAdmin($user)) {
+            return true;
+        }
+
+        $userPermissions = $this->getUserPermissions($user);
+
+        return empty(array_diff($requiredSlugs, $userPermissions));
+    }
+
+    /* ======================================================
+     | NAVIGATION PERMISSIONS (Inertia shared data)
+     ====================================================== */
+
+    public function getNavigationPermissions(User $user): array
+    {
+        $isSuperAdmin = $this->isSuperAdmin($user);
+        $permissions  = $isSuperAdmin ? [] : $this->getUserPermissions($user);
+
+        $can = fn(string $slug): bool =>
+            $isSuperAdmin || in_array($slug, $permissions, true);
+
+        $crud = fn(string $resource): array => [
+            'canManage' => $can("view_{$resource}") || $can("create_{$resource}")
+                        || $can("edit_{$resource}") || $can("delete_{$resource}"),
+            'canView'   => $can("view_{$resource}"),
+            'canCreate' => $can("create_{$resource}"),
+            'canEdit'   => $can("edit_{$resource}"),
+            'canDelete' => $can("delete_{$resource}"),
+        ];
+
+        return [
+            'canViewDashboard'        => true,
+            'students'                => $crud('students'),
+            'guardians'               => $crud('guardians'),
+            'subjects'                => $crud('subjects'),
+            'teachers'                => $crud('teachers'),
+            'terms'                   => $crud('terms'),
+            'users'                   => $crud('users'),
+            'classSubjects'           => $crud('class_subjects'),
+            'classTeachers'           => $crud('class_teachers'),
+            'exams'                   => $crud('exams'),
+            'roles'                   => array_merge($crud('roles'), [
+                'canAssignPermissions' => $can('assign_permissions'),
+            ]),
+            'permissions'             => $crud('permissions'),
+            'settings'                => [
+                'canView' => $can('view_settings'),
+                'canEdit' => $can('edit_settings'),
+            ],
+            'canManageMasterSettings' => $isSuperAdmin || $this->hasAny($user, [
+                'view_roles', 'create_roles', 'edit_roles', 'delete_roles',
+                'view_permissions', 'create_permissions', 'edit_permissions', 'delete_permissions',
+                'view_users', 'create_users', 'edit_users', 'delete_users',
+            ]),
+            'auth' => [
+                'isSuperAdmin' => $isSuperAdmin,
+                'user'         => $user->only(['id', 'name', 'email']),
+                'roles'        => $user->roles->pluck('name'),
+                'permissions'  => $isSuperAdmin ? ['*'] : $permissions,
+            ],
+        ];
     }
 }

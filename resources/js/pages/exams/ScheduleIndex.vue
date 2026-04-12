@@ -461,8 +461,8 @@ const printPDF = () => {
           <h1 class="text-xl font-bold tracking-tight">Exam Schedules</h1>
           <p class="text-sm text-muted-foreground mt-0.5">Manage and view all exam timetables</p>
         </div>
-        <Button @click="router.visit('/exams/create')">
-          <Plus class="w-4 h-4 mr-1.5" /> Add Schedule
+        <Button @click="router.visit('/exams/create')" class="cursor-pointer">
+          <Plus class="w-4 h-4 mr-1.5 " /> Add Schedule
         </Button>
       </div>
 

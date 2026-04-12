@@ -41,7 +41,7 @@ class UserCheckController extends Controller
     {
         
         $userList = $this->userService->getAllUsers();
-        dd($userList);
+        // dd($userList);
         return Inertia::render('user/UserList',[
             'users' => $userList
         ]); 

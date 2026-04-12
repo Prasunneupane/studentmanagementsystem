@@ -7,8 +7,9 @@ use App\Models\Roles;
 use App\Repositories\Validation;
 use App\Services\PermissionService;
 use App\Services\RoleServices;
-use DB;
+// use DB;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class RolesController extends Controller
@@ -206,7 +207,7 @@ class RolesController extends Controller
     {
         // $users = $role->users;
         // foreach ($users as $user) {
-            $this->permissionService->bumpPermissionsVersion();
+            $this->permissionService->bumpVersion();
         // }
     }
 

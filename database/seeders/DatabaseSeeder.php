@@ -21,15 +21,15 @@ class DatabaseSeeder extends Seeder
         // $this->call(SectionSeeder::class);
         // $this->call(PermissionSeeder::class);
         // $this->call(RolePermissionSeeder::class);
-        //$this->call(AcademicYearSeeder::class);
+        $this->call(AcademicYearSeeder::class);
         // $this->call(StatesSeeder::class);
         // $this->call(DistrictSeeder::class);
         // $this->call(MunicipalitySeeder::class);
         // $this->call(DefaultSettingSeeder::class);
         // $this->call(ClassSectionSeeder::class);
         // $this->call(SubjectSeeder::class);
-        $this->call(TeacherSeeder::class);
-        // $this->call(ClassSubjectSeeder::class);
+        // $this->call(TeacherSeeder::class);
+        // $this->call(ClassSubjectTeacher::class);
         // $this->call(StudentSeeder::class);
         // $this->call(StudentClassAssignmentSeeder::class);
     }

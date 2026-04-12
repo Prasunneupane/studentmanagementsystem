@@ -55,7 +55,7 @@ class HandleInertiaRequests extends Middleware
                 ?   [
                         'user' => $request->user(),
                         'permissions' => $request->user() 
-                            ? $this->permissionService->getNavigationItems($request->user())
+                            ? $this->permissionService->getNavigationPermissions($request->user())
                             : null,
                     ]:null,
             'ziggy' => [

@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class ClassSubjectTeacher extends Seeder
 {
@@ -12,14 +13,14 @@ class ClassSubjectTeacher extends Seeder
      */
     public function run(): void
     {
-        $classSectionList = \DB::table('tbl_class_sections')->get();
-        $subjects = \DB::table('tbl_subjects')->get();
-        $teachers = \DB::table('tbl_teachers')->where('is_active', 1)->get();
-        $academicYearId = \DB::table('tbl_academic_years')->where('is_active', 1)->first()?->id;
+        $classSectionList = DB::table('tbl_class_section')->get();
+        $subjects = DB::table('tbl_subjects')->get();
+        $teachers = DB::table('tbl_teachers')->where('is_active', 1)->get();
+        $academicYearId = DB::table('tbl_academic_years')->where('is_active', 1)->first()?->id;
         $data =[];
         foreach ($classSectionList as $classSection) {
             foreach ($subjects as $subject) {
-                 \DB::table('tbl_class_subjects')->insert([
+                 DB::table('tbl_class_subject')->insert([
                 //    $data[]=[ 
                     'class_id' => $classSection->class_id,
                     'section_id' => $classSection->section_id,

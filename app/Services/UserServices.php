@@ -4,7 +4,7 @@ namespace App\Services;
 
 use App\Interface\UserInterface;
 use App\Transformers\UserTransformer;
-use Hash;
+use Illuminate\Support\Facades\Hash;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
 class UserServices
@@ -36,7 +36,7 @@ class UserServices
             'is_active'=>1,
             'created_by'=>JWTAuth::user()->id,
         ];
-        dd($data);
+        // dd($data);
         $user = $this->userService->createUsers($data);
         return $user;
     }

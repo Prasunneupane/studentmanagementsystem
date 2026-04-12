@@ -16,13 +16,13 @@ use App\Http\Controllers\TermsController;
 use App\Http\Controllers\UserCheckController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-use App\Http\Middleware\CheckPermission;
+
 
 Route::get('/', function () {
     return Inertia::render('auth/Login');
 })->name('home');
 
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth'])->group(function () {
 
     // Dashboard - accessible to all authenticated users
     Route::get('/dashboard', function () {
