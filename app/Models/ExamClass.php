@@ -13,4 +13,19 @@ class ExamClass extends Model
         'class_id',
         'section_id',
     ];
+
+    public function exam()
+    {
+        return $this->belongsTo(Exam::class);
+    }
+
+    public function class()
+    {
+        return $this->belongsTo(Classes::class);
+    }
+
+    public function section()
+    {
+        return $this->belongsTo(Section::class);
+    }
 }

@@ -34,7 +34,7 @@ class UserCheckController extends Controller
     {
         $this->dataValidation = $validation;
         $this->userService = $userService;
-        // $this->middleware('auth:api');
+        // $this->middleware('auth:api'); 
     }
 
     public function index()

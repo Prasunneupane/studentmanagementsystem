@@ -7,10 +7,7 @@ use App\Models\ClassSubject;
 use App\Models\Exam;
 use App\Models\ExamClass;
 use App\Models\ExamSchedule;
-use App\Models\Subject;
 use DB;
-use Illuminate\Database\Console\Migrations\RollbackCommand;
-use Illuminate\Database\Eloquent\Collection;
 use Log;
 
 
@@ -70,7 +67,17 @@ class ExamScheduleService implements ExamScheduleInterface
     public function createExam(array $data)
     {
         try {
-
+            // dd([
+            //         'name' => $data['name'],
+            //         'exam_type' => $data['exam_type'],
+            //         'academic_year_id' => $data['academic_year_id'],
+            //         'term_id' => $data['term_id'] ?? null,
+            //         'start_date' => $data['start_date'],
+            //         'end_date' => $data['end_date'],
+            //         'weightage' => $data['weightage'] ?? 100,
+            //         'created_by' => auth()->id(),
+            //         'is_published' => $data['is_published'] ?? false,
+            //     ]);
             $exam = DB::transaction(function () use ($data) {
 
                 $exam = Exam::create([
