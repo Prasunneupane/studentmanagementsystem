@@ -16,6 +16,7 @@ class ExamScheduleService implements ExamScheduleInterface
     public function getClassSectionByExamId($examId)
     {
         return ExamClass::where('exam_id', $examId)
+            
             ->get(['class_id', 'section_id'])
             ->map(fn($ec) => [
                 'class_id' => (string) $ec->class_id,
@@ -48,16 +49,32 @@ class ExamScheduleService implements ExamScheduleInterface
 
     public function getSubjectsByClass($classIds, $exam)
     {
+        // dd(
+        //     ClassSubject::whereIn('class_id', [1])
+        //     ->where('academic_year_id', $exam->academic_year_id)
+        //     ->where('is_active',1)
+        //      ->with('subject')
+        //     ->get()
+        //      ->map(fn($cs) => [
+        //             'id' => $cs->subject->id,
+        //             'name' => $cs->subject->name,
+        //             'code' => $cs->subject->code,
+        //         ])
+        //     ->toArray()
+        // );
         return ClassSubject::whereIn('class_id', $classIds)
             ->where('academic_year_id', $exam->academic_year_id)
+            ->where('is_active',1)
             ->with('subject')
             ->get()
             ->groupBy('class_id')
+            
             ->map(function ($items) {
                 return $items->map(fn($cs) => [
                     'id' => $cs->subject->id,
                     'name' => $cs->subject->name,
                     'code' => $cs->subject->code,
+                    'section_id' => $cs->section_id,
                 ]);
             });
     }

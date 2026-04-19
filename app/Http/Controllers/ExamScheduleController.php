@@ -51,7 +51,7 @@ class ExamScheduleController extends Controller
             
         // Subjects per class (from class_subjects for this academic year)
         $subjectsByClass = $this->examSchedule->getSubjectsByClass($classIds, $exam);
-        
+        // dd($subjectsByClass);
         // foreach ($classIds as $classId) {
         //     $subjectsByClass[(string) $classId] = Subject::whereHas('classSubjects', function ($q) use ($classId, $exam) {
         //             $q->where('class_id', $classId)

@@ -252,6 +252,7 @@ const tabHasData = (key: string) => {
 </script>
 
 <template>
+
   <Head :title="`Schedule - ${exam.name}`" />
   <AppLayout :breadcrumbs="breadcrumbs">
     <Toaster />
@@ -290,25 +291,18 @@ const tabHasData = (key: string) => {
 
             <!-- Bulk copy actions -->
             <div class="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                @click="copyToAllSections"
-                v-if="currentTabData && otherSectionsCount(currentTabData) > 0"
-              >
+              <Button type="button" variant="outline" size="sm" @click="copyToAllSections"
+                v-if="currentTabData && otherSectionsCount(currentTabData) > 0">
                 <Copy class="mr-1.5 h-3.5 w-3.5" />
                 Copy to other sections
               </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                @click="copyToAllClasses"
-                v-if="tabs.length > 1"
-              >
+              <Button type="button" variant="outline" size="sm" @click="copyToAllClasses" v-if="tabs.length > 1">
                 <Copy class="mr-1.5 h-3.5 w-3.5" />
                 Apply dates to all classes
+              </Button>
+              <Button type="button" variant="outline" size="sm" @click="copyToAllClasses" v-if="tabs.length > 1">
+                <Copy class="mr-1.5 h-3.5 w-3.5" />
+                Apply Times and Room all classes
               </Button>
             </div>
           </div>
@@ -323,20 +317,13 @@ const tabHasData = (key: string) => {
                 <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 pb-1">
                   {{ classTabs[0].className }}
                 </p>
-                <button
-                  v-for="tab in classTabs"
-                  :key="tab.key"
+                <button v-for="tab in classTabs" :key="tab.key"
                   class="w-full text-left px-4 py-2 text-sm flex items-center justify-between transition-colors hover:bg-muted/50"
                   :class="activeTab === tab.key
                     ? 'bg-primary/10 text-primary font-semibold border-r-2 border-primary'
-                    : 'text-foreground'"
-                  @click="activeTab = tab.key"
-                >
+                    : 'text-foreground'" @click="activeTab = tab.key">
                   <span>Section {{ tab.sectionName }}</span>
-                  <CheckCircle2
-                    v-if="tabHasData(tab.key)"
-                    class="w-3.5 h-3.5 text-green-500 shrink-0"
-                  />
+                  <CheckCircle2 v-if="tabHasData(tab.key)" class="w-3.5 h-3.5 text-green-500 shrink-0" />
                 </button>
               </div>
             </div>
@@ -369,69 +356,38 @@ const tabHasData = (key: string) => {
                       </tr>
                     </thead>
                     <tbody>
-                      <tr
-                        v-for="(subj, i) in currentTabData.subjects"
-                        :key="subj.id"
+                      <tr v-for="(subj, i) in currentTabData.subjects" :key="subj.id"
                         class="border-b last:border-0 transition-colors"
-                        :class="i % 2 === 0 ? 'bg-background' : 'bg-muted/20'"
-                      >
+                        :class="i % 2 === 0 ? 'bg-background' : 'bg-muted/20'">
                         <td class="px-3 py-2">
                           <div class="font-medium">{{ subj.name }}</div>
                           <div class="text-xs text-muted-foreground">{{ subj.code }}</div>
                         </td>
                         <td class="px-2 py-2">
-                          <Input
-                            type="date"
-                            v-model="schedules[activeTab][subj.id].exam_date"
-                            class="h-8 text-xs"
-                            :min="exam.start_date"
-                            :max="exam.end_date"
-                          />
+                          <Input type="date" v-model="schedules[activeTab][subj.id].exam_date" class="h-8 text-xs"
+                            :min="exam.start_date" :max="exam.end_date" />
                         </td>
                         <td class="px-2 py-2">
-                          <Input
-                            type="time"
-                            v-model="schedules[activeTab][subj.id].start_time"
-                            class="h-8 text-xs"
-                          />
+                          <Input type="time" v-model="schedules[activeTab][subj.id].start_time" class="h-8 text-xs" />
                         </td>
                         <td class="px-2 py-2">
-                          <Input
-                            type="time"
-                            v-model="schedules[activeTab][subj.id].end_time"
-                            class="h-8 text-xs"
-                          />
+                          <Input type="time" v-model="schedules[activeTab][subj.id].end_time" class="h-8 text-xs" />
                         </td>
                         <td class="px-2 py-2">
-                          <Input
-                            v-model="schedules[activeTab][subj.id].room_no"
-                            placeholder="Room"
-                            class="h-8 text-xs"
-                          />
+                          <Input v-model="schedules[activeTab][subj.id].room_no" placeholder="Room"
+                            class="h-8 text-xs" />
                         </td>
                         <td class="px-2 py-2">
-                          <Input
-                            type="number"
-                            v-model="schedules[activeTab][subj.id].max_theory_marks"
-                            class="h-8 text-xs"
-                            min="0"
-                          />
+                          <Input type="number" v-model="schedules[activeTab][subj.id].max_theory_marks"
+                            class="h-8 text-xs" min="0" />
                         </td>
                         <td class="px-2 py-2">
-                          <Input
-                            type="number"
-                            v-model="schedules[activeTab][subj.id].max_practical_marks"
-                            class="h-8 text-xs"
-                            min="0"
-                          />
+                          <Input type="number" v-model="schedules[activeTab][subj.id].max_practical_marks"
+                            class="h-8 text-xs" min="0" />
                         </td>
                         <td class="px-2 py-2">
-                          <Input
-                            type="number"
-                            v-model="schedules[activeTab][subj.id].pass_marks"
-                            class="h-8 text-xs"
-                            min="0"
-                          />
+                          <Input type="number" v-model="schedules[activeTab][subj.id].pass_marks" class="h-8 text-xs"
+                            min="0" />
                         </td>
                       </tr>
                     </tbody>

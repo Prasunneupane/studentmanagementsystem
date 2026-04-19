@@ -67,14 +67,15 @@ class ExamController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+   public function store(Request $request)
     {
         $data = $this->validation->validateExam($request);
-        // dd($data);
+
         $exam = $this->examScheduleService->createExam($data);
-        // dd($exam);
-        return redirect()->route('exams.schedule', $exam->id)
-            ->with('exam', $exam);
+        // dd($exam->id);
+        return redirect()
+            ->route('exams.schedule', $exam->id)
+            ->with('success', 'Exam created successfully');
     }
 
     /**

@@ -44,7 +44,7 @@ class ClassSubjectService implements ClassSubjectInterface
                         'max_marks',
                         'pass_marks',
                        
-                    ]);
+                    ])->where('is_active',1);
         return $assignments;
     }
 

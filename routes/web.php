@@ -290,7 +290,7 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/exam-schedules/{id}', [ExamController::class, 'scheduleDestroy'])->name('exam-schedules.destroy');
         Route::patch('/exam-schedules/{id}/toggle', [ExamController::class, 'toggleActive'])->name('exam-schedules.toggle');
         
-        Route::get('/{id}/schedule', [ExamController::class, 'schedule']);
+        // Route::get('/{id}/schedule', [ExamController::class, 'schedule']);
 
         Route::get('/{exam}/schedule', [ExamScheduleController::class, 'create'])->name('schedule');
         Route::post('/{exam}/schedule', [ExamScheduleController::class, 'store'])->name('schedule.store');
