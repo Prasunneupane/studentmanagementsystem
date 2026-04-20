@@ -15,7 +15,7 @@ import { Loader2, Save, Copy, Calendar, ChevronRight, BookOpen, CheckCircle2 } f
 const { toast } = useToast()
 
 // ─── Types ────────────────────────────────────────────────────────
-interface Subject { id: string; name: string; code: string }
+interface Subject { id: string; name: string; code: string; section_id: string | null }
 interface Section { id: string; name: string }
 interface ClassWithSections { id: string; name: string; sections: Section[] }
 
@@ -70,32 +70,45 @@ interface ClassSectionTab {
 
 const tabs = computed((): ClassSectionTab[] => {
   const result: ClassSectionTab[] = []
+  
   props.examClasses.forEach(entry => {
     const cls = props.classes.find(c => c.id === entry.class_id)
     if (!cls) return
-    const subjects = props.subjectsByClass[entry.class_id] || []
-
+   
     if (entry.section_id === null) {
       // All sections
+      const subjects = props.subjectsByClass[entry.class_id] || []
       cls.sections.forEach(sec => {
+        // Filter subjects for this specific section or global subjects (section_id is null)
+        const sectionSubjects = subjects.filter(s => 
+          s.section_id === null || String(s.section_id) === String(sec.id)
+        )
+        
         result.push({
           key: `${cls.id}_${sec.id}`,
           classId: cls.id,
           className: cls.name,
           sectionId: sec.id,
           sectionName: sec.name,
-          subjects,
+          subjects: sectionSubjects,
         })
       })
     } else {
+      const subjects = props.subjectsByClass[entry.class_id] || []
       const sec = cls.sections.find(s => s.id === entry.section_id)
+      
+      // Filter subjects for this specific section or global subjects (section_id is null)
+      const sectionSubjects = subjects.filter(s => 
+        s.section_id === null || String(s.section_id) === String(entry.section_id)
+      )
+      
       result.push({
         key: `${cls.id}_${entry.section_id}`,
         classId: cls.id,
         className: cls.name,
         sectionId: entry.section_id,
         sectionName: sec?.name || '',
-        subjects,
+        subjects: sectionSubjects,
       })
     }
   })

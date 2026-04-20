@@ -66,7 +66,7 @@ class ExamScheduleController extends Controller
         //         ->values()
         //         ->toArray();
         // }
-
+        // dd($subjectsByClass);
         return Inertia::render('exams/ExamSchedule', [
             'exam'           => $exam->only('id', 'name', 'exam_type', 'start_date', 'end_date', 'academic_year_id'),
             'examClasses'    => $examClasses,

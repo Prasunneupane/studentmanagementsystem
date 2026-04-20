@@ -9,7 +9,7 @@ use App\Models\Enrollments;
 use App\Models\Section;
 use App\Models\Students;
 use App\Repositories\GuardianRepository;
-use DB;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class StudentService implements StudentServiceInterface

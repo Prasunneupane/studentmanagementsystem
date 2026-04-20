@@ -7,8 +7,9 @@ use App\Models\ClassSubject;
 use App\Models\Exam;
 use App\Models\ExamClass;
 use App\Models\ExamSchedule;
-use DB;
-use Log;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 
 
 class ExamScheduleService implements ExamScheduleInterface
@@ -68,7 +69,6 @@ class ExamScheduleService implements ExamScheduleInterface
             ->with('subject')
             ->get()
             ->groupBy('class_id')
-            
             ->map(function ($items) {
                 return $items->map(fn($cs) => [
                     'id' => $cs->subject->id,
@@ -92,7 +92,7 @@ class ExamScheduleService implements ExamScheduleInterface
             //         'start_date' => $data['start_date'],
             //         'end_date' => $data['end_date'],
             //         'weightage' => $data['weightage'] ?? 100,
-            //         'created_by' => auth()->id(),
+            //         'created_by' => Auth::id(),
             //         'is_published' => $data['is_published'] ?? false,
             //     ]);
             $exam = DB::transaction(function () use ($data) {
@@ -105,7 +105,7 @@ class ExamScheduleService implements ExamScheduleInterface
                     'start_date' => $data['start_date'],
                     'end_date' => $data['end_date'],
                     'weightage' => $data['weightage'] ?? 100,
-                    'created_by' => auth()->id(),
+                    'created_by' => Auth::id(),
                     'is_published' => $data['is_published'] ?? false,
                 ]);
 
