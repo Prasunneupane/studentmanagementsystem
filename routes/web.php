@@ -6,6 +6,7 @@ use App\Http\Controllers\ClassSubjectController;
 use App\Http\Controllers\ClassTeacherController;
 use App\Http\Controllers\ExamController;
 use App\Http\Controllers\ExamScheduleController;
+use App\Http\Controllers\StudentMarksController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\RolesController;
 use App\Http\Controllers\StateDistricMunController;
@@ -294,7 +295,32 @@ Route::middleware(['auth'])->group(function () {
 
         Route::get('/{exam}/schedule', [ExamScheduleController::class, 'create'])->name('schedule');
         Route::post('/{exam}/schedule', [ExamScheduleController::class, 'store'])->name('schedule.store');
+        Route::get('/{id}/schedule/edit',     [ExamScheduleController::class, 'edit'])->name('schedule.edit');
+        Route::put('/{id}/schedule',          [ExamScheduleController::class, 'update'])->name('schedule.update');
+        Route::delete('/schedule/{scheduleId}', [ExamScheduleController::class, 'destroy'])->name('schedule.destroy');
+    });
 
+    // Student Marks & Results Management Routes
+    Route::prefix('marks')->name('marks.')->group(function () {
+        // View marks
+        Route::middleware(['permission:view_marks'])->group(function () {
+            Route::get('/', [StudentMarksController::class, 'index'])->name('index');
+            Route::get('/{exam}/marksheet/{student}', [StudentMarksController::class, 'marksheet'])->name('marksheet');
+            Route::get('/{exam}/results', [StudentMarksController::class, 'results'])->name('results');
+            Route::get('/student/{student}/history', [StudentMarksController::class, 'studentHistory'])->name('student.history');
+        });
+
+        // Enter marks
+        Route::middleware(['permission:enter_marks'])->group(function () {
+            Route::get('/{exam}/enter', [StudentMarksController::class, 'enterMarks'])->name('enter');
+            Route::post('/{exam}/store', [StudentMarksController::class, 'storeMarks'])->name('store');
+            Route::post('/{exam}/calculate', [StudentMarksController::class, 'calculateResults'])->name('calculate');
+        });
+
+        // Finalize results
+        Route::middleware(['permission:finalize_results'])->group(function () {
+            Route::post('/{exam}/finalize', [StudentMarksController::class, 'finalizeResults'])->name('finalize');
+        });
     });
 
     Route::get('get-districts-by-state_id', [StudentsController::class, 'get_districts_by_state_id'])->name('get_districts_by_state_id');

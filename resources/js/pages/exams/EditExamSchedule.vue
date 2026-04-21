@@ -3,16 +3,17 @@ import { ref, computed, watch } from 'vue'
 import AppLayout from '@/layouts/AppLayout.vue'
 import { Head, useForm, router } from '@inertiajs/vue3'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import DatePicker from '@/components/ui/datepicker/DatePicker.vue'
 import TimePicker from '@/components/ui/timepicker/TimePicker.vue'
-import CustomSelect from '../CustomSelect.vue'
 import { Toaster } from '@/components/ui/sonner'
 import { useToast } from '@/composables/useToast'
 import 'vue-sonner/style.css'
-import { Loader2, Save, Copy, Calendar, ChevronRight, ChevronDown, BookOpen, CheckCircle2, ArrowDown, Clock } from 'lucide-vue-next'
+import {
+  Loader2, Save, Copy, Calendar, BookOpen,
+  CheckCircle2, ArrowDown, ArrowLeft, Pencil
+} from 'lucide-vue-next'
 
 const { toast } = useToast()
 
@@ -23,7 +24,7 @@ interface ClassWithSections { id: string; name: string; sections: Section[] }
 
 interface ExamClassEntry {
   class_id: string
-  section_id: string | null   // null = all sections
+  section_id: string | null
 }
 
 interface ScheduleRow {
@@ -40,37 +41,47 @@ interface ScheduleRow {
 
 interface Props {
   exam: {
-    id: string
-    name: string
-    exam_type: string
-    start_date: string
-    end_date: string
-    academic_year_id: string
+    id: string; name: string; exam_type: string
+    start_date: string; end_date: string; academic_year_id: string
   }
   examClasses: ExamClassEntry[]
   classes: ClassWithSections[]
   subjectsByClass: Record<string, Subject[]>
+  /**
+   * Map from backend: key = "{class_id}_{section_id}_{subject_id}"
+   * value = existing schedule row values
+   */
+  existingSchedule: Record<string, {
+    id?: number
+    subject_id: string
+    exam_date: string
+    start_time: string
+    end_time: string
+    room_no: string
+    max_theory_marks: string
+    max_practical_marks: string
+    max_total_marks: string
+    pass_marks: string
+  }>
 }
 
 const props = defineProps<Props>()
 
 const breadcrumbs = [
-  { title: 'Exams', href: '/exams' },
+  { title: 'Exams',    href: '/exams' },
   { title: props.exam.name, href: `/exams/${props.exam.id}` },
-  { title: 'Set Schedule', href: `/exams/${props.exam.id}/schedule` },
+  { title: 'Schedule', href: `/exams/${props.exam.id}/schedule` },
+  { title: 'Edit',     href: '#' },
 ]
 
 // ─── Date helper ─────────────────────────────────────────────────
 const formatDate = (val: any): string => {
   if (!val) return ''
   const d = val instanceof Date ? val : new Date(val)
-  const year = d.getFullYear()
-  const month = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-// ─── Build flat list of class-section pairs ──────────────────────
+// ─── Tabs ─────────────────────────────────────────────────────────
 interface ClassSectionTab {
   key: string
   classId: string
@@ -90,22 +101,20 @@ const tabs = computed((): ClassSectionTab[] => {
     if (entry.section_id === null) {
       const subjects = props.subjectsByClass[entry.class_id] || []
       cls.sections.forEach(sec => {
-        const sectionSubjects = subjects.filter(s =>
-          s.section_id === null || String(s.section_id) === String(sec.id)
-        )
         result.push({
           key: `${cls.id}_${sec.id}`,
           classId: cls.id,
           className: cls.name,
           sectionId: sec.id,
           sectionName: sec.name,
-          subjects: sectionSubjects,
+          subjects: subjects.filter(s =>
+            s.section_id === null || String(s.section_id) === String(sec.id)
+          ),
         })
       })
     } else {
-      const subjects = props.subjectsByClass[entry.class_id] || []
       const sec = cls.sections.find(s => s.id === entry.section_id)
-      const sectionSubjects = subjects.filter(s =>
+      const subjects = (props.subjectsByClass[entry.class_id] || []).filter(s =>
         s.section_id === null || String(s.section_id) === String(entry.section_id)
       )
       result.push({
@@ -114,19 +123,37 @@ const tabs = computed((): ClassSectionTab[] => {
         className: cls.name,
         sectionId: entry.section_id,
         sectionName: sec?.name || '',
-        subjects: sectionSubjects,
+        subjects,
       })
     }
   })
+
+  // Sort tabs: Class 1, Class 2 … (numeric order)
+  result.sort((a, b) => {
+    const aNum = parseInt(a.className.replace(/\D/g, '')) || 0
+    const bNum = parseInt(b.className.replace(/\D/g, '')) || 0
+    if (aNum !== bNum) return aNum - bNum
+    return a.sectionName.localeCompare(b.sectionName)
+  })
+
   return result
 })
 
 const activeTab = ref(tabs.value[0]?.key || '')
 
-// ─── Schedule State ───────────────────────────────────────────────
+// ─── Build grouped sidebar ────────────────────────────────────────
+const tabsGroupedByClass = computed(() => {
+  const groups: Record<string, ClassSectionTab[]> = {}
+  tabs.value.forEach(tab => {
+    if (!groups[tab.classId]) groups[tab.classId] = []
+    groups[tab.classId].push(tab)
+  })
+  return groups
+})
+
+// ─── Schedule state ───────────────────────────────────────────────
 const schedules = ref<Record<string, Record<string, ScheduleRow>>>({})
 
-// ─── KEY FIX: Ensure a tab + all its subjects are always initialized ──
 const makeEmptyRow = (subjId: string): ScheduleRow => ({
   subject_id: subjId,
   exam_date: '',
@@ -139,66 +166,81 @@ const makeEmptyRow = (subjId: string): ScheduleRow => ({
   pass_marks: '40',
 })
 
+/**
+ * Look up an existing value from the backend map.
+ * Backend key: "{class_id}_{section_id}_{subject_id}"
+ * Tab key:     "{class_id}_{section_id}"
+ */
+const lookupExisting = (tab: ClassSectionTab, subjId: string): ScheduleRow | null => {
+  const backendKey = `${tab.classId}_${tab.sectionId}_${subjId}`
+  const existing   = props.existingSchedule[backendKey]
+  if (!existing) return null
+  return {
+    subject_id:           String(existing.subject_id),
+    exam_date:            existing.exam_date ?? '',
+    start_time:           existing.start_time ?? '',
+    end_time:             existing.end_time ?? '',
+    room_no:              existing.room_no ?? '',
+    max_theory_marks:     String(existing.max_theory_marks ?? '80'),
+    max_practical_marks:  String(existing.max_practical_marks ?? '20'),
+    max_total_marks:      String(existing.max_total_marks ?? '100'),
+    pass_marks:           String(existing.pass_marks ?? '40'),
+  }
+}
+
+// ─── Safe initialiser (same pattern as create page) ───────────────
 const ensureTabInitialized = (tabKey: string) => {
   const tab = tabs.value.find(t => t.key === tabKey)
   if (!tab) return
 
-  if (!schedules.value[tabKey]) {
-    schedules.value[tabKey] = {}
-  }
+  if (!schedules.value[tabKey]) schedules.value[tabKey] = {}
 
   tab.subjects.forEach(subj => {
     if (!schedules.value[tabKey][subj.id]) {
-      schedules.value[tabKey][subj.id] = makeEmptyRow(subj.id)
+      // Prefer existing value from backend, fall back to empty row
+      schedules.value[tabKey][subj.id] =
+        lookupExisting(tab, subj.id) ?? makeEmptyRow(subj.id)
     }
   })
 }
 
-// Initialize all tabs upfront
+// Initialize all tabs
 tabs.value.forEach(tab => ensureTabInitialized(tab.key))
 
-// Re-ensure whenever activeTab changes (guards against any edge case)
-watch(activeTab, (newKey) => {
-  ensureTabInitialized(newKey)
-}, { immediate: true })
+// Guard on tab switch
+watch(activeTab, (key) => ensureTabInitialized(key), { immediate: true })
+watch(tabs, (t) => t.forEach(tab => ensureTabInitialized(tab.key)), { deep: true })
 
-// Also guard when tabs computed value changes (e.g. prop updates)
-watch(tabs, (newTabs) => {
-  newTabs.forEach(tab => ensureTabInitialized(tab.key))
-}, { deep: true })
-
-const currentTabData = computed(() => tabs.value.find(t => t.key === activeTab.value))
-const currentRows = computed(() => schedules.value[activeTab.value] || {})
-
-// ─── Safe accessor: always returns a valid ScheduleRow ────────────
-// Use this in template bindings to prevent "Cannot read properties of undefined"
 const getRow = (tabKey: string, subjId: string): ScheduleRow => {
   ensureTabInitialized(tabKey)
   return schedules.value[tabKey][subjId]
 }
 
-// ─── Auto-calculate total marks when theory/practical change ─────
+const currentTabData = computed(() => tabs.value.find(t => t.key === activeTab.value))
+
+// ─── Auto-total ───────────────────────────────────────────────────
 const updateTotalMarks = (tabKey: string, subjId: string) => {
   const row = schedules.value[tabKey]?.[subjId]
   if (!row) return
-  const theory = parseFloat(row.max_theory_marks) || 0
-  const practical = parseFloat(row.max_practical_marks) || 0
-  row.max_total_marks = String(theory + practical)
+  row.max_total_marks = String(
+    (parseFloat(row.max_theory_marks) || 0) + (parseFloat(row.max_practical_marks) || 0)
+  )
 }
 
-// ─── Copy schedule to all sections of same class ─────────────────
+// ─── Copy helpers ─────────────────────────────────────────────────
+const otherSectionsCount = (tab: ClassSectionTab) =>
+  tabs.value.filter(t => t.classId === tab.classId && t.key !== tab.key).length
+
 const copyToAllSections = () => {
   const tab = currentTabData.value
   if (!tab) return
-
-  const sourceRows = schedules.value[tab.key]
+  const src = schedules.value[tab.key]
   let count = 0
 
   tabs.value.forEach(t => {
     if (t.classId === tab.classId && t.key !== tab.key) {
       ensureTabInitialized(t.key)
-      schedules.value[t.key] = JSON.parse(JSON.stringify(sourceRows))
-      // Preserve correct subject_id for each subject in the target tab
+      schedules.value[t.key] = JSON.parse(JSON.stringify(src))
       t.subjects.forEach(subj => {
         if (schedules.value[t.key][subj.id]) {
           schedules.value[t.key][subj.id].subject_id = subj.id
@@ -210,84 +252,71 @@ const copyToAllSections = () => {
     }
   })
 
-  if (count > 0) toast.success(`Schedule copied to ${count} other section${count > 1 ? 's' : ''}`)
-  else toast.info('No other sections in this class to copy to')
+  if (count > 0) toast.success(`Copied to ${count} other section${count > 1 ? 's' : ''}`)
+  else toast.info('No other sections in this class')
 }
 
 const copyToAllClasses = () => {
   const tab = currentTabData.value
   if (!tab) return
-
-  const sourceRows = schedules.value[tab.key]
+  const srcValues = Object.values(schedules.value[tab.key])
   let count = 0
 
   tabs.value.forEach(t => {
     if (t.key !== tab.key) {
       ensureTabInitialized(t.key)
       t.subjects.forEach((subj, idx) => {
-        const src = Object.values(sourceRows)[idx] || Object.values(sourceRows)[0]
+        const src = srcValues[idx] || srcValues[0]
         schedules.value[t.key][subj.id] = {
           ...schedules.value[t.key][subj.id],
-          exam_date: src?.exam_date || '',
+          exam_date:  src?.exam_date || '',
           start_time: src?.start_time || '',
-          end_time: src?.end_time || '',
-          room_no: src?.room_no || '',
+          end_time:   src?.end_time || '',
+          room_no:    src?.room_no || '',
         }
       })
       count++
     }
   })
 
-  if (count > 0) toast.success(`Schedule applied to ${count} other tabs`)
+  if (count > 0) toast.success(`Dates & times applied to ${count} other tabs`)
 }
 
-// ─── Fill down ───────────────────────────────────────────────────
+// ─── Fill down ────────────────────────────────────────────────────
 const fillDown = (fromIndex: number) => {
   const tab = currentTabData.value
   if (!tab) return
-
-  const fromSubj = tab.subjects[fromIndex]
-  const src = schedules.value[tab.key][fromSubj.id]
-
+  const src = schedules.value[tab.key][tab.subjects[fromIndex].id]
   for (let i = fromIndex + 1; i < tab.subjects.length; i++) {
-    const subj = tab.subjects[i]
-    const row = schedules.value[tab.key][subj.id]
-    if (row) {
-      row.start_time = src.start_time
-      row.end_time = src.end_time
-      row.room_no = src.room_no
-    }
+    const row = schedules.value[tab.key][tab.subjects[i].id]
+    if (row) { row.start_time = src.start_time; row.end_time = src.end_time; row.room_no = src.room_no }
   }
-  toast.success(`Time & room filled down to ${tab.subjects.length - fromIndex - 1} row(s)`)
+  toast.success(`Filled down to ${tab.subjects.length - fromIndex - 1} row(s)`)
 }
 
-// ─── Submit ───────────────────────────────────────────────────────
+// ─── Progress ─────────────────────────────────────────────────────
+const tabHasData = (key: string) =>
+  Object.values(schedules.value[key] || {}).some(r => r.exam_date)
+
+const completedTabs   = computed(() => tabs.value.filter(t => tabHasData(t.key)).length)
+const progressPercent = computed(() =>
+  tabs.value.length ? Math.round((completedTabs.value / tabs.value.length) * 100) : 0
+)
+
+// ─── Submit (PUT) ─────────────────────────────────────────────────
 const submitting = ref(false)
 
-const handleSubmit = async () => {
+const handleSubmit = () => {
   const payload: Array<{
-    class_id: string
-    section_id: string | null
-    subject_id: string
-    exam_date: string
-    start_time: string
-    end_time: string
-    room_no: string
-    max_theory_marks: string
-    max_practical_marks: string
-    max_total_marks: string
-    pass_marks: string
+    class_id: string; section_id: string | null; subject_id: string
+    exam_date: string; start_time: string; end_time: string; room_no: string
+    max_theory_marks: string; max_practical_marks: string; max_total_marks: string; pass_marks: string
   }> = []
 
   tabs.value.forEach(tab => {
-    const rows = schedules.value[tab.key] || {}
-    Object.values(rows).forEach(row => {
+    Object.values(schedules.value[tab.key] || {}).forEach(row => {
       if (row.exam_date) {
-        payload.push({
-          class_id: tab.classId,
-          section_id: tab.sectionId,
-          ...row,
-        })
+        payload.push({ class_id: tab.classId, section_id: tab.sectionId, ...row })
       }
     })
   })
@@ -298,10 +327,10 @@ const handleSubmit = async () => {
   }
 
   submitting.value = true
-  useForm({ schedules: payload }).post(`/exams/${props.exam.id}/schedule`, {
+  useForm({ schedules: payload }).put(`/exams/${props.exam.id}/schedule`, {
     onSuccess: () => {
-      toast.success('Schedule saved successfully!')
-      router.visit(`/exams/${props.exam.id}`)
+      toast.success('Schedule updated successfully!')
+      router.visit(`/exams/${props.exam.id}/schedule`)
     },
     onError: (errors) => {
       toast.error(Object.values(errors)[0] as string)
@@ -309,54 +338,35 @@ const handleSubmit = async () => {
     onFinish: () => { submitting.value = false },
   })
 }
-
-// ─── Helpers ──────────────────────────────────────────────────────
-const otherSectionsCount = (tab: ClassSectionTab) =>
-  tabs.value.filter(t => t.classId === tab.classId && t.key !== tab.key).length
-
-const tabsGroupedByClass = computed(() => {
-  const groups: Record<string, ClassSectionTab[]> = {}
-  tabs.value.forEach(tab => {
-    if (!groups[tab.classId]) groups[tab.classId] = []
-    groups[tab.classId].push(tab)
-  })
-  return groups
-})
-
-const tabHasData = (key: string) => {
-  const rows = schedules.value[key] || {}
-  return Object.values(rows).some(r => r.exam_date)
-}
-
-// ─── Progress ────────────────────────────────────────────────────
-const completedTabs = computed(() => tabs.value.filter(t => tabHasData(t.key)).length)
-const progressPercent = computed(() => tabs.value.length ? Math.round((completedTabs.value / tabs.value.length) * 100) : 0)
 </script>
 
 <template>
-  <Head :title="`Schedule - ${exam.name}`" />
+  <Head :title="`Edit Schedule - ${exam.name}`" />
   <AppLayout :breadcrumbs="breadcrumbs">
     <Toaster />
 
     <div class="flex h-full w-full flex-1 flex-col gap-4 rounded-xl p-4">
 
-      <!-- Header Info Bar -->
+      <!-- Header info bar -->
       <div class="flex flex-wrap items-center gap-4 p-4 bg-muted/50 border rounded-xl">
         <div class="flex items-center gap-2 text-sm">
           <BookOpen class="w-4 h-4 text-primary" />
           <span class="font-semibold">{{ exam.name }}</span>
+          <span class="text-xs text-muted-foreground border px-2 py-0.5 rounded-full ml-1">Editing</span>
         </div>
         <div class="flex items-center gap-2 text-sm text-muted-foreground">
           <Calendar class="w-4 h-4" />
           <span>{{ exam.start_date }} → {{ exam.end_date }}</span>
         </div>
+        <!-- Progress -->
         <div class="ml-auto flex items-center gap-3">
           <div class="flex items-center gap-2 text-sm text-muted-foreground">
             <CheckCircle2 class="w-4 h-4 text-green-500" />
             <span>{{ completedTabs }}/{{ tabs.length }} done</span>
           </div>
           <div class="w-24 h-2 bg-muted rounded-full overflow-hidden">
-            <div class="h-full bg-primary rounded-full transition-all duration-300" :style="{ width: progressPercent + '%' }" />
+            <div class="h-full bg-primary rounded-full transition-all duration-300"
+              :style="{ width: progressPercent + '%' }" />
           </div>
         </div>
       </div>
@@ -365,13 +375,13 @@ const progressPercent = computed(() => tabs.value.length ? Math.round((completed
         <CardHeader class="border-b">
           <div class="flex items-center justify-between flex-wrap gap-3">
             <div class="flex items-center gap-3">
-              <div class="p-2 bg-primary/10 rounded-lg">
-                <Calendar class="w-5 h-5 text-primary" />
+              <div class="p-2 bg-amber-100 rounded-lg">
+                <Pencil class="w-5 h-5 text-amber-600" />
               </div>
               <div>
-                <CardTitle class="text-xl font-bold">Set Exam Schedule</CardTitle>
+                <CardTitle class="text-xl font-bold">Edit Exam Schedule</CardTitle>
                 <p class="text-sm text-muted-foreground mt-0.5">
-                  Set subject-wise dates and timings per class-section
+                  Modify subject-wise dates and timings — existing values are pre-filled
                 </p>
               </div>
             </div>
@@ -382,7 +392,8 @@ const progressPercent = computed(() => tabs.value.length ? Math.round((completed
                 <Copy class="mr-1.5 h-3.5 w-3.5" />
                 Copy to other sections
               </Button>
-              <Button type="button" variant="outline" size="sm" @click="copyToAllClasses" v-if="tabs.length > 1">
+              <Button type="button" variant="outline" size="sm" @click="copyToAllClasses"
+                v-if="tabs.length > 1">
                 <Copy class="mr-1.5 h-3.5 w-3.5" />
                 Apply dates & times to all
               </Button>
@@ -393,13 +404,14 @@ const progressPercent = computed(() => tabs.value.length ? Math.round((completed
         <CardContent class="pt-0 p-0">
           <div class="flex h-full min-h-[500px]">
 
-            <!-- Left: Tab List -->
+            <!-- Left: sorted class-section tabs -->
             <div class="w-52 border-r shrink-0 py-3">
               <div v-for="(classTabs, classId) in tabsGroupedByClass" :key="classId" class="mb-3">
                 <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 pb-1">
                   {{ classTabs[0].className }}
                 </p>
-                <button v-for="tab in classTabs" :key="tab.key"
+                <button
+                  v-for="tab in classTabs" :key="tab.key"
                   class="w-full text-left px-4 py-2 text-sm flex items-center justify-between transition-colors hover:bg-muted/50"
                   :class="activeTab === tab.key
                     ? 'bg-primary/10 text-primary font-semibold border-r-2 border-primary'
@@ -411,7 +423,7 @@ const progressPercent = computed(() => tabs.value.length ? Math.round((completed
               </div>
             </div>
 
-            <!-- Right: Schedule Table -->
+            <!-- Right: editable table -->
             <div class="flex-1 overflow-auto p-5">
               <div v-if="currentTabData">
 
@@ -440,14 +452,13 @@ const progressPercent = computed(() => tabs.value.length ? Math.round((completed
                       </tr>
                     </thead>
                     <tbody>
-                      <!--
-                        KEY FIX: Use getRow(activeTab, subj.id) instead of
-                        schedules[activeTab][subj.id] to guarantee the row
-                        object always exists before Vue renders the cell.
-                      -->
-                      <tr v-for="(subj, i) in currentTabData.subjects" :key="subj.id"
+                      <tr
+                        v-for="(subj, i) in currentTabData.subjects" :key="subj.id"
                         class="border-b last:border-0 transition-colors"
-                        :class="i % 2 === 0 ? 'bg-background' : 'bg-muted/20'">
+                        :class="[
+                          i % 2 === 0 ? 'bg-background' : 'bg-muted/20',
+                          getRow(activeTab, subj.id).exam_date ? 'ring-inset ring-1 ring-primary/10' : ''
+                        ]">
                         <td class="px-3 py-2">
                           <div class="font-medium">{{ subj.name }}</div>
                           <div class="text-xs text-muted-foreground">{{ subj.code }}</div>
@@ -474,48 +485,29 @@ const progressPercent = computed(() => tabs.value.length ? Math.round((completed
                           />
                         </td>
                         <td class="px-2 py-2">
-                          <Input
-                            v-model="getRow(activeTab, subj.id).room_no"
-                            placeholder="Room"
-                            class="h-8 text-xs"
-                          />
+                          <Input v-model="getRow(activeTab, subj.id).room_no"
+                            placeholder="Room" class="h-8 text-xs" />
                         </td>
                         <td class="px-2 py-2">
-                          <Input
-                            type="number"
-                            v-model="getRow(activeTab, subj.id).max_theory_marks"
-                            class="h-8 text-xs"
-                            min="0"
-                            @input="updateTotalMarks(activeTab, subj.id)"
-                          />
+                          <Input type="number" v-model="getRow(activeTab, subj.id).max_theory_marks"
+                            class="h-8 text-xs" min="0"
+                            @input="updateTotalMarks(activeTab, subj.id)" />
                         </td>
                         <td class="px-2 py-2">
-                          <Input
-                            type="number"
-                            v-model="getRow(activeTab, subj.id).max_practical_marks"
-                            class="h-8 text-xs"
-                            min="0"
-                            @input="updateTotalMarks(activeTab, subj.id)"
-                          />
+                          <Input type="number" v-model="getRow(activeTab, subj.id).max_practical_marks"
+                            class="h-8 text-xs" min="0"
+                            @input="updateTotalMarks(activeTab, subj.id)" />
                         </td>
                         <td class="px-2 py-2">
-                          <Input
-                            type="number"
-                            v-model="getRow(activeTab, subj.id).pass_marks"
-                            class="h-8 text-xs"
-                            min="0"
-                          />
+                          <Input type="number" v-model="getRow(activeTab, subj.id).pass_marks"
+                            class="h-8 text-xs" min="0" />
                         </td>
                         <td class="px-1 py-2 text-center">
                           <Button
                             v-if="i < currentTabData.subjects.length - 1"
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            class="h-7 w-7 p-0"
-                            title="Fill time & room down"
-                            @click="fillDown(i)"
-                          >
+                            type="button" variant="ghost" size="sm"
+                            class="h-7 w-7 p-0" title="Fill time & room down"
+                            @click="fillDown(i)">
                             <ArrowDown class="h-3.5 w-3.5 text-muted-foreground" />
                           </Button>
                         </td>
@@ -525,12 +517,13 @@ const progressPercent = computed(() => tabs.value.length ? Math.round((completed
                 </div>
 
                 <p class="text-xs text-muted-foreground mt-3">
-                  💡 Only rows with a date set will be saved. Leave blank to skip a subject. Total marks auto-calculates from Theory + Practical.
+                  💡 Rows with existing data are pre-filled. Only rows with a date set will be saved.
+                  Total marks auto-calculates from Theory + Practical.
                 </p>
               </div>
 
               <div v-else class="flex items-center justify-center h-full text-muted-foreground">
-                Select a class-section from the left to begin
+                Select a class-section from the left to begin editing
               </div>
             </div>
 
@@ -539,13 +532,15 @@ const progressPercent = computed(() => tabs.value.length ? Math.round((completed
 
         <!-- Footer -->
         <div class="flex justify-between gap-3 px-6 py-4 border-t">
-          <Button type="button" variant="outline" @click="router.visit('/exams')">
-            Skip for now
+          <Button type="button" variant="outline"
+            @click="router.visit(`/exams/${exam.id}/schedule`)">
+            <ArrowLeft class="mr-2 h-4 w-4" />
+            Cancel
           </Button>
           <Button type="button" @click="handleSubmit" :disabled="submitting">
             <Loader2 v-if="submitting" class="mr-2 h-4 w-4 animate-spin" />
             <Save v-else class="mr-2 h-4 w-4" />
-            {{ submitting ? 'Saving...' : 'Save Schedule' }}
+            {{ submitting ? 'Saving...' : 'Update Schedule' }}
           </Button>
         </div>
 

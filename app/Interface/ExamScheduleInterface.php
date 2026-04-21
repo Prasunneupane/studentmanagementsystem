@@ -22,4 +22,6 @@ interface ExamScheduleInterface
     public function getAllSchedulesForIndex(): \Illuminate\Pagination\LengthAwarePaginator;
     public function deleteSchedule(int $scheduleId): bool;
     public function toggleActive(int $scheduleId): object;
+    public function getExistingScheduleMap(int $examId): array;
+    public function updateExamSchedule($exam, array $schedules): void;
 }

@@ -322,4 +322,64 @@ class ExamScheduleService implements ExamScheduleInterface
         $exam->save();
         return $exam;
     }
+
+    public function getExistingScheduleMap(int $examId): array
+    {
+        $rows = ExamSchedule::where('exam_id', $examId)->get();
+ 
+        $map = [];
+        foreach ($rows as $row) {
+            $key        = "{$row->class_id}_{$row->section_id}_{$row->subject_id}";
+            $map[$key]  = [
+                'id'                  => $row->id,
+                'subject_id'          => (string) $row->subject_id,
+                'exam_date'           => $row->exam_date ?? '',
+                'start_time'          => $row->start_time ?? '',
+                'end_time'            => $row->end_time ?? '',
+                'room_no'             => $row->room_no ?? '',
+                'max_theory_marks'    => (string) ($row->max_theory_marks ?? '80'),
+                'max_practical_marks' => (string) ($row->max_practical_marks ?? '20'),
+                'max_total_marks'     => (string) ($row->max_total_marks ?? '100'),
+                'pass_marks'          => (string) ($row->pass_marks ?? '40'),
+            ];
+        }
+ 
+        return $map;
+    }
+    public function updateExamSchedule($exam, array $schedules): void
+    {
+        try {
+            DB::transaction(function () use ($exam, $schedules) {
+                // Only delete schedule rows, NOT the exam-class mappings
+                ExamSchedule::where('exam_id', $exam->id)->delete();
+ 
+                $insertRows = collect($schedules)->map(fn($s) => [
+                    'exam_id'              => $exam->id,
+                    'class_id'             => $s['class_id'],
+                    'section_id'           => $s['section_id'] ?? null,
+                    'subject_id'           => $s['subject_id'] ?? null,
+                    'exam_date'            => $s['exam_date'] ?? null,
+                    'start_time'           => $s['start_time'] ?? null,
+                    'end_time'             => $s['end_time'] ?? null,
+                    'room_no'              => $s['room_no'] ?? null,
+                    'max_theory_marks'     => $s['max_theory_marks'] ?? null,
+                    'max_practical_marks'  => $s['max_practical_marks'] ?? null,
+                    'max_total_marks'      => $s['max_total_marks'] ?? null,
+                    'pass_marks'           => $s['pass_marks'] ?? null,
+                ])->toArray();
+ 
+                if (!empty($insertRows)) {
+                    ExamSchedule::insert($insertRows);
+                }
+            });
+        } catch (\Exception $e) {
+            Log::error('Failed to update exam schedule', [
+                'message'   => $e->getMessage(),
+                'exam_id'   => $exam->id,
+                'schedules' => $schedules,
+                'trace'     => $e->getTraceAsString(),
+            ]);
+            throw $e;
+        }
+    }
 }

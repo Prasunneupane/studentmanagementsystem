@@ -7,12 +7,10 @@ import { Button } from '@/components/ui/button'
 import {
   Calendar, BookOpen, Users, ChevronDown, ChevronRight,
   Plus, ArrowLeft, CheckCircle2, FileText,
-  Printer, FileSpreadsheet, FileDown
+  Printer, FileSpreadsheet, FileDown, Pencil
 } from 'lucide-vue-next'
 
-// ── SheetJS loaded from CDN in the export function ───────────────
 declare const XLSX: any
-declare const jspdf: any
 
 interface ScheduleRow {
   id: number
@@ -37,46 +35,52 @@ interface ClassGroup {
 
 interface Props {
   exam: any
-  groupedSchedule: ClassGroup[]
+  groupedSchedule: ClassGroup[]   // already sorted by the backend
   classes: any[]
 }
 
 const props = defineProps<Props>()
 
 const breadcrumbs = [
-  { title: 'Exams', href: '/exams' },
+  { title: 'Exams',    href: '/exams' },
   { title: props.exam.name, href: `/exams/${props.exam.id}` },
   { title: 'Schedule', href: '#' },
 ]
 
-// ── Collapse ─────────────────────────────────────────────────────
-const collapsed = ref<Record<string, boolean>>({})
-const toggleGroup = (key: string) => { collapsed.value[key] = !collapsed.value[key] }
-const isOpen = (key: string) => !collapsed.value[key]
+// ── Tabs (sorted — backend already sorts, we just group) ─────────────
+// Active tab key is "{class_id}_{section_id}"
+const activeTab = ref<string>(
+  props.groupedSchedule.length
+    ? `${props.groupedSchedule[0].class_id}_${props.groupedSchedule[0].section_id}`
+    : ''
+)
 
-// ── Filter ────────────────────────────────────────────────────────
-const activeClassFilter = ref<string>('all')
-const filteredGroups = computed(() => {
-  if (activeClassFilter.value === 'all') return props.groupedSchedule
-  return props.groupedSchedule.filter(g => String(g.class_id) === activeClassFilter.value)
-})
+const activeGroup = computed(() =>
+  props.groupedSchedule.find(
+    g => `${g.class_id}_${g.section_id}` === activeTab.value
+  ) ?? null
+)
 
-const uniqueClasses = computed(() => {
-  const seen = new Set<number>()
-  return props.groupedSchedule.filter(g => {
-    if (seen.has(g.class_id)) return false
-    seen.add(g.class_id); return true
+// Group tabs by class for the sidebar
+interface ClassTab { class_id: number; class_name: string; sections: ClassGroup[] }
+const classTabs = computed((): ClassTab[] => {
+  const map: Record<number, ClassTab> = {}
+  props.groupedSchedule.forEach(g => {
+    if (!map[g.class_id]) map[g.class_id] = { class_id: g.class_id, class_name: g.class_name, sections: [] }
+    map[g.class_id].sections.push(g)
   })
+  // Keep the order the backend gave us (already sorted numerically)
+  return Object.values(map)
 })
 
-// ── Stats ─────────────────────────────────────────────────────────
+// ── Stats ─────────────────────────────────────────────────────────────
 const totalSchedules = computed(() =>
   props.groupedSchedule.reduce((acc, g) => acc + g.schedules.length, 0)
 )
 const totalSections = computed(() => props.groupedSchedule.length)
-const totalClasses  = computed(() => uniqueClasses.value.length)
+const totalClasses  = computed(() => classTabs.value.length)
 
-// ── Status ────────────────────────────────────────────────────────
+// ── Status ────────────────────────────────────────────────────────────
 const statusConfig: Record<string, { label: string; class: string }> = {
   ongoing:   { label: 'Ongoing',   class: 'bg-green-100  text-green-700  border-green-200'  },
   upcoming:  { label: 'Upcoming',  class: 'bg-blue-100   text-blue-700   border-blue-200'   },
@@ -85,7 +89,7 @@ const statusConfig: Record<string, { label: string; class: string }> = {
 }
 const statusCfg = computed(() => statusConfig[props.exam.status] ?? statusConfig['draft'])
 
-// ── Formatters ────────────────────────────────────────────────────
+// ── Formatters ────────────────────────────────────────────────────────
 const formatDate = (d: string) =>
   d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
 
@@ -99,7 +103,7 @@ const formatTime = (t: string) => {
 const examTypeLabel = (type: string) =>
   type?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) ?? ''
 
-// ── Subject colors ────────────────────────────────────────────────
+// ── Subject colors ────────────────────────────────────────────────────
 const subjectColors = [
   'bg-blue-100 text-blue-700', 'bg-teal-100 text-teal-700',
   'bg-purple-100 text-purple-700', 'bg-amber-100 text-amber-700',
@@ -114,33 +118,31 @@ const getSubjectColor = (name: string) => {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// EXPORT: PRINT
+// PRINT — full exam OR single section
 // ═══════════════════════════════════════════════════════════════
-const handlePrint = () => {
-  const examName   = props.exam.name
-  const examType   = examTypeLabel(props.exam.exam_type)
-  const year       = props.exam.academicYear?.name ?? ''
-  const term       = props.exam.term?.name ?? ''
-  const startDate  = formatDate(props.exam.start_date)
-  const endDate    = formatDate(props.exam.end_date)
-  const weightage  = props.exam.weightage ? `${props.exam.weightage}%` : '—'
-  const status     = statusConfig[props.exam.status]?.label ?? props.exam.status
-  const published  = props.exam.is_published ? 'Yes' : 'No'
-  const printDate  = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+const buildPrintHtml = (groups: ClassGroup[], title: string): string => {
+  const examName  = props.exam.name
+  const examType  = examTypeLabel(props.exam.exam_type)
+  const year      = props.exam.academicYear?.name ?? ''
+  const term      = props.exam.term?.name ?? ''
+  const startDate = formatDate(props.exam.start_date)
+  const endDate   = formatDate(props.exam.end_date)
+  const weightage = props.exam.weightage ? `${props.exam.weightage}%` : '—'
+  const status    = statusConfig[props.exam.status]?.label ?? props.exam.status
+  const published = props.exam.is_published ? 'Yes' : 'No'
+  const printDate = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
 
   let tableRows = ''
   let serial = 1
+  let schedCount = 0
 
-  props.groupedSchedule.forEach(grp => {
-    // Section header spanning all columns
+  groups.forEach(grp => {
     tableRows += `
       <tr class="section-header">
-        <td colspan="9">
-          ${grp.class_name} &nbsp;—&nbsp; Section ${grp.section_name}
-        </td>
+        <td colspan="9">${grp.class_name} &nbsp;—&nbsp; Section ${grp.section_name}</td>
       </tr>`
-
     grp.schedules.forEach(row => {
+      schedCount++
       tableRows += `
         <tr>
           <td class="center">${serial++}</td>
@@ -156,75 +158,48 @@ const handlePrint = () => {
     })
   })
 
-  const html = `<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>${examName} – Exam Schedule</title>
+  <title>${title}</title>
   <style>
     @page { size: A4 landscape; margin: 15mm 12mm; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: Arial, sans-serif; font-size: 10pt; color: #1a1a1a; }
-
     .header { text-align: center; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 2px solid #1e3a5f; }
     .school-name { font-size: 16pt; font-weight: 900; color: #1e3a5f; letter-spacing: 0.5px; }
     .report-title { font-size: 13pt; font-weight: 700; margin: 4px 0 2px; color: #1e3a5f; }
     .report-sub { font-size: 9pt; color: #555; }
-
     .info-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 12px; }
     .info-box { background: #f4f7fb; border: 1px solid #d0daea; border-radius: 4px; padding: 6px 8px; }
     .info-label { font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.4px; color: #666; font-weight: 700; }
     .info-value { font-size: 9.5pt; font-weight: 700; color: #1e3a5f; margin-top: 2px; }
-
     table { width: 100%; border-collapse: collapse; margin-top: 6px; }
-    th {
-      background: #1e3a5f;
-      color: #fff;
-      font-size: 8.5pt;
-      font-weight: 700;
-      padding: 7px 8px;
-      text-align: left;
-      text-transform: uppercase;
-      letter-spacing: 0.4px;
-    }
+    th { background: #1e3a5f; color: #fff; font-size: 8.5pt; font-weight: 700; padding: 7px 8px; text-align: left; text-transform: uppercase; letter-spacing: 0.4px; }
     th.center, td.center { text-align: center; }
     td { font-size: 9pt; padding: 6px 8px; border-bottom: 1px solid #e5eaf1; vertical-align: middle; }
     tr:nth-child(even) td { background: #f8fafd; }
-    tr:hover td { background: #eef3fb; }
-
-    .section-header td {
-      background: #e8eef8;
-      color: #1e3a5f;
-      font-size: 9.5pt;
-      font-weight: 800;
-      padding: 7px 10px;
-      border-top: 2px solid #1e3a5f;
-      border-bottom: 1px solid #b0c0d8;
-      letter-spacing: 0.3px;
-    }
-
+    .section-header td { background: #e8eef8; color: #1e3a5f; font-size: 9.5pt; font-weight: 800; padding: 7px 10px; border-top: 2px solid #1e3a5f; border-bottom: 1px solid #b0c0d8; }
     .footer { margin-top: 14px; display: flex; justify-content: space-between; font-size: 8pt; color: #888; border-top: 1px solid #ddd; padding-top: 6px; }
-    .totals-row td { font-weight: 700; background: #e8eef8; border-top: 2px solid #1e3a5f; }
   </style>
 </head>
 <body>
   <div class="header">
     <div class="school-name">School Management System</div>
-    <div class="report-title">${examName} — Exam Schedule</div>
+    <div class="report-title">${title}</div>
     <div class="report-sub">${examType}${year ? ' &nbsp;|&nbsp; ' + year : ''}${term ? ' &nbsp;|&nbsp; ' + term : ''} &nbsp;|&nbsp; Status: ${status}</div>
   </div>
-
   <div class="info-grid">
     <div class="info-box"><div class="info-label">Start Date</div><div class="info-value">${startDate}</div></div>
     <div class="info-box"><div class="info-label">End Date</div><div class="info-value">${endDate}</div></div>
     <div class="info-box"><div class="info-label">Weightage</div><div class="info-value">${weightage}</div></div>
     <div class="info-box"><div class="info-label">Published</div><div class="info-value">${published}</div></div>
-    <div class="info-box"><div class="info-label">Total Classes</div><div class="info-value">${totalClasses.value}</div></div>
-    <div class="info-box"><div class="info-label">Total Sections</div><div class="info-value">${totalSections.value}</div></div>
-    <div class="info-box"><div class="info-label">Total Schedules</div><div class="info-value">${totalSchedules.value}</div></div>
+    <div class="info-box"><div class="info-label">Total Classes</div><div class="info-value">${groups.length}</div></div>
+    <div class="info-box"><div class="info-label">Total Sections</div><div class="info-value">${groups.length}</div></div>
+    <div class="info-box"><div class="info-label">Total Schedules</div><div class="info-value">${schedCount}</div></div>
     <div class="info-box"><div class="info-label">Print Date</div><div class="info-value">${printDate}</div></div>
   </div>
-
   <table>
     <thead>
       <tr>
@@ -239,20 +214,34 @@ const handlePrint = () => {
         <th class="center" style="width:52px">Pass</th>
       </tr>
     </thead>
-    <tbody>
-      ${tableRows}
-    </tbody>
+    <tbody>${tableRows}</tbody>
   </table>
-
   <div class="footer">
     <span>Generated: ${printDate}</span>
-    <span>${examName} — Exam Schedule</span>
-    <span>Total: ${totalSchedules.value} schedule(s) across ${totalSections.value} section(s)</span>
+    <span>${title}</span>
+    <span>Total: ${schedCount} schedule(s)</span>
   </div>
 </body>
 </html>`
+}
 
-  const win = window.open('', '_blank', 'width=1200,height=800')!
+const handlePrint = () => {
+  // Print ALL sections
+  const html = buildPrintHtml(props.groupedSchedule, `${props.exam.name} — Exam Schedule`)
+  const win  = window.open('', '_blank', 'width=1200,height=800')!
+  win.document.write(html)
+  win.document.close()
+  win.focus()
+  setTimeout(() => { win.print(); win.close() }, 500)
+}
+
+const handlePrintSection = () => {
+  // Print ONLY the active tab's section
+  if (!activeGroup.value) return
+  const grp   = activeGroup.value
+  const title = `${props.exam.name} — ${grp.class_name} Section ${grp.section_name}`
+  const html  = buildPrintHtml([grp], title)
+  const win   = window.open('', '_blank', 'width=1200,height=800')!
   win.document.write(html)
   win.document.close()
   win.focus()
@@ -260,7 +249,7 @@ const handlePrint = () => {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// EXPORT: EXCEL (.xlsx) using SheetJS CDN
+// EXPORT: EXCEL
 // ═══════════════════════════════════════════════════════════════
 const exportingExcel = ref(false)
 
@@ -278,172 +267,73 @@ const handleExcel = async () => {
   exportingExcel.value = true
   try {
     await loadSheetJS()
-
     const wb = XLSX.utils.book_new()
 
-    // ── Sheet 1: Summary ──────────────────────────────────────
+    // Summary sheet
     const summaryData = [
       ['EXAM SCHEDULE REPORT', '', '', ''],
-      ['', '', '', ''],
-      ['Exam Name',    props.exam.name,                    '', ''],
-      ['Exam Type',    examTypeLabel(props.exam.exam_type), '', ''],
-      ['Academic Year', props.exam.academicYear?.name ?? '—', '', ''],
-      ['Term',         props.exam.term?.name ?? '—',        '', ''],
-      ['Start Date',   formatDate(props.exam.start_date),   '', ''],
-      ['End Date',     formatDate(props.exam.end_date),     '', ''],
-      ['Weightage',    props.exam.weightage ? `${props.exam.weightage}%` : '—', '', ''],
-      ['Status',       statusConfig[props.exam.status]?.label ?? props.exam.status, '', ''],
-      ['Published',    props.exam.is_published ? 'Yes' : 'No', '', ''],
-      ['', '', '', ''],
-      ['Total Classes',   totalClasses.value,   '', ''],
-      ['Total Sections',  totalSections.value,  '', ''],
-      ['Total Schedules', totalSchedules.value, '', ''],
-      ['', '', '', ''],
-      ['Generated On', new Date().toLocaleString(), '', ''],
+      [''],
+      ['Exam Name',    props.exam.name],
+      ['Exam Type',    examTypeLabel(props.exam.exam_type)],
+      ['Academic Year', props.exam.academicYear?.name ?? '—'],
+      ['Term',         props.exam.term?.name ?? '—'],
+      ['Start Date',   formatDate(props.exam.start_date)],
+      ['End Date',     formatDate(props.exam.end_date)],
+      ['Weightage',    props.exam.weightage ? `${props.exam.weightage}%` : '—'],
+      ['Status',       statusConfig[props.exam.status]?.label ?? props.exam.status],
+      ['Published',    props.exam.is_published ? 'Yes' : 'No'],
+      [''],
+      ['Total Classes',   totalClasses.value],
+      ['Total Sections',  totalSections.value],
+      ['Total Schedules', totalSchedules.value],
+      [''],
+      ['Generated On', new Date().toLocaleString()],
     ]
     const wsSummary = XLSX.utils.aoa_to_sheet(summaryData)
-    wsSummary['!cols'] = [{ wch: 20 }, { wch: 40 }, { wch: 16 }, { wch: 16 }]
-
-    // Bold + large title
-    wsSummary['A1'] = { v: 'EXAM SCHEDULE REPORT', t: 's', s: { font: { bold: true, sz: 16, color: { rgb: '1e3a5f' } } } }
-
-    // Bold all label cells
-    const labelRows = [2,3,4,5,6,7,8,9,10,12,13,14,16]
-    labelRows.forEach(r => {
-      const addr = `A${r}`
-      if (wsSummary[addr]) wsSummary[addr].s = { font: { bold: true } }
-    })
-
+    wsSummary['!cols'] = [{ wch: 20 }, { wch: 40 }]
     XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary')
 
-    // ── Sheet 2: Full Schedule ────────────────────────────────
-    const headers = [
-      '#', 'Class', 'Section', 'Subject', 'Exam Date', 'Start Time',
-      'End Time', 'Room No', 'Theory Marks', 'Practical Marks', 'Total Marks', 'Pass Marks'
-    ]
-
+    // Full schedule sheet
+    const headers = ['#', 'Class', 'Section', 'Subject', 'Exam Date', 'Start Time', 'End Time', 'Room No', 'Theory', 'Practical', 'Total', 'Pass']
     const rows: any[][] = []
     let serial = 1
-
     props.groupedSchedule.forEach(grp => {
       grp.schedules.forEach(row => {
         rows.push([
-          serial++,
-          grp.class_name,
-          `Section ${grp.section_name}`,
-          row.subject_name,
-          formatDate(row.exam_date),
-          formatTime(row.start_time),
-          formatTime(row.end_time),
-          row.room_no || '—',
-          row.max_theory_marks ?? '—',
-          row.max_practical_marks || '—',
-          row.max_total_marks,
-          row.pass_marks,
+          serial++, grp.class_name, `Section ${grp.section_name}`, row.subject_name,
+          formatDate(row.exam_date), formatTime(row.start_time), formatTime(row.end_time),
+          row.room_no || '—', row.max_theory_marks ?? '—', row.max_practical_marks || '—',
+          row.max_total_marks, row.pass_marks,
         ])
       })
     })
-
-    const scheduleData = [headers, ...rows]
-    const wsSchedule   = XLSX.utils.aoa_to_sheet(scheduleData)
-
-    // ── Bold + style header row ───────────────────────────────
-    const headerCols = ['A','B','C','D','E','F','G','H','I','J','K','L']
-    headerCols.forEach(col => {
-      const addr = `${col}1`
-      if (!wsSchedule[addr]) return
-      wsSchedule[addr].s = {
-        font:      { bold: true, sz: 11, color: { rgb: 'FFFFFF' } },
-        fill:      { fgColor: { rgb: '1E3A5F' } },
-        alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
-        border: {
-          bottom: { style: 'medium', color: { rgb: '0e2444' } },
-        }
-      }
-    })
-
-    // ── Alternate row shading + center-align number cols ──────
-    rows.forEach((_, idx) => {
-      const excelRow = idx + 2  // row 1 = header
-      const isBanded = idx % 2 === 1
-      headerCols.forEach(col => {
-        const addr = `${col}${excelRow}`
-        if (!wsSchedule[addr]) return
-        const isNum = ['I','J','K','L','A'].includes(col)
-        wsSchedule[addr].s = {
-          fill:      isBanded ? { fgColor: { rgb: 'F0F4FA' } } : { fgColor: { rgb: 'FFFFFF' } },
-          alignment: { horizontal: isNum ? 'center' : 'left', vertical: 'center' },
-          border: {
-            bottom: { style: 'thin', color: { rgb: 'D5DFF0' } },
-          }
-        }
-      })
-    })
-
-    // Column widths
+    const wsSchedule = XLSX.utils.aoa_to_sheet([headers, ...rows])
     wsSchedule['!cols'] = [
-      { wch: 5 },  // #
-      { wch: 14 }, // class
-      { wch: 12 }, // section
-      { wch: 22 }, // subject
-      { wch: 13 }, // date
-      { wch: 11 }, // start
-      { wch: 11 }, // end
-      { wch: 10 }, // room
-      { wch: 13 }, // theory
-      { wch: 14 }, // practical
-      { wch: 12 }, // total
-      { wch: 11 }, // pass
+      { wch: 5 }, { wch: 14 }, { wch: 12 }, { wch: 22 }, { wch: 13 },
+      { wch: 11 }, { wch: 11 }, { wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 10 }, { wch: 10 },
     ]
-
-    // Freeze header row
-    wsSchedule['!freeze'] = { xSplit: 0, ySplit: 1, topLeftCell: 'A2', activePane: 'bottomLeft', state: 'frozen' }
-
     XLSX.utils.book_append_sheet(wb, wsSchedule, 'Schedule')
 
-    // ── Sheet 3: Per-Class Breakdown ─────────────────────────
+    // Per-class sheets
     props.groupedSchedule.forEach(grp => {
       const sheetName = `${grp.class_name}-${grp.section_name}`.substring(0, 31)
-      const classHeaders = ['#', 'Subject', 'Exam Date', 'Start Time', 'End Time', 'Room No', 'Theory', 'Practical', 'Total', 'Pass']
       const classRows = grp.schedules.map((row, i) => [
-        i + 1,
-        row.subject_name,
-        formatDate(row.exam_date),
-        formatTime(row.start_time),
-        formatTime(row.end_time),
-        row.room_no || '—',
-        row.max_theory_marks ?? '—',
-        row.max_practical_marks || '—',
-        row.max_total_marks,
-        row.pass_marks,
+        i + 1, row.subject_name, formatDate(row.exam_date), formatTime(row.start_time),
+        formatTime(row.end_time), row.room_no || '—', row.max_theory_marks ?? '—',
+        row.max_practical_marks || '—', row.max_total_marks, row.pass_marks,
       ])
-
-      const classData  = [classHeaders, ...classRows]
-      const wsClass    = XLSX.utils.aoa_to_sheet(classData)
-
-      // Bold header
-      const classCols = ['A','B','C','D','E','F','G','H','I','J']
-      classCols.forEach(col => {
-        const addr = `${col}1`
-        if (!wsClass[addr]) return
-        wsClass[addr].s = {
-          font:      { bold: true, sz: 11, color: { rgb: 'FFFFFF' } },
-          fill:      { fgColor: { rgb: '1E3A5F' } },
-          alignment: { horizontal: 'center', vertical: 'center' },
-        }
-      })
-
+      const wsClass = XLSX.utils.aoa_to_sheet([
+        ['#', 'Subject', 'Exam Date', 'Start Time', 'End Time', 'Room No', 'Theory', 'Practical', 'Total', 'Pass'],
+        ...classRows,
+      ])
       wsClass['!cols'] = [
-        { wch: 4 }, { wch: 22 }, { wch: 13 }, { wch: 11 },
-        { wch: 11 }, { wch: 10 }, { wch: 8 }, { wch: 10 }, { wch: 8 }, { wch: 7 },
+        { wch: 4 }, { wch: 22 }, { wch: 13 }, { wch: 11 }, { wch: 11 },
+        { wch: 10 }, { wch: 8 }, { wch: 10 }, { wch: 8 }, { wch: 7 },
       ]
-
       XLSX.utils.book_append_sheet(wb, wsClass, sheetName)
     })
 
-    // ── Write file ────────────────────────────────────────────
-    const fileName = `${props.exam.name.replace(/\s+/g, '_')}_Schedule.xlsx`
-    XLSX.writeFile(wb, fileName, { bookType: 'xlsx', cellStyles: true })
+    XLSX.writeFile(wb, `${props.exam.name.replace(/\s+/g, '_')}_Schedule.xlsx`, { bookType: 'xlsx' })
   } catch (err) {
     console.error('Excel export failed:', err)
     alert('Excel export failed. Please try again.')
@@ -453,18 +343,16 @@ const handleExcel = async () => {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// EXPORT: PDF using jsPDF + autoTable
+// EXPORT: PDF
 // ═══════════════════════════════════════════════════════════════
 const exportingPdf = ref(false)
 
 const loadJsPDF = (): Promise<void> =>
   new Promise((resolve, reject) => {
     if (typeof (window as any).jspdf !== 'undefined') { resolve(); return }
-    // Load jsPDF
     const s1 = document.createElement('script')
     s1.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'
     s1.onload = () => {
-      // Then load autoTable plugin
       const s2 = document.createElement('script')
       s2.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js'
       s2.onload = () => resolve()
@@ -479,181 +367,106 @@ const handlePdf = async () => {
   exportingPdf.value = true
   try {
     await loadJsPDF()
-
     const { jsPDF } = (window as any).jspdf
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
-
-    const navy   = [30,  58,  95]   // #1e3a5f
-    const silver = [240, 244, 250]  // header alt bg
+    const navy   = [30, 58, 95]
+    const silver = [240, 244, 250]
     const white  = [255, 255, 255]
     const pageW  = doc.internal.pageSize.getWidth()
     const printDate = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
 
-    // ── Header ────────────────────────────────────────────────
-    doc.setFillColor(...navy as [number,number,number])
+    doc.setFillColor(...navy as [number, number, number])
     doc.rect(0, 0, pageW, 22, 'F')
-
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(14)
     doc.setTextColor(255, 255, 255)
     doc.text(props.exam.name, pageW / 2, 9, { align: 'center' })
-
     doc.setFontSize(9)
     doc.setFont('helvetica', 'normal')
-    const sub = [
-      examTypeLabel(props.exam.exam_type),
-      props.exam.academicYear?.name,
-      props.exam.term?.name,
-    ].filter(Boolean).join('  |  ')
+    const sub = [examTypeLabel(props.exam.exam_type), props.exam.academicYear?.name, props.exam.term?.name].filter(Boolean).join('  |  ')
     doc.text(sub, pageW / 2, 16, { align: 'center' })
 
-    // ── Info boxes ────────────────────────────────────────────
     const infoItems = [
-      { label: 'Start Date',  value: formatDate(props.exam.start_date) },
-      { label: 'End Date',    value: formatDate(props.exam.end_date) },
-      { label: 'Weightage',   value: props.exam.weightage ? `${props.exam.weightage}%` : '—' },
-      { label: 'Status',      value: statusConfig[props.exam.status]?.label ?? props.exam.status },
-      { label: 'Published',   value: props.exam.is_published ? 'Yes' : 'No' },
-      { label: 'Classes',     value: String(totalClasses.value) },
-      { label: 'Sections',    value: String(totalSections.value) },
-      { label: 'Schedules',   value: String(totalSchedules.value) },
+      { label: 'Start Date', value: formatDate(props.exam.start_date) },
+      { label: 'End Date',   value: formatDate(props.exam.end_date) },
+      { label: 'Weightage',  value: props.exam.weightage ? `${props.exam.weightage}%` : '—' },
+      { label: 'Status',     value: statusConfig[props.exam.status]?.label ?? props.exam.status },
+      { label: 'Published',  value: props.exam.is_published ? 'Yes' : 'No' },
+      { label: 'Classes',    value: String(totalClasses.value) },
+      { label: 'Sections',   value: String(totalSections.value) },
+      { label: 'Schedules',  value: String(totalSchedules.value) },
     ]
-
-    const boxW   = (pageW - 20) / 4
-    const boxH   = 11
+    const boxW = (pageW - 20) / 4
+    const boxH = 11
     const startY = 26
-
     infoItems.forEach((item, i) => {
       const col = i % 4
       const row = Math.floor(i / 4)
-      const x   = 10 + col * boxW
-      const y   = startY + row * (boxH + 2)
-
-      doc.setFillColor(...silver as [number,number,number])
+      const x = 10 + col * boxW
+      const y = startY + row * (boxH + 2)
+      doc.setFillColor(...silver as [number, number, number])
       doc.setDrawColor(200, 210, 225)
       doc.roundedRect(x, y, boxW - 2, boxH, 1.5, 1.5, 'FD')
-
       doc.setFont('helvetica', 'bold')
       doc.setFontSize(6.5)
       doc.setTextColor(120, 130, 150)
       doc.text(item.label.toUpperCase(), x + 3, y + 4)
-
-      doc.setFont('helvetica', 'bold')
       doc.setFontSize(9)
-      doc.setTextColor(...navy as [number,number,number])
+      doc.setTextColor(...navy as [number, number, number])
       doc.text(item.value, x + 3, y + 9)
     })
 
-    let tableStartY = startY + 2 * (boxH + 2) + 4
-
-    // ── Schedule Table ────────────────────────────────────────
-    const tableHeaders = [
-      ['#', 'Class', 'Section', 'Subject', 'Date', 'Time', 'Room', 'Theory', 'Practical', 'Total', 'Pass']
-    ]
-
     const tableBody: any[] = []
     let serial = 1
-
     props.groupedSchedule.forEach(grp => {
-      // Section divider row
-      tableBody.push([
-        {
-          content: `${grp.class_name}  —  Section ${grp.section_name}`,
-          colSpan: 11,
-          styles: {
-            fillColor: [218, 228, 242],
-            textColor: navy,
-            fontStyle: 'bold',
-            fontSize: 9,
-            cellPadding: { top: 3, bottom: 3, left: 4, right: 4 },
-          }
-        }
-      ])
-
+      tableBody.push([{
+        content: `${grp.class_name}  —  Section ${grp.section_name}`,
+        colSpan: 11,
+        styles: { fillColor: [218, 228, 242], textColor: navy, fontStyle: 'bold', fontSize: 9 },
+      }])
       grp.schedules.forEach(row => {
         tableBody.push([
-          serial++,
-          grp.class_name,
-          `Sec ${grp.section_name}`,
-          row.subject_name,
-          formatDate(row.exam_date),
-          `${formatTime(row.start_time)} – ${formatTime(row.end_time)}`,
-          row.room_no || '—',
-          row.max_theory_marks ?? '—',
-          row.max_practical_marks || '—',
-          row.max_total_marks,
-          row.pass_marks,
+          serial++, grp.class_name, `Sec ${grp.section_name}`, row.subject_name,
+          formatDate(row.exam_date), `${formatTime(row.start_time)} – ${formatTime(row.end_time)}`,
+          row.room_no || '—', row.max_theory_marks ?? '—', row.max_practical_marks || '—',
+          row.max_total_marks, row.pass_marks,
         ])
       })
     })
 
     ;(doc as any).autoTable({
-      head:      tableHeaders,
-      body:      tableBody,
-      startY:    tableStartY,
-      margin:    { left: 10, right: 10 },
-      tableWidth: 'auto',
-      styles: {
-        fontSize:   8.5,
-        cellPadding: { top: 3, bottom: 3, left: 3, right: 3 },
-        lineColor:  [210, 220, 235],
-        lineWidth:  0.2,
-        textColor:  [30, 30, 30],
-        font:       'helvetica',
-        valign:     'middle',
-      },
-      headStyles: {
-        fillColor:  navy,
-        textColor:  white,
-        fontStyle:  'bold',
-        fontSize:   8.5,
-        halign:     'center',
-        cellPadding: { top: 4, bottom: 4, left: 3, right: 3 },
-      },
+      head: [['#', 'Class', 'Section', 'Subject', 'Date', 'Time', 'Room', 'Theory', 'Practical', 'Total', 'Pass']],
+      body: tableBody,
+      startY: startY + 2 * (boxH + 2) + 4,
+      margin: { left: 10, right: 10 },
+      styles: { fontSize: 8.5, cellPadding: { top: 3, bottom: 3, left: 3, right: 3 }, lineColor: [210, 220, 235], lineWidth: 0.2, textColor: [30, 30, 30] },
+      headStyles: { fillColor: navy, textColor: white, fontStyle: 'bold', fontSize: 8.5, halign: 'center' },
       alternateRowStyles: { fillColor: [248, 251, 255] },
       columnStyles: {
-        0:  { halign: 'center', cellWidth: 8  },
-        1:  { cellWidth: 22 },
-        2:  { halign: 'center', cellWidth: 18 },
-        3:  { cellWidth: 32 },
-        4:  { halign: 'center', cellWidth: 22 },
-        5:  { halign: 'center', cellWidth: 30 },
-        6:  { halign: 'center', cellWidth: 16 },
-        7:  { halign: 'center', cellWidth: 16 },
-        8:  { halign: 'center', cellWidth: 18 },
-        9:  { halign: 'center', cellWidth: 16 },
-        10: { halign: 'center', cellWidth: 14 },
+        0: { halign: 'center', cellWidth: 8 }, 1: { cellWidth: 22 }, 2: { halign: 'center', cellWidth: 18 },
+        3: { cellWidth: 32 }, 4: { halign: 'center', cellWidth: 22 }, 5: { halign: 'center', cellWidth: 30 },
+        6: { halign: 'center', cellWidth: 16 }, 7: { halign: 'center', cellWidth: 16 },
+        8: { halign: 'center', cellWidth: 18 }, 9: { halign: 'center', cellWidth: 16 }, 10: { halign: 'center', cellWidth: 14 },
       },
-      // Page header/footer on every page
       didDrawPage: (data: any) => {
-        // Running header on page 2+
         if (data.pageNumber > 1) {
-          doc.setFillColor(...navy as [number,number,number])
+          doc.setFillColor(...navy as [number, number, number])
           doc.rect(0, 0, pageW, 10, 'F')
           doc.setFont('helvetica', 'bold')
           doc.setFontSize(8)
           doc.setTextColor(255, 255, 255)
           doc.text(props.exam.name + ' — Exam Schedule', pageW / 2, 6.5, { align: 'center' })
         }
-        // Footer on every page
         const pageH = doc.internal.pageSize.getHeight()
         doc.setFont('helvetica', 'normal')
         doc.setFontSize(7)
         doc.setTextColor(160, 160, 160)
         doc.text(`Generated: ${printDate}`, 10, pageH - 5)
-        doc.text(
-          `Page ${data.pageNumber} of ${doc.internal.getNumberOfPages()}`,
-          pageW - 10, pageH - 5, { align: 'right' }
-        )
-        doc.text(
-          `Total: ${totalSchedules.value} schedule(s) — ${totalSections.value} section(s)`,
-          pageW / 2, pageH - 5, { align: 'center' }
-        )
+        doc.text(`Page ${data.pageNumber}`, pageW - 10, pageH - 5, { align: 'right' })
+        doc.text(`Total: ${totalSchedules.value} schedule(s)`, pageW / 2, pageH - 5, { align: 'center' })
       },
     })
-
-    const fileName = `${props.exam.name.replace(/\s+/g, '_')}_Schedule.pdf`
-    doc.save(fileName)
+    doc.save(`${props.exam.name.replace(/\s+/g, '_')}_Schedule.pdf`)
   } catch (err) {
     console.error('PDF export failed:', err)
     alert('PDF export failed. Please try again.')
@@ -666,9 +479,9 @@ const handlePdf = async () => {
 <template>
   <Head :title="`Schedule – ${exam.name}`" />
   <AppLayout :breadcrumbs="breadcrumbs">
-    <div class="flex flex-col gap-4 p-4 max-w-6xl mx-auto w-full">
+    <div class="flex flex-col gap-4 p-4 max-w-7xl mx-auto w-full">
 
-      <!-- ── Header Card ────────────────────────────────────────── -->
+      <!-- ── Header Card ─────────────────────────────────────────────── -->
       <Card class="rounded-2xl shadow-sm border">
         <CardContent class="p-5">
           <div class="flex items-start justify-between gap-4 flex-wrap">
@@ -697,35 +510,32 @@ const handlePdf = async () => {
               <Button variant="outline" size="sm" @click="router.visit('/exams')">
                 <ArrowLeft class="w-4 h-4 mr-1" /> Back
               </Button>
-
-              <!-- Print -->
+              <Button variant="outline" size="sm" @click="router.visit(`/exams/${exam.id}/schedule/edit`)"
+                class="border-amber-300 hover:bg-amber-50 text-amber-700">
+                <Pencil class="w-4 h-4 mr-1.5" />
+                Edit Schedule
+              </Button>
               <Button variant="outline" size="sm" @click="handlePrint"
                 class="border-slate-300 hover:bg-slate-50">
                 <Printer class="w-4 h-4 mr-1.5 text-slate-600" />
-                Print
+                Print All
               </Button>
-
-              <!-- Excel -->
               <Button variant="outline" size="sm" @click="handleExcel" :disabled="exportingExcel"
                 class="border-emerald-300 hover:bg-emerald-50 text-emerald-700">
                 <FileSpreadsheet class="w-4 h-4 mr-1.5" />
                 {{ exportingExcel ? 'Generating...' : 'Excel' }}
               </Button>
-
-              <!-- PDF -->
               <Button variant="outline" size="sm" @click="handlePdf" :disabled="exportingPdf"
                 class="border-red-300 hover:bg-red-50 text-red-700">
                 <FileDown class="w-4 h-4 mr-1.5" />
                 {{ exportingPdf ? 'Generating...' : 'PDF' }}
               </Button>
-
               <Button size="sm" @click="router.visit(`/exams/${exam.id}/schedule/create`)">
                 <Plus class="w-4 h-4 mr-1" /> Add Schedule
               </Button>
             </div>
           </div>
 
-          <!-- Meta row -->
           <div class="flex gap-6 mt-4 flex-wrap">
             <div class="flex items-center gap-1.5 text-sm">
               <Calendar class="w-4 h-4 text-muted-foreground" />
@@ -746,7 +556,7 @@ const handlePdf = async () => {
         </CardContent>
       </Card>
 
-      <!-- ── Stats ───────────────────────────────────────────────── -->
+      <!-- ── Stats ───────────────────────────────────────────────────── -->
       <div class="grid grid-cols-3 gap-3">
         <div class="bg-card border rounded-xl p-4">
           <div class="text-2xl font-bold tracking-tight">{{ totalClasses }}</div>
@@ -762,29 +572,8 @@ const handlePdf = async () => {
         </div>
       </div>
 
-      <!-- ── Filter Pills ─────────────────────────────────────────── -->
-      <div class="flex gap-2 flex-wrap">
-        <button
-          class="px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-all"
-          :class="activeClassFilter === 'all'
-            ? 'bg-primary text-primary-foreground border-primary'
-            : 'bg-card text-muted-foreground border-border hover:border-primary/50'"
-          @click="activeClassFilter = 'all'">
-          All Classes
-        </button>
-        <button
-          v-for="grp in uniqueClasses" :key="grp.class_id"
-          class="px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-all"
-          :class="activeClassFilter === String(grp.class_id)
-            ? 'bg-primary text-primary-foreground border-primary'
-            : 'bg-card text-muted-foreground border-border hover:border-primary/50'"
-          @click="activeClassFilter = String(grp.class_id)">
-          {{ grp.class_name }}
-        </button>
-      </div>
-
-      <!-- ── Empty State ──────────────────────────────────────────── -->
-      <div v-if="filteredGroups.length === 0"
+      <!-- ── Empty state ─────────────────────────────────────────────── -->
+      <div v-if="groupedSchedule.length === 0"
         class="flex flex-col items-center justify-center py-16 text-center bg-card border rounded-2xl">
         <BookOpen class="w-10 h-10 text-muted-foreground/40 mb-3" />
         <p class="text-base font-medium text-muted-foreground">No schedules found</p>
@@ -794,88 +583,116 @@ const handlePdf = async () => {
         </Button>
       </div>
 
-      <!-- ── Schedule Groups ──────────────────────────────────────── -->
-      <div v-for="grp in filteredGroups" :key="`${grp.class_id}_${grp.section_id}`"
-        class="rounded-2xl border overflow-hidden shadow-sm bg-card">
+      <!-- ── Tab layout ──────────────────────────────────────────────── -->
+      <div v-else class="flex gap-4 min-h-[400px]">
 
-        <!-- Group header -->
-        <div
-          class="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-muted/30 transition-colors border-b bg-muted/20"
-          @click="toggleGroup(`${grp.class_id}_${grp.section_id}`)">
-          <div class="flex items-center gap-2.5">
-            <div class="w-2 h-2 rounded-full bg-primary"></div>
-            <span class="font-semibold text-sm">{{ grp.class_name }}</span>
-            <span class="px-2 py-0.5 rounded-md text-xs font-semibold bg-primary/10 text-primary">
-              Section {{ grp.section_name }}
-            </span>
-          </div>
-          <div class="flex items-center gap-3">
-            <span class="text-xs text-muted-foreground">
-              {{ grp.schedules.length }} subject{{ grp.schedules.length !== 1 ? 's' : '' }}
-            </span>
-            <component
-              :is="isOpen(`${grp.class_id}_${grp.section_id}`) ? ChevronDown : ChevronRight"
-              class="w-4 h-4 text-muted-foreground transition-transform" />
+        <!-- Left sidebar: Class → Section tabs, sorted Class 1, Class 2 … -->
+        <div class="w-52 shrink-0 bg-card border rounded-2xl overflow-hidden py-3">
+          <div v-for="cls in classTabs" :key="cls.class_id" class="mb-3 last:mb-0">
+            <!-- Class header -->
+            <p class="text-xs font-bold text-muted-foreground uppercase tracking-wider px-4 pb-1.5">
+              {{ cls.class_name }}
+            </p>
+            <!-- Section buttons -->
+            <button
+              v-for="grp in cls.sections" :key="`${grp.class_id}_${grp.section_id}`"
+              class="w-full text-left px-4 py-2 text-sm flex items-center justify-between transition-colors hover:bg-muted/50"
+              :class="activeTab === `${grp.class_id}_${grp.section_id}`
+                ? 'bg-primary/10 text-primary font-semibold border-r-2 border-primary'
+                : 'text-foreground'"
+              @click="activeTab = `${grp.class_id}_${grp.section_id}`">
+              <span>Section {{ grp.section_name }}</span>
+              <span class="text-xs text-muted-foreground">{{ grp.schedules.length }}</span>
+            </button>
           </div>
         </div>
 
-        <!-- Schedule table -->
-        <div v-show="isOpen(`${grp.class_id}_${grp.section_id}`)">
-          <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-              <thead>
-                <tr class="border-b bg-muted/10">
-                  <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Subject</th>
-                  <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Date</th>
-                  <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Time</th>
-                  <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Room</th>
-                  <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Theory</th>
-                  <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Practical</th>
-                  <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Total</th>
-                  <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Pass</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="row in grp.schedules" :key="row.id"
-                  class="border-b last:border-b-0 hover:bg-muted/20 transition-colors">
-                  <td class="px-4 py-3 font-medium">
-                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold"
-                      :class="getSubjectColor(row.subject_name)">
-                      {{ row.subject_name }}
-                    </span>
-                  </td>
-                  <td class="px-4 py-3 text-sm font-medium">{{ formatDate(row.exam_date) }}</td>
-                  <td class="px-4 py-3">
-                    <span class="font-mono text-xs bg-muted px-2 py-1 rounded-md">
-                      {{ formatTime(row.start_time) }} – {{ formatTime(row.end_time) }}
-                    </span>
-                  </td>
-                  <td class="px-4 py-3 text-sm text-muted-foreground">{{ row.room_no || '—' }}</td>
-                  <td class="px-4 py-3">
-                    <span class="font-mono text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-md font-semibold">
-                      {{ row.max_theory_marks ?? '—' }}
-                    </span>
-                  </td>
-                  <td class="px-4 py-3">
-                    <span class="font-mono text-xs px-2 py-1 rounded-md font-semibold"
-                      :class="row.max_practical_marks ? 'bg-emerald-50 text-emerald-700' : 'text-muted-foreground'">
-                      {{ row.max_practical_marks || '—' }}
-                    </span>
-                  </td>
-                  <td class="px-4 py-3">
-                    <span class="font-mono text-xs bg-purple-50 text-purple-700 px-2 py-1 rounded-md font-semibold">
-                      {{ row.max_total_marks }}
-                    </span>
-                  </td>
-                  <td class="px-4 py-3">
-                    <span class="font-mono text-xs bg-amber-50 text-amber-700 px-2 py-1 rounded-md font-semibold">
-                      {{ row.pass_marks }}
-                    </span>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+        <!-- Right: schedule table for the selected section -->
+        <div class="flex-1 bg-card border rounded-2xl overflow-hidden">
+
+          <div v-if="activeGroup">
+            <!-- Section header bar -->
+            <div class="flex items-center justify-between px-5 py-3.5 border-b bg-muted/20">
+              <div class="flex items-center gap-2">
+                <div class="w-2 h-2 rounded-full bg-primary"></div>
+                <span class="font-semibold text-sm">{{ activeGroup.class_name }}</span>
+                <span class="px-2 py-0.5 rounded-md text-xs font-semibold bg-primary/10 text-primary">
+                  Section {{ activeGroup.section_name }}
+                </span>
+                <span class="text-xs text-muted-foreground ml-1">
+                  {{ activeGroup.schedules.length }} subject{{ activeGroup.schedules.length !== 1 ? 's' : '' }}
+                </span>
+              </div>
+              <!-- Per-section print button -->
+              <Button variant="outline" size="sm" @click="handlePrintSection"
+                class="border-slate-300 hover:bg-slate-50 h-7 text-xs">
+                <Printer class="w-3.5 h-3.5 mr-1.5 text-slate-600" />
+                Print this section
+              </Button>
+            </div>
+
+            <!-- Table -->
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="border-b bg-muted/10">
+                    <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Subject</th>
+                    <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Date</th>
+                    <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Time</th>
+                    <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Room</th>
+                    <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Theory</th>
+                    <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Practical</th>
+                    <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Total</th>
+                    <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Pass</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="row in activeGroup.schedules" :key="row.id"
+                    class="border-b last:border-b-0 hover:bg-muted/20 transition-colors">
+                    <td class="px-4 py-3 font-medium">
+                      <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold"
+                        :class="getSubjectColor(row.subject_name)">
+                        {{ row.subject_name }}
+                      </span>
+                    </td>
+                    <td class="px-4 py-3 text-sm font-medium">{{ formatDate(row.exam_date) }}</td>
+                    <td class="px-4 py-3">
+                      <span class="font-mono text-xs bg-muted px-2 py-1 rounded-md">
+                        {{ formatTime(row.start_time) }} – {{ formatTime(row.end_time) }}
+                      </span>
+                    </td>
+                    <td class="px-4 py-3 text-sm text-muted-foreground">{{ row.room_no || '—' }}</td>
+                    <td class="px-4 py-3">
+                      <span class="font-mono text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-md font-semibold">
+                        {{ row.max_theory_marks ?? '—' }}
+                      </span>
+                    </td>
+                    <td class="px-4 py-3">
+                      <span class="font-mono text-xs px-2 py-1 rounded-md font-semibold"
+                        :class="row.max_practical_marks ? 'bg-emerald-50 text-emerald-700' : 'text-muted-foreground'">
+                        {{ row.max_practical_marks || '—' }}
+                      </span>
+                    </td>
+                    <td class="px-4 py-3">
+                      <span class="font-mono text-xs bg-purple-50 text-purple-700 px-2 py-1 rounded-md font-semibold">
+                        {{ row.max_total_marks }}
+                      </span>
+                    </td>
+                    <td class="px-4 py-3">
+                      <span class="font-mono text-xs bg-amber-50 text-amber-700 px-2 py-1 rounded-md font-semibold">
+                        {{ row.pass_marks }}
+                      </span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
+
+          <div v-else class="flex items-center justify-center h-full text-muted-foreground py-20">
+            Select a section from the left to view its schedule
+          </div>
+
         </div>
       </div>
 

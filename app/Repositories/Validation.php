@@ -228,4 +228,19 @@ class Validation
             'schedules.*.pass_marks'           => 'nullable|numeric|min:0',
         ]);
     }
+
+    public function validateMarksEntry($request)
+    {
+        return $request->validate([
+            'marks'                        => 'required|array|min:1',
+            'marks.*.student_id'           => 'required|exists:students,id',
+            'marks.*.class_id'             => 'required|exists:tbl_classes,id',
+            'marks.*.section_id'           => 'nullable|exists:tbl_section,id',
+            'marks.*.subject_id'           => 'required|exists:tbl_subjects,id',
+            'marks.*.theory_marks'         => 'nullable|numeric|min:0',
+            'marks.*.practical_marks'      => 'nullable|numeric|min:0',
+            'marks.*.is_absent'            => 'boolean',
+            'marks.*.remarks'              => 'nullable|string|max:500',
+        ]);
+    }
 }
