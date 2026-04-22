@@ -7,6 +7,8 @@ use App\Models\AcademicYears;
 use App\Models\ClassSubject;
 use App\Models\Subject;
 use App\Models\Teachers;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class ClassSubjectService implements ClassSubjectInterface
 {
@@ -20,7 +22,7 @@ class ClassSubjectService implements ClassSubjectInterface
 
     public function academicYearById($request)
     {
-        return $request->input('academic_year_id', \DB::table('tbl_academic_years')->where('is_active', 1)->first()?->id);
+        return $request->input('academic_year_id', DB::table('tbl_academic_years')->where('is_active', 1)->first()?->id);
     }
 
     public function getClassSubjectForAcademicYear($academicYearId)
@@ -66,7 +68,7 @@ class ClassSubjectService implements ClassSubjectInterface
     }
 
     public function create($data){
-        $data['created_by'] = auth()->user()->id;
+        $data['created_by'] = Auth::id();
         // dd($data);
         return ClassSubject::create($data);
     }
@@ -74,7 +76,7 @@ class ClassSubjectService implements ClassSubjectInterface
     public function update($id, $data){
         $classSubject = $this->getClassSubjectById($id);
         if($classSubject){
-            $data['updated_by'] = auth()->user()->id;
+            $data['updated_by'] = Auth::id();
             $classSubject->update($data);
             return $classSubject;
         }

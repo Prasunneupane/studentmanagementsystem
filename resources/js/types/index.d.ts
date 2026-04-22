@@ -3,6 +3,41 @@ import type { Config } from 'ziggy-js';
 
 export interface Auth {
     user: User;
+    permissions: Permissions;
+}
+
+export interface CrudPermissions {
+    canManage: boolean;
+    canView: boolean;
+    canCreate: boolean;
+    canEdit: boolean;
+    canDelete: boolean;
+}
+
+export interface Permissions {
+    canViewDashboard: boolean;
+    students: CrudPermissions;
+    guardians: CrudPermissions;
+    subjects: CrudPermissions;
+    teachers: CrudPermissions;
+    terms: CrudPermissions;
+    users: CrudPermissions;
+    classSubjects: CrudPermissions;
+    classTeachers: CrudPermissions;
+    exams: CrudPermissions;
+    roles: CrudPermissions & { canAssignPermissions: boolean };
+    permissions: CrudPermissions;
+    settings: {
+        canView: boolean;
+        canEdit: boolean;
+    };
+    canManageMasterSettings: boolean;
+    auth: {
+        isSuperAdmin: boolean;
+        user: Pick<User, 'id' | 'name' | 'email'>;
+        roles: string[];
+        permissions: string[];
+    };
 }
 
 export interface BreadcrumbItem {
@@ -24,7 +59,7 @@ export interface NavItem {
 export type AppPageProps<T extends Record<string, unknown> = Record<string, unknown>> = T & {
     name: string;
     quote: { message: string; author: string };
-    auth: Auth;
+    auth: Auth | null;
     ziggy: Config & { location: string };
     sidebarOpen: boolean;
 };

@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class TeacherSeeder extends Seeder
 {
@@ -270,6 +271,6 @@ class TeacherSeeder extends Seeder
     ],
 ];
 
-        \DB::table('tbl_teachers')->insert($teachers);
+        DB::table('tbl_teachers')->insert($teachers);
     }
 }

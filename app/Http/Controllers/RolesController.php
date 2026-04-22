@@ -9,6 +9,7 @@ use App\Services\PermissionService;
 use App\Services\RoleServices;
 // use DB;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
@@ -171,7 +172,7 @@ class RolesController extends Controller
 
             $role = Roles::findOrFail($validated['role_id']);
 
-            $userId = auth()->id(); // 👈 current user
+            $userId = Auth::id(); // 👈 current user
 
             // Build pivot data
             $syncData = [];

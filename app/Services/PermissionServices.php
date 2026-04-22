@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Interface\PermissionInterface;
 use App\Repositories\PermissionRepository;
+use Illuminate\Support\Str;
 
 class PermissionServices
 {
@@ -25,7 +26,7 @@ class PermissionServices
     {
         $createdData = [
             ...$data,
-            'slug' => \Str::slug($data['name'], '_'),
+            'slug' => Str::slug($data['name'], '_'),
 
         ];
         return $this->permissionRepository->createPermission($createdData);

@@ -58,7 +58,7 @@ const mainNavItems = computed((): NavItem[] => {
     if (permissions.value.students.canView) {
       studentItems.push({
         title: 'View Students',
-        href: '/students',
+        href: '/students',  
         icon: Users,
       });
     }
