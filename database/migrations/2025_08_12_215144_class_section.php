@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -12,13 +13,16 @@ return new class extends Migration
     public function up(): void
     {
         DB::statement('SET FOREIGN_KEY_CHECKS=0;');
-        if(Schema::hasTable('classes')){
-            Schema::drop('classes');
+        if(Schema::hasTable('tbl_classes')){
+            Schema::drop('tbl_classes');
+        }
+        if(Schema::hasTable('tbl_class_section')){
+            Schema::drop('tbl_class_section');
         }
         
 
-        if(Schema::hasTable('sections')){
-            Schema::drop('sections');
+        if(Schema::hasTable('tbl_section')){
+            Schema::drop('tbl_section');
         }
         DB::statement('SET FOREIGN_KEY_CHECKS=1;');
         

@@ -452,8 +452,7 @@ const handleSubmit = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      <tr
-                        v-for="(subj, i) in currentTabData.subjects" :key="subj.id"
+                      <tr v-for="(subj, i) in currentTabData.subjects" :key="subj.id"
                         class="border-b last:border-0 transition-colors"
                         :class="[
                           i % 2 === 0 ? 'bg-background' : 'bg-muted/20',
