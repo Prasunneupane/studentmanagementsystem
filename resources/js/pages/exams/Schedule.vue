@@ -42,7 +42,7 @@ interface Props {
 const props = defineProps<Props>()
 
 const breadcrumbs = [
-  { title: 'Exams',    href: '/exams' },
+  { title: 'Exams', href: '/exams' },
   { title: props.exam.name, href: `/exams/${props.exam.id}` },
   { title: 'Schedule', href: '#' },
 ]
@@ -78,14 +78,14 @@ const totalSchedules = computed(() =>
   props.groupedSchedule.reduce((acc, g) => acc + g.schedules.length, 0)
 )
 const totalSections = computed(() => props.groupedSchedule.length)
-const totalClasses  = computed(() => classTabs.value.length)
+const totalClasses = computed(() => classTabs.value.length)
 
 // ── Status ────────────────────────────────────────────────────────────
 const statusConfig: Record<string, { label: string; class: string }> = {
-  ongoing:   { label: 'Ongoing',   class: 'bg-green-100  text-green-700  border-green-200'  },
-  upcoming:  { label: 'Upcoming',  class: 'bg-blue-100   text-blue-700   border-blue-200'   },
+  ongoing: { label: 'Ongoing', class: 'bg-green-100  text-green-700  border-green-200' },
+  upcoming: { label: 'Upcoming', class: 'bg-blue-100   text-blue-700   border-blue-200' },
   completed: { label: 'Completed', class: 'bg-purple-100 text-purple-700 border-purple-200' },
-  draft:     { label: 'Draft',     class: 'bg-gray-100   text-gray-600   border-gray-200'   },
+  draft: { label: 'Draft', class: 'bg-gray-100   text-gray-600   border-gray-200' },
 }
 const statusCfg = computed(() => statusConfig[props.exam.status] ?? statusConfig['draft'])
 
@@ -121,14 +121,14 @@ const getSubjectColor = (name: string) => {
 // PRINT — full exam OR single section
 // ═══════════════════════════════════════════════════════════════
 const buildPrintHtml = (groups: ClassGroup[], title: string): string => {
-  const examName  = props.exam.name
-  const examType  = examTypeLabel(props.exam.exam_type)
-  const year      = props.exam.academicYear?.name ?? ''
-  const term      = props.exam.term?.name ?? ''
+  const examName = props.exam.name
+  const examType = examTypeLabel(props.exam.exam_type)
+  const year = props.exam.academicYear?.name ?? ''
+  const term = props.exam.term?.name ?? ''
   const startDate = formatDate(props.exam.start_date)
-  const endDate   = formatDate(props.exam.end_date)
+  const endDate = formatDate(props.exam.end_date)
   const weightage = props.exam.weightage ? `${props.exam.weightage}%` : '—'
-  const status    = statusConfig[props.exam.status]?.label ?? props.exam.status
+  const status = statusConfig[props.exam.status]?.label ?? props.exam.status
   const published = props.exam.is_published ? 'Yes' : 'No'
   const printDate = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
 
@@ -228,7 +228,7 @@ const buildPrintHtml = (groups: ClassGroup[], title: string): string => {
 const handlePrint = () => {
   // Print ALL sections
   const html = buildPrintHtml(props.groupedSchedule, `${props.exam.name} — Exam Schedule`)
-  const win  = window.open('', '_blank', 'width=1200,height=800')!
+  const win = window.open('', '_blank', 'width=1200,height=800')!
   win.document.write(html)
   win.document.close()
   win.focus()
@@ -238,10 +238,10 @@ const handlePrint = () => {
 const handlePrintSection = () => {
   // Print ONLY the active tab's section
   if (!activeGroup.value) return
-  const grp   = activeGroup.value
+  const grp = activeGroup.value
   const title = `${props.exam.name} — ${grp.class_name} Section ${grp.section_name}`
-  const html  = buildPrintHtml([grp], title)
-  const win   = window.open('', '_blank', 'width=1200,height=800')!
+  const html = buildPrintHtml([grp], title)
+  const win = window.open('', '_blank', 'width=1200,height=800')!
   win.document.write(html)
   win.document.close()
   win.focus()
@@ -273,18 +273,18 @@ const handleExcel = async () => {
     const summaryData = [
       ['EXAM SCHEDULE REPORT', '', '', ''],
       [''],
-      ['Exam Name',    props.exam.name],
-      ['Exam Type',    examTypeLabel(props.exam.exam_type)],
+      ['Exam Name', props.exam.name],
+      ['Exam Type', examTypeLabel(props.exam.exam_type)],
       ['Academic Year', props.exam.academicYear?.name ?? '—'],
-      ['Term',         props.exam.term?.name ?? '—'],
-      ['Start Date',   formatDate(props.exam.start_date)],
-      ['End Date',     formatDate(props.exam.end_date)],
-      ['Weightage',    props.exam.weightage ? `${props.exam.weightage}%` : '—'],
-      ['Status',       statusConfig[props.exam.status]?.label ?? props.exam.status],
-      ['Published',    props.exam.is_published ? 'Yes' : 'No'],
+      ['Term', props.exam.term?.name ?? '—'],
+      ['Start Date', formatDate(props.exam.start_date)],
+      ['End Date', formatDate(props.exam.end_date)],
+      ['Weightage', props.exam.weightage ? `${props.exam.weightage}%` : '—'],
+      ['Status', statusConfig[props.exam.status]?.label ?? props.exam.status],
+      ['Published', props.exam.is_published ? 'Yes' : 'No'],
       [''],
-      ['Total Classes',   totalClasses.value],
-      ['Total Sections',  totalSections.value],
+      ['Total Classes', totalClasses.value],
+      ['Total Sections', totalSections.value],
       ['Total Schedules', totalSchedules.value],
       [''],
       ['Generated On', new Date().toLocaleString()],
@@ -369,10 +369,10 @@ const handlePdf = async () => {
     await loadJsPDF()
     const { jsPDF } = (window as any).jspdf
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
-    const navy   = [30, 58, 95]
+    const navy = [30, 58, 95]
     const silver = [240, 244, 250]
-    const white  = [255, 255, 255]
-    const pageW  = doc.internal.pageSize.getWidth()
+    const white = [255, 255, 255]
+    const pageW = doc.internal.pageSize.getWidth()
     const printDate = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
 
     doc.setFillColor(...navy as [number, number, number])
@@ -388,13 +388,13 @@ const handlePdf = async () => {
 
     const infoItems = [
       { label: 'Start Date', value: formatDate(props.exam.start_date) },
-      { label: 'End Date',   value: formatDate(props.exam.end_date) },
-      { label: 'Weightage',  value: props.exam.weightage ? `${props.exam.weightage}%` : '—' },
-      { label: 'Status',     value: statusConfig[props.exam.status]?.label ?? props.exam.status },
-      { label: 'Published',  value: props.exam.is_published ? 'Yes' : 'No' },
-      { label: 'Classes',    value: String(totalClasses.value) },
-      { label: 'Sections',   value: String(totalSections.value) },
-      { label: 'Schedules',  value: String(totalSchedules.value) },
+      { label: 'End Date', value: formatDate(props.exam.end_date) },
+      { label: 'Weightage', value: props.exam.weightage ? `${props.exam.weightage}%` : '—' },
+      { label: 'Status', value: statusConfig[props.exam.status]?.label ?? props.exam.status },
+      { label: 'Published', value: props.exam.is_published ? 'Yes' : 'No' },
+      { label: 'Classes', value: String(totalClasses.value) },
+      { label: 'Sections', value: String(totalSections.value) },
+      { label: 'Schedules', value: String(totalSchedules.value) },
     ]
     const boxW = (pageW - 20) / 4
     const boxH = 11
@@ -434,38 +434,38 @@ const handlePdf = async () => {
       })
     })
 
-    ;(doc as any).autoTable({
-      head: [['#', 'Class', 'Section', 'Subject', 'Date', 'Time', 'Room', 'Theory', 'Practical', 'Total', 'Pass']],
-      body: tableBody,
-      startY: startY + 2 * (boxH + 2) + 4,
-      margin: { left: 10, right: 10 },
-      styles: { fontSize: 8.5, cellPadding: { top: 3, bottom: 3, left: 3, right: 3 }, lineColor: [210, 220, 235], lineWidth: 0.2, textColor: [30, 30, 30] },
-      headStyles: { fillColor: navy, textColor: white, fontStyle: 'bold', fontSize: 8.5, halign: 'center' },
-      alternateRowStyles: { fillColor: [248, 251, 255] },
-      columnStyles: {
-        0: { halign: 'center', cellWidth: 8 }, 1: { cellWidth: 22 }, 2: { halign: 'center', cellWidth: 18 },
-        3: { cellWidth: 32 }, 4: { halign: 'center', cellWidth: 22 }, 5: { halign: 'center', cellWidth: 30 },
-        6: { halign: 'center', cellWidth: 16 }, 7: { halign: 'center', cellWidth: 16 },
-        8: { halign: 'center', cellWidth: 18 }, 9: { halign: 'center', cellWidth: 16 }, 10: { halign: 'center', cellWidth: 14 },
-      },
-      didDrawPage: (data: any) => {
-        if (data.pageNumber > 1) {
-          doc.setFillColor(...navy as [number, number, number])
-          doc.rect(0, 0, pageW, 10, 'F')
-          doc.setFont('helvetica', 'bold')
-          doc.setFontSize(8)
-          doc.setTextColor(255, 255, 255)
-          doc.text(props.exam.name + ' — Exam Schedule', pageW / 2, 6.5, { align: 'center' })
-        }
-        const pageH = doc.internal.pageSize.getHeight()
-        doc.setFont('helvetica', 'normal')
-        doc.setFontSize(7)
-        doc.setTextColor(160, 160, 160)
-        doc.text(`Generated: ${printDate}`, 10, pageH - 5)
-        doc.text(`Page ${data.pageNumber}`, pageW - 10, pageH - 5, { align: 'right' })
-        doc.text(`Total: ${totalSchedules.value} schedule(s)`, pageW / 2, pageH - 5, { align: 'center' })
-      },
-    })
+      ; (doc as any).autoTable({
+        head: [['#', 'Class', 'Section', 'Subject', 'Date', 'Time', 'Room', 'Theory', 'Practical', 'Total', 'Pass']],
+        body: tableBody,
+        startY: startY + 2 * (boxH + 2) + 4,
+        margin: { left: 10, right: 10 },
+        styles: { fontSize: 8.5, cellPadding: { top: 3, bottom: 3, left: 3, right: 3 }, lineColor: [210, 220, 235], lineWidth: 0.2, textColor: [30, 30, 30] },
+        headStyles: { fillColor: navy, textColor: white, fontStyle: 'bold', fontSize: 8.5, halign: 'center' },
+        alternateRowStyles: { fillColor: [248, 251, 255] },
+        columnStyles: {
+          0: { halign: 'center', cellWidth: 8 }, 1: { cellWidth: 22 }, 2: { halign: 'center', cellWidth: 18 },
+          3: { cellWidth: 32 }, 4: { halign: 'center', cellWidth: 22 }, 5: { halign: 'center', cellWidth: 30 },
+          6: { halign: 'center', cellWidth: 16 }, 7: { halign: 'center', cellWidth: 16 },
+          8: { halign: 'center', cellWidth: 18 }, 9: { halign: 'center', cellWidth: 16 }, 10: { halign: 'center', cellWidth: 14 },
+        },
+        didDrawPage: (data: any) => {
+          if (data.pageNumber > 1) {
+            doc.setFillColor(...navy as [number, number, number])
+            doc.rect(0, 0, pageW, 10, 'F')
+            doc.setFont('helvetica', 'bold')
+            doc.setFontSize(8)
+            doc.setTextColor(255, 255, 255)
+            doc.text(props.exam.name + ' — Exam Schedule', pageW / 2, 6.5, { align: 'center' })
+          }
+          const pageH = doc.internal.pageSize.getHeight()
+          doc.setFont('helvetica', 'normal')
+          doc.setFontSize(7)
+          doc.setTextColor(160, 160, 160)
+          doc.text(`Generated: ${printDate}`, 10, pageH - 5)
+          doc.text(`Page ${data.pageNumber}`, pageW - 10, pageH - 5, { align: 'right' })
+          doc.text(`Total: ${totalSchedules.value} schedule(s)`, pageW / 2, pageH - 5, { align: 'center' })
+        },
+      })
     doc.save(`${props.exam.name.replace(/\s+/g, '_')}_Schedule.pdf`)
   } catch (err) {
     console.error('PDF export failed:', err)
@@ -477,6 +477,7 @@ const handlePdf = async () => {
 </script>
 
 <template>
+
   <Head :title="`Schedule – ${exam.name}`" />
   <AppLayout :breadcrumbs="breadcrumbs">
     <div class="flex flex-col gap-4 p-4 max-w-7xl mx-auto w-full">
@@ -515,8 +516,7 @@ const handlePdf = async () => {
                 <Pencil class="w-4 h-4 mr-1.5" />
                 Edit Schedule
               </Button>
-              <Button variant="outline" size="sm" @click="handlePrint"
-                class="border-slate-300 hover:bg-slate-50">
+              <Button variant="outline" size="sm" @click="handlePrint" class="border-slate-300 hover:bg-slate-50">
                 <Printer class="w-4 h-4 mr-1.5 text-slate-600" />
                 Print All
               </Button>
@@ -530,7 +530,7 @@ const handlePdf = async () => {
                 <FileDown class="w-4 h-4 mr-1.5" />
                 {{ exportingPdf ? 'Generating...' : 'PDF' }}
               </Button>
-              <Button size="sm" @click="router.visit(`/exams/${exam.id}/schedule/create`)">
+              <Button size="sm" @click="router.visit(`/exams/${exam.id}/schedule`)">
                 <Plus class="w-4 h-4 mr-1" /> Add Schedule
               </Button>
             </div>
@@ -578,7 +578,7 @@ const handlePdf = async () => {
         <BookOpen class="w-10 h-10 text-muted-foreground/40 mb-3" />
         <p class="text-base font-medium text-muted-foreground">No schedules found</p>
         <p class="text-sm text-muted-foreground/70 mt-1">Add a schedule to get started</p>
-        <Button class="mt-4" size="sm" @click="router.visit(`/exams/${exam.id}/schedule/create`)">
+        <Button class="mt-4" size="sm" @click="router.visit(`/exams/${exam.id}/schedule`)">
           <Plus class="w-4 h-4 mr-1.5" /> Add Schedule
         </Button>
       </div>
@@ -594,13 +594,11 @@ const handlePdf = async () => {
               {{ cls.class_name }}
             </p>
             <!-- Section buttons -->
-            <button
-              v-for="grp in cls.sections" :key="`${grp.class_id}_${grp.section_id}`"
+            <button v-for="grp in cls.sections" :key="`${grp.class_id}_${grp.section_id}`"
               class="w-full text-left px-4 py-2 text-sm flex items-center justify-between transition-colors hover:bg-muted/50"
               :class="activeTab === `${grp.class_id}_${grp.section_id}`
                 ? 'bg-primary/10 text-primary font-semibold border-r-2 border-primary'
-                : 'text-foreground'"
-              @click="activeTab = `${grp.class_id}_${grp.section_id}`">
+                : 'text-foreground'" @click="activeTab = `${grp.class_id}_${grp.section_id}`">
               <span>Section {{ grp.section_name }}</span>
               <span class="text-xs text-muted-foreground">{{ grp.schedules.length }}</span>
             </button>
@@ -636,14 +634,30 @@ const handlePdf = async () => {
               <table class="w-full text-sm">
                 <thead>
                   <tr class="border-b bg-muted/10">
-                    <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Subject</th>
-                    <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Date</th>
-                    <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Time</th>
-                    <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Room</th>
-                    <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Theory</th>
-                    <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Practical</th>
-                    <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Total</th>
-                    <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Pass</th>
+                    <th
+                      class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      Subject</th>
+                    <th
+                      class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      Date</th>
+                    <th
+                      class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      Time</th>
+                    <th
+                      class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      Room</th>
+                    <th
+                      class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      Theory</th>
+                    <th
+                      class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      Practical</th>
+                    <th
+                      class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      Total</th>
+                    <th
+                      class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      Pass</th>
                   </tr>
                 </thead>
                 <tbody>

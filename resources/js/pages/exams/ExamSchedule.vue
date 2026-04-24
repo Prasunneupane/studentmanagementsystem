@@ -433,9 +433,9 @@ const progressPercent = computed(() => tabs.value.length ? Math.round((completed
                         <th class="text-left px-3 py-2.5 font-semibold text-muted-foreground w-32">Start</th>
                         <th class="text-left px-3 py-2.5 font-semibold text-muted-foreground w-32">End</th>
                         <th class="text-left px-3 py-2.5 font-semibold text-muted-foreground w-24">Room</th>
-                        <th class="text-left px-3 py-2.5 font-semibold text-muted-foreground w-20">Theory</th>
-                        <th class="text-left px-3 py-2.5 font-semibold text-muted-foreground w-20">Practical</th>
-                        <th class="text-left px-3 py-2.5 font-semibold text-muted-foreground w-20">Pass</th>
+                        <th class="text-left px-3 py-2.5 font-semibold text-muted-foreground w-20 hidden">Theory</th>
+                        <th class="text-left px-3 py-2.5 font-semibold text-muted-foreground w-20 hidden">Practical</th>
+                        <th class="text-left px-3 py-2.5 font-semibold text-muted-foreground w-20 hidden">Pass</th>
                         <th class="text-center px-2 py-2.5 font-semibold text-muted-foreground w-10"></th>
                       </tr>
                     </thead>
@@ -480,16 +480,17 @@ const progressPercent = computed(() => tabs.value.length ? Math.round((completed
                             class="h-8 text-xs"
                           />
                         </td>
-                        <td class="px-2 py-2">
+                        <td class="px-2 py-2 hidden">
                           <Input
                             type="number"
                             v-model="getRow(activeTab, subj.id).max_theory_marks"
                             class="h-8 text-xs"
                             min="0"
+                            
                             @input="updateTotalMarks(activeTab, subj.id)"
                           />
                         </td>
-                        <td class="px-2 py-2">
+                        <td class="px-2 py-2 hidden">
                           <Input
                             type="number"
                             v-model="getRow(activeTab, subj.id).max_practical_marks"
@@ -498,7 +499,7 @@ const progressPercent = computed(() => tabs.value.length ? Math.round((completed
                             @input="updateTotalMarks(activeTab, subj.id)"
                           />
                         </td>
-                        <td class="px-2 py-2">
+                        <td class="px-2 py-2 hidden">
                           <Input
                             type="number"
                             v-model="getRow(activeTab, subj.id).pass_marks"
