@@ -41,7 +41,7 @@ class ExamScheduleController extends Controller
         $classIds        = $this->examSchedule->getUniqueClassIds($examClasses);
         $classes         = $this->commonServices->getClassessWithSections();
         $subjectsByClass = $this->examSchedule->getSubjectsByClass($classIds, $exam);
-
+        // dd($subjectsByClass);
         return Inertia::render('exams/ExamSchedule', [
             'exam'            => $exam->only('id', 'name', 'exam_type', 'start_date', 'end_date', 'academic_year_id'),
             'examClasses'     => $examClasses,
@@ -79,14 +79,15 @@ class ExamScheduleController extends Controller
     public function edit(int $id)
     {
         $exam = $this->examSchedule->getExamWithDetails($id);
-
+        // dd($exam);
         if (!$exam) abort(404);
 
         $examClasses     = $this->examSchedule->getClassSectionByExamId($exam->id);
+        dd($examClasses);
         $classIds        = $this->examSchedule->getUniqueClassIds($examClasses);
         $classes         = $this->commonServices->getClassessWithSections();
         $subjectsByClass = $this->examSchedule->getSubjectsByClass($classIds, $exam);
-
+        dd($subjectsByClass);
         // ── Key addition: send existing values so the form is pre-filled ──
         $existingSchedule = $this->examSchedule->getExistingScheduleMap($exam->id);
 

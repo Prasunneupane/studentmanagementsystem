@@ -18,11 +18,11 @@ class ExamScheduleService implements ExamScheduleInterface
     {
         return ExamClass::where('exam_id', $examId)
             
-            ->get(['class_id', 'section_id'])
-            ->map(fn($ec) => [
-                'class_id' => (string) $ec->class_id,
-                'section_id' => $ec->section_id ? (string) $ec->section_id : null,
-            ]);
+            ->get(['class_id', 'section_id']);
+            // ->map(fn($ec) => [
+            //     'class_id' => (string) $ec->class_id,
+            //     'section_id' => $ec->section_id ? (string) $ec->section_id : null,
+            // ]);
     }
 
     public function getUniqueClassIds($examClasses)
@@ -269,10 +269,10 @@ class ExamScheduleService implements ExamScheduleInterface
     {
         $schedules = ExamSchedule::with(['class', 'section', 'subject'])
             ->where('exam_id', $examId)
+            ->orderBy('class_id')
+            ->orderBy('section_id')
             ->orderBy('exam_date')
-            ->orderBy('start_time')
             ->get();
-
         $grouped = [];
         foreach ($schedules as $schedule) {
             $key = "{$schedule->class_id}_{$schedule->section_id}";

@@ -82,9 +82,13 @@ interface ClassSectionTab {
 
 const tabs = computed((): ClassSectionTab[] => {
   const result: ClassSectionTab[] = []
-
+ 
+  
   props.examClasses.forEach(entry => {
-    const cls = props.classes.find(c => c.id === entry.class_id)
+    
+    const cls = props.classes.find(c => Number(c.id) === Number(entry.class_id))
+    
+    
     if (!cls) return
 
     if (entry.section_id === null) {
@@ -93,6 +97,8 @@ const tabs = computed((): ClassSectionTab[] => {
         const sectionSubjects = subjects.filter(s =>
           s.section_id === null || String(s.section_id) === String(sec.id)
         )
+       
+        
         result.push({
           key: `${cls.id}_${sec.id}`,
           classId: cls.id,
@@ -108,6 +114,7 @@ const tabs = computed((): ClassSectionTab[] => {
       const sectionSubjects = subjects.filter(s =>
         s.section_id === null || String(s.section_id) === String(entry.section_id)
       )
+      
       result.push({
         key: `${cls.id}_${entry.section_id}`,
         classId: cls.id,
@@ -118,6 +125,8 @@ const tabs = computed((): ClassSectionTab[] => {
       })
     }
   })
+  //console.log(result,"result");
+  
   return result
 })
 

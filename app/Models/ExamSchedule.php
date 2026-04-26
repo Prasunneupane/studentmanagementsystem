@@ -21,6 +21,7 @@ class ExamSchedule extends Model
         'max_total_marks',
         'pass_marks',
     ];
+    public $timestamps = true;
 
     public function exam()
     {

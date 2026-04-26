@@ -124,7 +124,7 @@ class ExamController extends Controller
         $exam = $this->examScheduleService->getExamWithDetails($id);
         // dd($exam);
         $groupedSchedule = $this->examScheduleService->getScheduleGroupedByClass($id);
-        
+        // dd($groupedSchedule);
         if (!$exam)
             abort(404);
         // dd($groupedSchedule);

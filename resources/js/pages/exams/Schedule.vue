@@ -55,6 +55,7 @@ const activeTab = ref<string>(
     : ''
 )
 
+
 const activeGroup = computed(() =>
   props.groupedSchedule.find(
     g => `${g.class_id}_${g.section_id}` === activeTab.value
@@ -133,14 +134,15 @@ const buildPrintHtml = (groups: ClassGroup[], title: string): string => {
   const printDate = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
 
   let tableRows = ''
-  let serial = 1
+  // let serial = 1
   let schedCount = 0
 
   groups.forEach(grp => {
     tableRows += `
       <tr class="section-header">
-        <td colspan="9">${grp.class_name} &nbsp;—&nbsp; Section ${grp.section_name}</td>
+        <td colspan="9">${grp.class_name} &nbsp;—&nbsp;${grp.section_name}</td>
       </tr>`
+      let serial = 1;
     grp.schedules.forEach(row => {
       schedCount++
       tableRows += `
@@ -150,10 +152,10 @@ const buildPrintHtml = (groups: ClassGroup[], title: string): string => {
           <td class="center">${formatDate(row.exam_date)}</td>
           <td class="center">${formatTime(row.start_time)} – ${formatTime(row.end_time)}</td>
           <td class="center">${row.room_no || '—'}</td>
-          <td class="center">${row.max_theory_marks ?? '—'}</td>
+          <!-- <td class="center">${row.max_theory_marks ?? '—'}</td>
           <td class="center">${row.max_practical_marks || '—'}</td>
           <td class="center">${row.max_total_marks}</td>
-          <td class="center">${row.pass_marks}</td>
+          <td class="center">${row.pass_marks}</td> -->
         </tr>`
     })
   })
@@ -193,12 +195,12 @@ const buildPrintHtml = (groups: ClassGroup[], title: string): string => {
   <div class="info-grid">
     <div class="info-box"><div class="info-label">Start Date</div><div class="info-value">${startDate}</div></div>
     <div class="info-box"><div class="info-label">End Date</div><div class="info-value">${endDate}</div></div>
-    <div class="info-box"><div class="info-label">Weightage</div><div class="info-value">${weightage}</div></div>
+    <!-- <div class="info-box"><div class="info-label">Weightage</div><div class="info-value">${weightage}</div></div>
     <div class="info-box"><div class="info-label">Published</div><div class="info-value">${published}</div></div>
     <div class="info-box"><div class="info-label">Total Classes</div><div class="info-value">${groups.length}</div></div>
     <div class="info-box"><div class="info-label">Total Sections</div><div class="info-value">${groups.length}</div></div>
-    <div class="info-box"><div class="info-label">Total Schedules</div><div class="info-value">${schedCount}</div></div>
-    <div class="info-box"><div class="info-label">Print Date</div><div class="info-value">${printDate}</div></div>
+    <div class="info-box"><div class="info-label">Total Schedules</div><div class="info-value">${schedCount}</div></div> 
+    <div class="info-box"><div class="info-label">Print Date</div><div class="info-value">${printDate}</div></div>-->
   </div>
   <table>
     <thead>
@@ -208,10 +210,10 @@ const buildPrintHtml = (groups: ClassGroup[], title: string): string => {
         <th class="center" style="width:100px">Date</th>
         <th class="center" style="width:130px">Time</th>
         <th class="center" style="width:72px">Room</th>
-        <th class="center" style="width:64px">Theory</th>
+        <!-- <th class="center" style="width:64px">Theory</th>
         <th class="center" style="width:64px">Practical</th>
         <th class="center" style="width:56px">Total</th>
-        <th class="center" style="width:52px">Pass</th>
+        <th class="center" style="width:52px">Pass</th> -->
       </tr>
     </thead>
     <tbody>${tableRows}</tbody>
@@ -239,7 +241,7 @@ const handlePrintSection = () => {
   // Print ONLY the active tab's section
   if (!activeGroup.value) return
   const grp = activeGroup.value
-  const title = `${props.exam.name} — ${grp.class_name} Section ${grp.section_name}`
+  const title = `${props.exam.name} — ${grp.class_name} ${grp.section_name}`
   const html = buildPrintHtml([grp], title)
   const win = window.open('', '_blank', 'width=1200,height=800')!
   win.document.write(html)
@@ -294,7 +296,7 @@ const handleExcel = async () => {
     XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary')
 
     // Full schedule sheet
-    const headers = ['#', 'Class', 'Section', 'Subject', 'Exam Date', 'Start Time', 'End Time', 'Room No', 'Theory', 'Practical', 'Total', 'Pass']
+    const headers = ['#', 'Class', 'Section', 'Subject', 'Exam Date', 'Start Time', 'End Time', 'Room No']
     const rows: any[][] = []
     let serial = 1
     props.groupedSchedule.forEach(grp => {
@@ -302,15 +304,14 @@ const handleExcel = async () => {
         rows.push([
           serial++, grp.class_name, `Section ${grp.section_name}`, row.subject_name,
           formatDate(row.exam_date), formatTime(row.start_time), formatTime(row.end_time),
-          row.room_no || '—', row.max_theory_marks ?? '—', row.max_practical_marks || '—',
-          row.max_total_marks, row.pass_marks,
+          row.room_no || '—',
         ])
       })
     })
     const wsSchedule = XLSX.utils.aoa_to_sheet([headers, ...rows])
     wsSchedule['!cols'] = [
       { wch: 5 }, { wch: 14 }, { wch: 12 }, { wch: 22 }, { wch: 13 },
-      { wch: 11 }, { wch: 11 }, { wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 10 }, { wch: 10 },
+      { wch: 11 }, { wch: 11 }, { wch: 10 }
     ]
     XLSX.utils.book_append_sheet(wb, wsSchedule, 'Schedule')
 
@@ -319,16 +320,15 @@ const handleExcel = async () => {
       const sheetName = `${grp.class_name}-${grp.section_name}`.substring(0, 31)
       const classRows = grp.schedules.map((row, i) => [
         i + 1, row.subject_name, formatDate(row.exam_date), formatTime(row.start_time),
-        formatTime(row.end_time), row.room_no || '—', row.max_theory_marks ?? '—',
-        row.max_practical_marks || '—', row.max_total_marks, row.pass_marks,
+        formatTime(row.end_time), row.room_no || '—',
       ])
       const wsClass = XLSX.utils.aoa_to_sheet([
-        ['#', 'Subject', 'Exam Date', 'Start Time', 'End Time', 'Room No', 'Theory', 'Practical', 'Total', 'Pass'],
+        ['#', 'Subject', 'Date', 'Start Time', 'End Time', 'Room No'],
         ...classRows,
       ])
       wsClass['!cols'] = [
         { wch: 4 }, { wch: 22 }, { wch: 13 }, { wch: 11 }, { wch: 11 },
-        { wch: 10 }, { wch: 8 }, { wch: 10 }, { wch: 8 }, { wch: 7 },
+        { wch: 10 },
       ]
       XLSX.utils.book_append_sheet(wb, wsClass, sheetName)
     })
@@ -389,12 +389,12 @@ const handlePdf = async () => {
     const infoItems = [
       { label: 'Start Date', value: formatDate(props.exam.start_date) },
       { label: 'End Date', value: formatDate(props.exam.end_date) },
-      { label: 'Weightage', value: props.exam.weightage ? `${props.exam.weightage}%` : '—' },
-      { label: 'Status', value: statusConfig[props.exam.status]?.label ?? props.exam.status },
-      { label: 'Published', value: props.exam.is_published ? 'Yes' : 'No' },
-      { label: 'Classes', value: String(totalClasses.value) },
-      { label: 'Sections', value: String(totalSections.value) },
-      { label: 'Schedules', value: String(totalSchedules.value) },
+      // { label: 'Weightage', value: props.exam.weightage ? `${props.exam.weightage}%` : '—' },
+      // { label: 'Status', value: statusConfig[props.exam.status]?.label ?? props.exam.status },
+      // { label: 'Published', value: props.exam.is_published ? 'Yes' : 'No' },
+      // { label: 'Classes', value: String(totalClasses.value) },
+      // { label: 'Sections', value: String(totalSections.value) },
+      // { label: 'Schedules', value: String(totalSchedules.value) },
     ]
     const boxW = (pageW - 20) / 4
     const boxH = 11
@@ -428,14 +428,13 @@ const handlePdf = async () => {
         tableBody.push([
           serial++, grp.class_name, `Sec ${grp.section_name}`, row.subject_name,
           formatDate(row.exam_date), `${formatTime(row.start_time)} – ${formatTime(row.end_time)}`,
-          row.room_no || '—', row.max_theory_marks ?? '—', row.max_practical_marks || '—',
-          row.max_total_marks, row.pass_marks,
+          row.room_no || '—',
         ])
       })
     })
 
       ; (doc as any).autoTable({
-        head: [['#', 'Class', 'Section', 'Subject', 'Date', 'Time', 'Room', 'Theory', 'Practical', 'Total', 'Pass']],
+        head: [['#', 'Class', 'Section', 'Subject', 'Date', 'Time', 'Room',]],
         body: tableBody,
         startY: startY + 2 * (boxH + 2) + 4,
         margin: { left: 10, right: 10 },
@@ -445,8 +444,7 @@ const handlePdf = async () => {
         columnStyles: {
           0: { halign: 'center', cellWidth: 8 }, 1: { cellWidth: 22 }, 2: { halign: 'center', cellWidth: 18 },
           3: { cellWidth: 32 }, 4: { halign: 'center', cellWidth: 22 }, 5: { halign: 'center', cellWidth: 30 },
-          6: { halign: 'center', cellWidth: 16 }, 7: { halign: 'center', cellWidth: 16 },
-          8: { halign: 'center', cellWidth: 18 }, 9: { halign: 'center', cellWidth: 16 }, 10: { halign: 'center', cellWidth: 14 },
+          6: { halign: 'center', cellWidth: 16 },
         },
         didDrawPage: (data: any) => {
           if (data.pageNumber > 1) {
@@ -599,7 +597,7 @@ const handlePdf = async () => {
               :class="activeTab === `${grp.class_id}_${grp.section_id}`
                 ? 'bg-primary/10 text-primary font-semibold border-r-2 border-primary'
                 : 'text-foreground'" @click="activeTab = `${grp.class_id}_${grp.section_id}`">
-              <span>Section {{ grp.section_name }}</span>
+              <span>{{ grp.section_name }}</span>
               <span class="text-xs text-muted-foreground">{{ grp.schedules.length }}</span>
             </button>
           </div>
@@ -615,7 +613,7 @@ const handlePdf = async () => {
                 <div class="w-2 h-2 rounded-full bg-primary"></div>
                 <span class="font-semibold text-sm">{{ activeGroup.class_name }}</span>
                 <span class="px-2 py-0.5 rounded-md text-xs font-semibold bg-primary/10 text-primary">
-                  Section {{ activeGroup.section_name }}
+                  {{ activeGroup.section_name }}
                 </span>
                 <span class="text-xs text-muted-foreground ml-1">
                   {{ activeGroup.schedules.length }} subject{{ activeGroup.schedules.length !== 1 ? 's' : '' }}
@@ -647,16 +645,16 @@ const handlePdf = async () => {
                       class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                       Room</th>
                     <th
-                      class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      class="hidden px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                       Theory</th>
                     <th
-                      class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      class="hidden px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                       Practical</th>
                     <th
-                      class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      class="hidden px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                       Total</th>
                     <th
-                      class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      class="hidden px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                       Pass</th>
                   </tr>
                 </thead>
@@ -676,23 +674,23 @@ const handlePdf = async () => {
                       </span>
                     </td>
                     <td class="px-4 py-3 text-sm text-muted-foreground">{{ row.room_no || '—' }}</td>
-                    <td class="px-4 py-3">
+                    <td class="hidden px-4 py-3">
                       <span class="font-mono text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-md font-semibold">
                         {{ row.max_theory_marks ?? '—' }}
                       </span>
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="hidden px-4 py-3">
                       <span class="font-mono text-xs px-2 py-1 rounded-md font-semibold"
                         :class="row.max_practical_marks ? 'bg-emerald-50 text-emerald-700' : 'text-muted-foreground'">
                         {{ row.max_practical_marks || '—' }}
                       </span>
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="hidden px-4 py-3">
                       <span class="font-mono text-xs bg-purple-50 text-purple-700 px-2 py-1 rounded-md font-semibold">
                         {{ row.max_total_marks }}
                       </span>
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="hidden px-4 py-3">
                       <span class="font-mono text-xs bg-amber-50 text-amber-700 px-2 py-1 rounded-md font-semibold">
                         {{ row.pass_marks }}
                       </span>
