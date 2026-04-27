@@ -148,7 +148,7 @@ class ExamScheduleService implements ExamScheduleInterface
             $examSchedule = DB::transaction(function () use ($exam, $schedules) {
 
                 // Delete existing schedules for this exam
-                ExamClass::where('exam_id', $exam->id)->delete();
+                 ExamSchedule::where('exam_id', $exam->id)->delete();
                 // dd($schedules);
                 // Insert new schedules
                 $insertRows = collect($schedules)->map(fn($s) => [

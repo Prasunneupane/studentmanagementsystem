@@ -6,7 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import DatePicker from '@/components/ui/datepicker/DatePicker.vue'
+import DatePicker from '@/components/ui/customdatepicker/CustomDatePicker.vue'
 import TimePicker from '@/components/ui/timepicker/TimePicker.vue'
 import CustomSelect from '../CustomSelect.vue'
 import { Toaster } from '@/components/ui/sonner'
@@ -79,7 +79,11 @@ interface ClassSectionTab {
   sectionName: string
   subjects: Subject[]
 }
+const datePicker = ref()
 
+const openCalendar = () => {
+  datePicker.value.openCalendar()
+}
 const tabs = computed((): ClassSectionTab[] => {
   const result: ClassSectionTab[] = []
  
@@ -449,11 +453,6 @@ const progressPercent = computed(() => tabs.value.length ? Math.round((completed
                       </tr>
                     </thead>
                     <tbody>
-                      <!--
-                        KEY FIX: Use getRow(activeTab, subj.id) instead of
-                        schedules[activeTab][subj.id] to guarantee the row
-                        object always exists before Vue renders the cell.
-                      -->
                       <tr v-for="(subj, i) in currentTabData.subjects" :key="subj.id"
                         class="border-b last:border-0 transition-colors"
                         :class="i % 2 === 0 ? 'bg-background' : 'bg-muted/20'">
@@ -462,11 +461,8 @@ const progressPercent = computed(() => tabs.value.length ? Math.round((completed
                           <div class="text-xs text-muted-foreground">{{ subj.code }}</div>
                         </td>
                         <td class="px-2 py-2">
-                          <DatePicker
-                            :model-value="getRow(activeTab, subj.id).exam_date"
-                            placeholder="Pick date"
-                            @update:model-value="(val) => { getRow(activeTab, subj.id).exam_date = formatDate(val) }"
-                          />
+                          <DatePicker ref="datePicker" :initial-month="false" :initial-year="false" v-model="getRow(activeTab, subj.id).exam_date" />
+                          <!-- <button @click="openCalendar">Open Calendar</button> -->
                         </td>
                         <td class="px-2 py-2">
                           <TimePicker
@@ -495,7 +491,6 @@ const progressPercent = computed(() => tabs.value.length ? Math.round((completed
                             v-model="getRow(activeTab, subj.id).max_theory_marks"
                             class="h-8 text-xs"
                             min="0"
-                            
                             @input="updateTotalMarks(activeTab, subj.id)"
                           />
                         </td>
