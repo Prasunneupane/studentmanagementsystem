@@ -34,6 +34,7 @@ class ExamController extends Controller
         $exams = $this->examScheduleService->getAllSchedulesForIndex();
 
         $academicYears = $this->commonServices->getAcademicYearList();
+        // dd($exams);
         return Inertia::render('exams/ScheduleIndex', [
             'exams' => $exams,
             'academicYears' => $academicYears,

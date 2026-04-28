@@ -314,7 +314,7 @@ const handleSubmit = async () => {
   useForm({ schedules: payload }).post(`/exams/${props.exam.id}/schedule`, {
     onSuccess: () => {
       toast.success('Schedule saved successfully!')
-      router.visit(`/exams/${props.exam.id}`)
+      router.visit(`/exams/exam-schedules/${props.exam.id}`)
     },
     onError: (errors) => {
       toast.error(Object.values(errors)[0] as string)
@@ -340,6 +340,8 @@ const tabHasData = (key: string) => {
   const rows = schedules.value[key] || {}
   return Object.values(rows).some(r => r.exam_date)
 }
+
+
 
 // ─── Progress ────────────────────────────────────────────────────
 const completedTabs = computed(() => tabs.value.filter(t => tabHasData(t.key)).length)
@@ -461,7 +463,8 @@ const progressPercent = computed(() => tabs.value.length ? Math.round((completed
                           <div class="text-xs text-muted-foreground">{{ subj.code }}</div>
                         </td>
                         <td class="px-2 py-2">
-                          <DatePicker ref="datePicker" :initial-month="false" :initial-year="false" v-model="getRow(activeTab, subj.id).exam_date" />
+                         
+                          <DatePicker  ref="datePicker" v-model="getRow(activeTab, subj.id).exam_date" :month="false" :year="false" />
                           <!-- <button @click="openCalendar">Open Calendar</button> -->
                         </td>
                         <td class="px-2 py-2">
