@@ -93,7 +93,8 @@ interface ClassSectionTab {
 
 const tabs = computed((): ClassSectionTab[] => {
   const result: ClassSectionTab[] = []
-
+  console.log(props.examClasses,"examclasses");
+  
   props.examClasses.forEach(entry => {
     const cls = props.classes.find(c => c.id === entry.class_id)
     if (!cls) return
@@ -138,7 +139,7 @@ const tabs = computed((): ClassSectionTab[] => {
 
   return result
 })
-
+console.log(tabs.value,"tabs")
 const activeTab = ref(tabs.value[0]?.key || '')
 
 // ─── Build grouped sidebar ────────────────────────────────────────
