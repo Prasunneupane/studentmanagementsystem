@@ -7,6 +7,17 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Toaster } from '@/components/ui/sonner'
 import { useToast } from '@/composables/useToast'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import DatePicker from '@/components/ui/datepicker/DatePicker.vue'
+import CustomSelect from '../CustomSelect.vue'
 import 'vue-sonner/style.css'
 import {
   Search, Eye, Trash2, X, ChevronDown, ChevronRight,
@@ -14,7 +25,10 @@ import {
   ToggleLeft, ToggleRight, Plus,
   Printer,
   FileText,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Edit,
+  Loader2,
+  Save
 } from 'lucide-vue-next'
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
@@ -71,6 +85,7 @@ interface Props {
     to: number
   }
   academicYears: { value: string; label: string }[]
+  terms: { value: string; label: string }[]
   filters: {
     academic_year_id?: string
     exam_type?: string
@@ -90,18 +105,18 @@ const breadcrumbs = [
 const stats = computed(() => {
   const all = props.exams.data
   return {
-    total:     props.exams.total,
-    ongoing:   all.filter(e => e.status === 'ongoing').length,
-    upcoming:  all.filter(e => e.status === 'upcoming').length,
+    total: props.exams.total,
+    ongoing: all.filter(e => e.status === 'ongoing').length,
+    upcoming: all.filter(e => e.status === 'upcoming').length,
     completed: all.filter(e => e.status === 'completed').length,
   }
 })
 
 // ── Filters ──────────────────────────────────────────────────────
-const search   = ref(props.filters.search   || '')
-const yearId   = ref(props.filters.academic_year_id || '')
+const search = ref(props.filters.search || '')
+const yearId = ref(props.filters.academic_year_id || '')
 const examType = ref(props.filters.exam_type || '')
-const status   = ref(props.filters.status   || '')
+const status = ref(props.filters.status || '')
 
 let searchTimeout: ReturnType<typeof setTimeout>
 watch(search, () => {
@@ -112,10 +127,10 @@ watch([yearId, examType, status], () => applyFilters())
 
 const applyFilters = () => {
   router.get('/exams/exam-schedules', {
-    search:           search.value   || undefined,
-    academic_year_id: yearId.value   || undefined,
-    exam_type:        examType.value || undefined,
-    status:           status.value   || undefined,
+    search: search.value || undefined,
+    academic_year_id: yearId.value || undefined,
+    exam_type: examType.value || undefined,
+    status: status.value || undefined,
   }, { preserveState: true, replace: true })
 }
 
@@ -126,30 +141,81 @@ const clearFilters = () => {
   status.value = ''
   applyFilters()
 }
+const isEditModalOpen = ref(false)
+const editForm = useForm({
+  id: null as number | null,
+  name: '',
+  exam_type: '',
+  academic_year_id: '',
+  term_id: '',
+  start_date: '',
+  end_date: '',
+  weightage: '100',
+  is_published: false,
+})
+
+const formatDateForInput = (val: any): string => {
+  if (!val) return ''
+  const d = val instanceof Date ? val : new Date(val)
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+const editExam = (exam: Exam) => {
+  editForm.id = exam.id
+  editForm.name = exam.name
+  editForm.exam_type = exam.exam_type
+  editForm.academic_year_id = String(exam.academic_year?.id || '')
+  editForm.term_id = String(exam.term?.id || '')
+  editForm.start_date = exam.start_date
+  editForm.end_date = exam.end_date
+  editForm.weightage = String(exam.weightage ?? '100')
+  editForm.is_published = exam.is_published
+  isEditModalOpen.value = true;
+
+}
+
+const submitUpdate = () => {
+  if (!editForm.id) return
+  // Force boolean conversion
+  editForm.is_published = editForm.is_published === true
+  editForm.put(`/exams/update/${editForm.id}`, {
+    onSuccess: () => {
+      isEditModalOpen.value = false
+      toast.success('Exam details updated successfully')
+    },
+    onError: (errors) => {
+      const firstError = Object.values(errors)[0]
+      toast.error(firstError as string)
+    }
+  })
+}
 
 const hasFilters = computed(() => !!(search.value || yearId.value || examType.value || status.value))
 
 // ── Helpers ──────────────────────────────────────────────────────
 const examTypeOptions = [
   { value: 'unit_test', label: 'Unit Test' },
-  { value: 'midterm',   label: 'Mid Term'  },
-  { value: 'final',     label: 'Final'     },
-  { value: 'semester',  label: 'Semester'  },
-  { value: 'annual',    label: 'Annual'    },
+  { value: 'midterm', label: 'Mid Term' },
+  { value: 'final', label: 'Final' },
+  { value: 'semester', label: 'Semester' },
+  { value: 'annual', label: 'Annual' },
 ]
 
 const statusOptions = [
-  { value: 'upcoming',  label: 'Upcoming'  },
-  { value: 'ongoing',   label: 'Ongoing'   },
+  { value: 'upcoming', label: 'Upcoming' },
+  { value: 'ongoing', label: 'Ongoing' },
   { value: 'completed', label: 'Completed' },
-  { value: 'draft',     label: 'Draft'     },
+  { value: 'draft', label: 'Draft' },
 ]
 
 const statusCfg: Record<string, { label: string; cls: string }> = {
-  ongoing:   { label: 'Ongoing',   cls: 'bg-green-100  text-green-800  border-green-200'  },
-  upcoming:  { label: 'Upcoming',  cls: 'bg-blue-100   text-blue-800   border-blue-200'   },
+  ongoing: { label: 'Ongoing', cls: 'bg-green-100  text-green-800  border-green-200' },
+  upcoming: { label: 'Upcoming', cls: 'bg-blue-100   text-blue-800   border-blue-200' },
   completed: { label: 'Completed', cls: 'bg-purple-100 text-purple-800 border-purple-200' },
-  draft:     { label: 'Draft',     cls: 'bg-gray-100   text-gray-700   border-gray-200'   },
+  draft: { label: 'Draft', cls: 'bg-gray-100   text-gray-700   border-gray-200' },
 }
 const getCfg = (s: string) => statusCfg[s] ?? statusCfg['draft']
 
@@ -186,14 +252,14 @@ const toggleActive = (exam: Exam) => {
 }
 
 // ── Delete ────────────────────────────────────────────────────────
-const deleteId  = ref<number | null>(null)
-const deleting  = ref(false)
+const deleteId = ref<number | null>(null)
+const deleting = ref(false)
 const confirmDelete = (id: number) => { deleteId.value = id }
-const cancelDelete  = () => { deleteId.value = null }
+const cancelDelete = () => { deleteId.value = null }
 const doDelete = () => {
   if (!deleteId.value) return
   deleting.value = true
-  router.delete(`/exam-schedules/${deleteId.value}`, {
+  router.delete(`/exams/exam-schedules/${deleteId.value}`, {
     preserveScroll: true,
     onSuccess: () => {
       toast.success('Schedule deleted successfully')
@@ -208,11 +274,11 @@ const doDelete = () => {
 }
 
 // ── Slide-over panel ─────────────────────────────────────────────
-const panelOpen    = ref(false)
-const panelExam    = ref<Exam | null>(null)
+const panelOpen = ref(false)
+const panelExam = ref<Exam | null>(null)
 const panelLoading = ref(false)
-const panelGroups  = ref<ClassGroup[]>([])
-const collapsed    = ref<Record<string, boolean>>({})
+const panelGroups = ref<ClassGroup[]>([])
+const collapsed = ref<Record<string, boolean>>({})
 
 const openPanel = async (exam: Exam) => {
   // panelExam.value  = exam
@@ -272,7 +338,7 @@ const data = props.exams.data.map((e, i) => [
 ])
 const printSchedule = () => {
   const title = 'Exam Schedules List'
-   const printWindow = window.open('', '_blank');
+  const printWindow = window.open('', '_blank');
   if (!printWindow) return;
 
   const htmlContent = `
@@ -363,52 +429,52 @@ const printSchedule = () => {
 
   printWindow.document.write(htmlContent);
   printWindow.document.close();
-  
+
   // Wait for content to load then print
   printWindow.onload = () => {
     printWindow.focus();
     printWindow.print();
   };
-   printWindow.onafterprint = function() {
+  printWindow.onafterprint = function () {
     printWindow.close();
   };
 }
 
 const exportToExcel = () => {
-  
-    
-    // Create worksheet
-    const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
-    
-    // Set column widths
-    const colWidths = headers.map(() => ({ wch: 15 }));
-    ws['!cols'] = colWidths;
-    
-    // Create workbook
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Data');
-    
-    // Generate filename
-    const filename = `${'data'}_${new Date().toISOString().split('T')[0]}.xlsx`;
-    
-    // Save file
-    XLSX.writeFile(wb, filename);
+
+
+  // Create worksheet
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
+
+  // Set column widths
+  const colWidths = headers.map(() => ({ wch: 15 }));
+  ws['!cols'] = colWidths;
+
+  // Create workbook
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Data');
+
+  // Generate filename
+  const filename = `${'data'}_${new Date().toISOString().split('T')[0]}.xlsx`;
+
+  // Save file
+  XLSX.writeFile(wb, filename);
 }
 
 const printPDF = () => {
-  const title =  'Exam Schedules List';
-  
+  const title = 'Exam Schedules List';
+
   // Create PDF
   const doc = new jsPDF('l', 'mm', 'a4'); // landscape, millimeters, A4
-  
+
   // Add title
   doc.setFontSize(16);
   doc.text(title, 14, 15);
-  
+
   // Add date
   doc.setFontSize(10);
   doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 22);
-  
+
   // Add table
   autoTable(doc, {
     head: [headers],
@@ -428,7 +494,7 @@ const printPDF = () => {
     },
     margin: { top: 28, right: 14, bottom: 14, left: 14 },
   });
-  
+
   // Add footer
   const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
@@ -441,7 +507,7 @@ const printPDF = () => {
       { align: 'center' }
     );
   }
-  
+
   // Save PDF
   const filename = `${'data'}_${new Date().toISOString().split('T')[0]}.pdf`;
   doc.save(filename);
@@ -449,6 +515,7 @@ const printPDF = () => {
 </script>
 
 <template>
+
   <Head title="Exam Schedules" />
   <AppLayout :breadcrumbs="breadcrumbs">
     <Toaster />
@@ -492,8 +559,7 @@ const printPDF = () => {
           <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
           <Input v-model="search" placeholder="Search exam name..." class="pl-8 h-9 text-sm" />
         </div>
-        <select v-model="yearId"
-          class="h-9 px-3 text-sm rounded-md border bg-background text-foreground min-w-[150px]">
+        <select v-model="yearId" class="h-9 px-3 text-sm rounded-md border bg-background text-foreground min-w-[150px]">
           <option value="">All Academic Years</option>
           <option v-for="y in academicYears" :key="y.value" :value="y.value">{{ y.label }}</option>
         </select>
@@ -502,8 +568,7 @@ const printPDF = () => {
           <option value="">All Types</option>
           <option v-for="t in examTypeOptions" :key="t.value" :value="t.value">{{ t.label }}</option>
         </select>
-        <select v-model="status"
-          class="h-9 px-3 text-sm rounded-md border bg-background text-foreground min-w-[120px]">
+        <select v-model="status" class="h-9 px-3 text-sm rounded-md border bg-background text-foreground min-w-[120px]">
           <option value="">All Status</option>
           <option v-for="s in statusOptions" :key="s.value" :value="s.value">{{ s.label }}</option>
         </select>
@@ -513,8 +578,7 @@ const printPDF = () => {
       </div>
 
       <!-- ── Delete Confirm Dialog ───────────────────────────── -->
-      <div v-if="deleteId"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div v-if="deleteId" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
         <div class="bg-card border rounded-2xl shadow-xl p-6 w-full max-w-sm mx-4">
           <div class="flex items-start gap-3 mb-4">
             <div class="p-2 bg-red-100 rounded-lg flex-shrink-0">
@@ -524,7 +588,7 @@ const printPDF = () => {
               <h3 class="font-semibold text-base">Delete Schedule?</h3>
               <p class="text-sm text-muted-foreground mt-1">
                 This will permanently remove all schedule rows for
-                <strong>{{ exams.data.find(e => e.id === deleteId)?.name }}</strong>.
+                <strong>{{exams.data.find(e => e.id === deleteId)?.name}}</strong>.
                 This action cannot be undone.
               </p>
             </div>
@@ -533,7 +597,7 @@ const printPDF = () => {
             <Button variant="outline" size="sm" @click="cancelDelete" :disabled="deleting">Cancel</Button>
             <Button size="sm" class="bg-red-600 hover:bg-red-700 text-white" @click="doDelete" :disabled="deleting">
               <Trash2 class="w-3.5 h-3.5 mr-1.5" />
-                {{ deleting ? 'Deleting...' : 'Yes, Delete' }}
+              {{ deleting ? 'Deleting...' : 'Yes, Delete' }}
             </Button>
           </div>
         </div>
@@ -541,36 +605,47 @@ const printPDF = () => {
 
       <!-- ── Table ───────────────────────────────────────────── -->
       <div class="flex items-center justify-end  gap-2">
-        
-        <Button variant="outline" v-if="exams.data.length >0" size="sm" class=" text-black float-right gap-2" @click="printPDF">
-          <FileText class="h-4 w-4" />  
-             PDF 
-          </Button>  
-        
-          <Button variant="outline" v-if="exams.data.length >0" size="sm" class=" text-black float-right gap-2" @click="exportToExcel">
-             <FileSpreadsheet class="h-4 w-4" />
-            Excel
-          </Button>
-          <Button variant="outline" v-if="exams.data.length >0" size="sm" class=" text-black float-right gap-2" @click="printSchedule">
-            <Printer class="h-4 w-4" />
-            Print
-          </Button>
-          
+
+        <Button variant="outline" v-if="exams.data.length > 0" size="sm" class=" text-black float-right gap-2"
+          @click="printPDF">
+          <FileText class="h-4 w-4" />
+          PDF
+        </Button>
+
+        <Button variant="outline" v-if="exams.data.length > 0" size="sm" class=" text-black float-right gap-2"
+          @click="exportToExcel">
+          <FileSpreadsheet class="h-4 w-4" />
+          Excel
+        </Button>
+        <Button variant="outline" v-if="exams.data.length > 0" size="sm" class=" text-black float-right gap-2"
+          @click="printSchedule">
+          <Printer class="h-4 w-4" />
+          Print
+        </Button>
+
       </div>
       <div class="bg-card border rounded-2xl overflow-hidden">
-        
+
         <div class="overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
               <tr class="border-b bg-muted/30">
-                <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">#</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Exam</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Type</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Period</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Schedules</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Active</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Actions</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">#
+                </th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Exam</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Type</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Period</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Schedules</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Status</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Active</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -632,13 +707,9 @@ const printPDF = () => {
 
                 <!-- Active toggle -->
                 <td class="px-4 py-3">
-                  <button
-                    class="flex items-center gap-1.5 group"
-                    :disabled="togglingId === exam.id"
+                  <button class="flex items-center gap-1.5 group" :disabled="togglingId === exam.id"
                     @click="toggleActive(exam)">
-                    <component
-                      :is="exam.is_active ? ToggleRight : ToggleLeft"
-                      class="w-7 h-7 transition-colors"
+                    <component :is="exam.is_active ? ToggleRight : ToggleLeft" class="w-7 h-7 transition-colors"
                       :class="exam.is_active ? 'text-green-600' : 'text-muted-foreground'" />
                     <span class="text-xs font-medium"
                       :class="exam.is_active ? 'text-green-700' : 'text-muted-foreground'">
@@ -650,13 +721,19 @@ const printPDF = () => {
                 <!-- Actions -->
                 <td class="px-4 py-3">
                   <div class="flex items-center gap-2">
-                    <Button size="sm" variant="outline" class="h-7 px-2.5 text-xs" @click="router.visit(`/exams/exam-schedules/${exam?.id}`)">
-                      <Eye class="w-3.5 h-3.5 mr-1" /> 
+                    <Button size="sm" variant="outline" class="cursor-pointer h-7 px-2.5 text-xs hover:bg-primary/50"
+                      @click="editExam(exam)">
+                      <Edit class="w-3.5 h-3.5 mr-1" />
                     </Button>
                     <Button size="sm" variant="outline"
-                      class="h-7 px-2.5 text-xs text-red-600 border-red-200 hover:bg-red-50"
+                      class="cursor-pointer h-7 px-2.5 text-white-600 text-xs hover:bg-blue-50"
+                      @click="router.visit(`/exams/exam-schedules/${exam?.id}`)">
+                      <Eye class="w-3.5 h-3.5 mr-1" />
+                    </Button>
+                    <Button size="sm" variant="outline"
+                      class="cursor-pointer h-7 px-2.5 text-xs text-red-600 border-red-200 hover:bg-red-50"
                       @click="confirmDelete(exam.id)">
-                      <Trash2 class="w-3.5 h-3.5 mr-1" /> 
+                      <Trash2 class="w-3.5 h-3.5 mr-1" />
                     </Button>
                   </div>
                 </td>
@@ -689,9 +766,7 @@ const printPDF = () => {
     <!-- ════════════════════════════════════════════════════════ -->
     <Teleport to="body">
       <Transition name="panel">
-        <div v-if="panelOpen"
-          class="fixed inset-0 z-50 flex justify-end"
-          @click.self="closePanel">
+        <div v-if="panelOpen" class="fixed inset-0 z-50 flex justify-end" @click.self="closePanel">
 
           <!-- Backdrop -->
           <div class="absolute inset-0 bg-black/30" @click="closePanel" />
@@ -714,8 +789,7 @@ const printPDF = () => {
                     <span class="w-1.5 h-1.5 rounded-full bg-current"></span>
                     {{ getCfg(panelExam?.status ?? '').label }}
                   </span>
-                  <span v-if="panelExam?.is_published"
-                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-semibold
+                  <span v-if="panelExam?.is_published" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-semibold
                       bg-emerald-50 text-emerald-700 border-emerald-200">
                     <CheckCircle2 class="w-3 h-3" /> Published
                   </span>
@@ -743,16 +817,14 @@ const printPDF = () => {
                 <Calendar class="w-10 h-10 text-muted-foreground/30 mb-3" />
                 <p class="font-medium text-muted-foreground">No schedules added yet</p>
                 <p class="text-xs text-muted-foreground/70 mt-1">Add subjects to this exam schedule</p>
-                <Button size="sm" class="mt-4"
-                  @click="router.visit(`/exam-schedules/${panelExam?.id}/create`)">
+                <Button size="sm" class="mt-4" @click="router.visit(`/exam-schedules/${panelExam?.id}/create`)">
                   <Plus class="w-3.5 h-3.5 mr-1.5" /> Add Schedule
                 </Button>
               </div>
 
               <!-- Groups -->
               <template v-else>
-                <div v-for="grp in panelGroups"
-                  :key="`${grp.class_id}_${grp.section_id}`"
+                <div v-for="grp in panelGroups" :key="`${grp.class_id}_${grp.section_id}`"
                   class="rounded-xl border overflow-hidden">
 
                   <!-- Group header -->
@@ -768,23 +840,26 @@ const printPDF = () => {
                     </div>
                     <div class="flex items-center gap-2">
                       <span class="text-xs text-muted-foreground">{{ grp.schedules.length }} subjects</span>
-                      <component
-                        :is="collapsed[`${grp.class_id}_${grp.section_id}`] ? ChevronRight : ChevronDown"
+                      <component :is="collapsed[`${grp.class_id}_${grp.section_id}`] ? ChevronRight : ChevronDown"
                         class="w-4 h-4 text-muted-foreground" />
                     </div>
                   </div>
 
                   <!-- Schedule rows -->
-                  <div v-show="!collapsed[`${grp.class_id}_${grp.section_id}`]"
-                    class="overflow-x-auto">
+                  <div v-show="!collapsed[`${grp.class_id}_${grp.section_id}`]" class="overflow-x-auto">
                     <table class="w-full text-xs">
                       <thead>
                         <tr class="border-b bg-muted/10">
-                          <th class="px-3 py-2 text-left font-semibold text-muted-foreground uppercase tracking-wider">Subject</th>
-                          <th class="px-3 py-2 text-left font-semibold text-muted-foreground uppercase tracking-wider">Date</th>
-                          <th class="px-3 py-2 text-left font-semibold text-muted-foreground uppercase tracking-wider">Time</th>
-                          <th class="px-3 py-2 text-left font-semibold text-muted-foreground uppercase tracking-wider">Room</th>
-                          <th class="px-3 py-2 text-left font-semibold text-muted-foreground uppercase tracking-wider">Marks</th>
+                          <th class="px-3 py-2 text-left font-semibold text-muted-foreground uppercase tracking-wider">
+                            Subject</th>
+                          <th class="px-3 py-2 text-left font-semibold text-muted-foreground uppercase tracking-wider">
+                            Date</th>
+                          <th class="px-3 py-2 text-left font-semibold text-muted-foreground uppercase tracking-wider">
+                            Time</th>
+                          <th class="px-3 py-2 text-left font-semibold text-muted-foreground uppercase tracking-wider">
+                            Room</th>
+                          <th class="px-3 py-2 text-left font-semibold text-muted-foreground uppercase tracking-wider">
+                            Marks</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -805,17 +880,20 @@ const printPDF = () => {
                           <td class="px-3 py-2.5 text-muted-foreground">{{ row.room_no || '—' }}</td>
                           <td class="px-3 py-2.5">
                             <div class="flex gap-1 flex-wrap">
-                              <span class="px-1.5 py-0.5 rounded bg-blue-50 text-blue-800 font-mono font-semibold text-xs">
+                              <span
+                                class="px-1.5 py-0.5 rounded bg-blue-50 text-blue-800 font-mono font-semibold text-xs">
                                 T:{{ row.max_theory_marks ?? '—' }}
                               </span>
                               <span v-if="row.max_practical_marks"
                                 class="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800 font-mono font-semibold text-xs">
                                 P:{{ row.max_practical_marks }}
                               </span>
-                              <span class="px-1.5 py-0.5 rounded bg-purple-50 text-purple-800 font-mono font-semibold text-xs">
+                              <span
+                                class="px-1.5 py-0.5 rounded bg-purple-50 text-purple-800 font-mono font-semibold text-xs">
                                 {{ row.max_total_marks }}
                               </span>
-                              <span class="px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 font-mono font-semibold text-xs">
+                              <span
+                                class="px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 font-mono font-semibold text-xs">
                                 ✓{{ row.pass_marks }}
                               </span>
                             </div>
@@ -831,7 +909,7 @@ const printPDF = () => {
             <!-- Panel Footer -->
             <div class="border-t p-4 flex-shrink-0 flex items-center justify-between">
               <span class="text-xs text-muted-foreground">
-                {{ panelGroups.reduce((a, g) => a + g.schedules.length, 0) }} schedules across
+                {{panelGroups.reduce((a, g) => a + g.schedules.length, 0)}} schedules across
                 {{ panelGroups.length }} sections
               </span>
               <Button size="sm" @click="router.visit(`/exams/exam-schedules/${panelExam?.id}`)">
@@ -843,6 +921,89 @@ const printPDF = () => {
       </Transition>
     </Teleport>
 
+    <!-- ── Edit Exam Modal ─────────────────────────────────── -->
+    <Dialog v-model:open="isEditModalOpen">
+      <DialogContent class="sm:max-w-[600px] p-0 overflow-hidden rounded-2xl">
+        <DialogHeader class="px-6 py-4 border-b bg-muted/30">
+          <div class="flex items-center gap-3">
+            <div class="p-2 bg-primary/10 rounded-lg">
+              <Edit class="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <DialogTitle class="text-lg font-bold">Edit Exam Details</DialogTitle>
+              <p class="text-xs text-muted-foreground mt-0.5">Update core information for this exam</p>
+            </div>
+          </div>
+        </DialogHeader>
+
+        <div class="p-6 space-y-5 max-h-[70vh] overflow-y-auto">
+          <!-- Exam Name -->
+          <div class="space-y-2">
+            <Label for="edit_name">Exam Name <span class="text-red-500">*</span></Label>
+            <Input id="edit_name" v-model="editForm.name" placeholder="e.g. First Terminal Exam" />
+          </div>
+
+          <!-- Type + Academic Year -->
+          <div class="grid grid-cols-2 gap-4">
+            <div class="space-y-2">
+              <Label for="edit_type">Exam Type <span class="text-red-500">*</span></Label>
+              <CustomSelect id="edit_type" v-model="editForm.exam_type" :options="examTypeOptions"
+                placeholder="Select Type" />
+            </div>
+            <div class="space-y-2">
+              <Label for="edit_year">Academic Year <span class="text-red-500">*</span></Label>
+              <CustomSelect id="edit_year" v-model="editForm.academic_year_id" :options="academicYears"
+                placeholder="Select Year" />
+            </div>
+          </div>
+
+          <!-- Term + Weightage -->
+          <div class="grid grid-cols-2 gap-4">
+            <div class="space-y-2">
+              <Label for="edit_term">Term <span class="text-muted-foreground text-[10px]">(optional)</span></Label>
+              <CustomSelect id="edit_term" v-model="editForm.term_id" :options="terms" placeholder="Select Term" />
+            </div>
+            <div class="space-y-2">
+              <Label for="edit_weightage">Weightage (%)</Label>
+              <Input id="edit_weightage" type="number" v-model="editForm.weightage" placeholder="100" />
+            </div>
+          </div>
+
+          <!-- Dates -->
+          <div class="grid grid-cols-2 gap-4">
+            <div class="space-y-2">
+              <Label>Start Date <span class="text-red-500">*</span></Label>
+              <DatePicker :model-value="editForm.start_date"
+                @update:model-value="(val) => editForm.start_date = formatDateForInput(val)" />
+            </div>
+            <div class="space-y-2">
+              <Label>End Date <span class="text-red-500">*</span></Label>
+              <DatePicker :model-value="editForm.end_date"
+                @update:model-value="(val) => editForm.end_date = formatDateForInput(val)" />
+            </div>
+          </div>
+
+          <!-- Publish Toggle -->
+          <div class="flex items-start space-x-3 p-3 bg-muted/50 rounded-xl border">
+            <Checkbox id="edit_published" v-model="editForm.is_published" />
+            <div class="grid gap-1 leading-none">
+              <Label for="edit_published" class="font-medium cursor-pointer">Published</Label>
+              <p class="text-[11px] text-muted-foreground">Make this exam visible in lists and reports</p>
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter class="px-6 py-4 border-t bg-muted/10 gap-2">
+          <Button variant="outline" @click="isEditModalOpen = false" :disabled="editForm.processing">Cancel</Button>
+          <Button @click="submitUpdate" :disabled="editForm.processing">
+            <Loader2 v-if="editForm.processing" class="w-4 h-4 mr-2 animate-spin" />
+            <Save v-else class="w-4 h-4 mr-2" />
+            Save Changes
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
   </AppLayout>
 </template>
 
@@ -851,19 +1012,24 @@ const printPDF = () => {
 .panel-leave-active {
   transition: opacity 0.2s ease;
 }
+
 .panel-enter-active .relative.z-10,
 .panel-leave-active .relative.z-10 {
   transition: transform 0.25s ease;
 }
+
 .panel-enter-from {
   opacity: 0;
 }
+
 .panel-enter-from .relative.z-10 {
   transform: translateX(100%);
 }
+
 .panel-leave-to {
   opacity: 0;
 }
+
 .panel-leave-to .relative.z-10 {
   transform: translateX(100%);
 }

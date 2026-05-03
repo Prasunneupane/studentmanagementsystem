@@ -4,12 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Interface\CommonServiceInterface;
 use App\Interface\ExamScheduleInterface;
-use App\Models\AcademicYears;
-use App\Models\ClassSubject;
 use App\Models\Exam;
 use App\Repositories\Validation;
-use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationData;
 use Inertia\Inertia;
 
 class ExamController extends Controller
@@ -19,7 +17,7 @@ class ExamController extends Controller
      */
     private CommonServiceInterface $commonServices;
     private ExamScheduleInterface $examScheduleService;
-    private $validation;
+    private Validation $validation;
     public function __construct(
         CommonServiceInterface $commonServices,
         ExamScheduleInterface $examScheduleService,
@@ -96,7 +94,11 @@ class ExamController extends Controller
      */
     public function update(Request $request, Exam $exam)
     {
-        //
+        $data = $this->validation->validateExamUpdate($request, $exam->id);
+        // dd($data);
+        $this->examScheduleService->updateExam($exam->id, $data);
+
+        return back()->with('success', 'Exam updated successfully');
     }
 
     /**

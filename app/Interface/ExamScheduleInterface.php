@@ -24,4 +24,5 @@ interface ExamScheduleInterface
     public function toggleActive(int $scheduleId): object;
     public function getExistingScheduleMap(int $examId): array;
     public function updateExamSchedule($exam, array $schedules): void;
+    public function updateExam(int $id, array $data);
 }

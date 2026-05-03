@@ -309,8 +309,13 @@ class ExamScheduleService implements ExamScheduleInterface
 
     public function deleteSchedule(int $scheduleId): bool
     {
-        $schedule = ExamSchedule::findOrFail($scheduleId);
-        return $schedule->delete();
+        $schedule = Exam::findOrFail($scheduleId);
+        if($schedule){
+            ExamSchedule::where('exam_id', $schedule->id)->delete();
+            ExamClass::where('exam_id', $schedule->id)->delete();
+            return $schedule->delete();
+        }
+        return false;
     }
 
     public function toggleActive(int $scheduleId): object
@@ -381,5 +386,25 @@ class ExamScheduleService implements ExamScheduleInterface
             ]);
             throw $e;
         }
+    }
+
+    public function updateExam(int $id, array $data)
+    {
+        // var_dump($data);
+        $exam = Exam::findOrFail($id);
+        // dd($exam);
+        $exam->update([
+            'name'             => $data['name'],
+            'exam_type'        => $data['exam_type'],
+            'academic_year_id' => $data['academic_year_id'],
+            'term_id'          => $data['term_id'] ?? null,
+            'start_date'       => $data['start_date'],
+            'end_date'         => $data['end_date'],
+            'weightage'        => $data['weightage'] ?? 100,
+            'is_published'     => $data['is_published'] ?? 0,
+            'updated_by'       => Auth::user()->id,
+            'updated_at'       => now(),
+        ]);
+        return $exam;
     }
 }

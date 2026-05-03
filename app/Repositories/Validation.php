@@ -3,6 +3,7 @@
 namespace App\Repositories;
 
 use App\Models\User;
+use GuzzleHttp\Psr7\Request;
 
 class Validation
 {
@@ -241,6 +242,20 @@ class Validation
             'marks.*.practical_marks'      => 'nullable|numeric|min:0',
             'marks.*.is_absent'            => 'boolean',
             'marks.*.remarks'              => 'nullable|string|max:500',
+        ]);
+    }
+
+    public function validateExamUpdate($request,int $id)
+    {
+       return $request->validate([
+            'name'             => 'required|string|max:150|unique:tbl_exams,name,'.$id,
+            'exam_type'        => 'required|in:unit_test,midterm,final,semester,annual',
+            'academic_year_id' => 'required|exists:tbl_academic_years,id',
+            'term_id'          => 'nullable|exists:tbl_terms,id',
+            'start_date'       => 'required|date',
+            'end_date'         => 'required|date|after_or_equal:start_date',
+            'weightage'        => 'nullable|numeric|min:0|max:100',
+            'is_published'     => 'boolean'
         ]);
     }
 }

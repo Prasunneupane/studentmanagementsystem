@@ -68,10 +68,10 @@ interface Props {
 const props = defineProps<Props>()
 
 const breadcrumbs = [
-  { title: 'Exams',    href: '/exams' },
+  { title: 'Exams', href: '/exams' },
   { title: props.exam.name, href: `/exams/${props.exam.id}` },
   { title: 'Schedule', href: `/exams/${props.exam.id}/schedule` },
-  { title: 'Edit',     href: '#' },
+  { title: 'Edit', href: '#' },
 ]
 
 // ─── Date helper ─────────────────────────────────────────────────
@@ -93,10 +93,14 @@ interface ClassSectionTab {
 
 const tabs = computed((): ClassSectionTab[] => {
   const result: ClassSectionTab[] = []
-  console.log(props.examClasses,"examclasses");
-  
+  console.log(props.examClasses, "examclasses");
+
   props.examClasses.forEach(entry => {
-    const cls = props.classes.find(c => c.id === entry.class_id)
+    console.log(entry, "entry");
+
+    const cls = props.classes.find(c => Number(c.id) === Number(entry.class_id))
+    console.log(cls, "cls");
+
     if (!cls) return
 
     if (entry.section_id === null) {
@@ -113,8 +117,12 @@ const tabs = computed((): ClassSectionTab[] => {
           ),
         })
       })
+      //console.log(result, "result");
+
     } else {
-      const sec = cls.sections.find(s => s.id === entry.section_id)
+      console.log(cls, "cls");
+
+      const sec = cls.sections.find(s => Number(s.id) === Number(entry.section_id))
       const subjects = (props.subjectsByClass[entry.class_id] || []).filter(s =>
         s.section_id === null || String(s.section_id) === String(entry.section_id)
       )
@@ -139,7 +147,7 @@ const tabs = computed((): ClassSectionTab[] => {
 
   return result
 })
-console.log(tabs.value,"tabs")
+console.log(tabs.value, "tabs")
 const activeTab = ref(tabs.value[0]?.key || '')
 
 // ─── Build grouped sidebar ────────────────────────────────────────
@@ -174,18 +182,18 @@ const makeEmptyRow = (subjId: string): ScheduleRow => ({
  */
 const lookupExisting = (tab: ClassSectionTab, subjId: string): ScheduleRow | null => {
   const backendKey = `${tab.classId}_${tab.sectionId}_${subjId}`
-  const existing   = props.existingSchedule[backendKey]
+  const existing = props.existingSchedule[backendKey]
   if (!existing) return null
   return {
-    subject_id:           String(existing.subject_id),
-    exam_date:            existing.exam_date ?? '',
-    start_time:           existing.start_time ?? '',
-    end_time:             existing.end_time ?? '',
-    room_no:              existing.room_no ?? '',
-    max_theory_marks:     String(existing.max_theory_marks ?? '80'),
-    max_practical_marks:  String(existing.max_practical_marks ?? '20'),
-    max_total_marks:      String(existing.max_total_marks ?? '100'),
-    pass_marks:           String(existing.pass_marks ?? '40'),
+    subject_id: String(existing.subject_id),
+    exam_date: existing.exam_date ?? '',
+    start_time: existing.start_time ?? '',
+    end_time: existing.end_time ?? '',
+    room_no: existing.room_no ?? '',
+    max_theory_marks: String(existing.max_theory_marks ?? '80'),
+    max_practical_marks: String(existing.max_practical_marks ?? '20'),
+    max_total_marks: String(existing.max_total_marks ?? '100'),
+    pass_marks: String(existing.pass_marks ?? '40'),
   }
 }
 
@@ -270,10 +278,10 @@ const copyToAllClasses = () => {
         const src = srcValues[idx] || srcValues[0]
         schedules.value[t.key][subj.id] = {
           ...schedules.value[t.key][subj.id],
-          exam_date:  src?.exam_date || '',
+          exam_date: src?.exam_date || '',
           start_time: src?.start_time || '',
-          end_time:   src?.end_time || '',
-          room_no:    src?.room_no || '',
+          end_time: src?.end_time || '',
+          room_no: src?.room_no || '',
         }
       })
       count++
@@ -299,7 +307,7 @@ const fillDown = (fromIndex: number) => {
 const tabHasData = (key: string) =>
   Object.values(schedules.value[key] || {}).some(r => r.exam_date)
 
-const completedTabs   = computed(() => tabs.value.filter(t => tabHasData(t.key)).length)
+const completedTabs = computed(() => tabs.value.filter(t => tabHasData(t.key)).length)
 const progressPercent = computed(() =>
   tabs.value.length ? Math.round((completedTabs.value / tabs.value.length) * 100) : 0
 )
@@ -342,6 +350,7 @@ const handleSubmit = () => {
 </script>
 
 <template>
+
   <Head :title="`Edit Schedule - ${exam.name}`" />
   <AppLayout :breadcrumbs="breadcrumbs">
     <Toaster />
@@ -393,8 +402,7 @@ const handleSubmit = () => {
                 <Copy class="mr-1.5 h-3.5 w-3.5" />
                 Copy to other sections
               </Button>
-              <Button type="button" variant="outline" size="sm" @click="copyToAllClasses"
-                v-if="tabs.length > 1">
+              <Button type="button" variant="outline" size="sm" @click="copyToAllClasses" v-if="tabs.length > 1">
                 <Copy class="mr-1.5 h-3.5 w-3.5" />
                 Apply dates & times to all
               </Button>
@@ -411,14 +419,12 @@ const handleSubmit = () => {
                 <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 pb-1">
                   {{ classTabs[0].className }}
                 </p>
-                <button
-                  v-for="tab in classTabs" :key="tab.key"
+                <button v-for="tab in classTabs" :key="tab.key"
                   class="w-full text-left px-4 py-2 text-sm flex items-center justify-between transition-colors hover:bg-muted/50"
                   :class="activeTab === tab.key
                     ? 'bg-primary/10 text-primary font-semibold border-r-2 border-primary'
-                    : 'text-foreground'"
-                  @click="activeTab = tab.key">
-                  <span>Section {{ tab.sectionName }}</span>
+                    : 'text-foreground'" @click="activeTab = tab.key">
+                  <span>{{ tab.sectionName }}</span>
                   <CheckCircle2 v-if="tabHasData(tab.key)" class="w-3.5 h-3.5 text-green-500 shrink-0" />
                 </button>
               </div>
@@ -446,16 +452,15 @@ const handleSubmit = () => {
                         <th class="text-left px-3 py-2.5 font-semibold text-muted-foreground w-32">Start</th>
                         <th class="text-left px-3 py-2.5 font-semibold text-muted-foreground w-32">End</th>
                         <th class="text-left px-3 py-2.5 font-semibold text-muted-foreground w-24">Room</th>
-                        <th class="text-left px-3 py-2.5 font-semibold text-muted-foreground w-20">Theory</th>
-                        <th class="text-left px-3 py-2.5 font-semibold text-muted-foreground w-20">Practical</th>
-                        <th class="text-left px-3 py-2.5 font-semibold text-muted-foreground w-20">Pass</th>
+                        <th class="text-left px-3 py-2.5 font-semibold text-muted-foreground w-20 hidden">Theory</th>
+                        <th class="text-left px-3 py-2.5 font-semibold text-muted-foreground w-20 hidden">Practical</th>
+                        <th class="text-left px-3 py-2.5 font-semibold text-muted-foreground w-20 hidden">Pass</th>
                         <th class="text-center px-2 py-2.5 font-semibold text-muted-foreground w-10"></th>
                       </tr>
                     </thead>
                     <tbody>
                       <tr v-for="(subj, i) in currentTabData.subjects" :key="subj.id"
-                        class="border-b last:border-0 transition-colors"
-                        :class="[
+                        class="border-b last:border-0 transition-colors" :class="[
                           i % 2 === 0 ? 'bg-background' : 'bg-muted/20',
                           getRow(activeTab, subj.id).exam_date ? 'ring-inset ring-1 ring-primary/10' : ''
                         ]">
@@ -464,50 +469,35 @@ const handleSubmit = () => {
                           <div class="text-xs text-muted-foreground">{{ subj.code }}</div>
                         </td>
                         <td class="px-2 py-2">
-                          <DatePicker
-                            :model-value="getRow(activeTab, subj.id).exam_date"
-                            placeholder="Pick date"
-                            @update:model-value="(val) => { getRow(activeTab, subj.id).exam_date = formatDate(val) }"
-                          />
+                          <DatePicker :model-value="getRow(activeTab, subj.id).exam_date" placeholder="Pick date"
+                            @update:model-value="(val) => { getRow(activeTab, subj.id).exam_date = formatDate(val) }" />
                         </td>
                         <td class="px-2 py-2">
-                          <TimePicker
-                            :model-value="getRow(activeTab, subj.id).start_time"
-                            placeholder="Start"
-                            @update:model-value="(val) => { getRow(activeTab, subj.id).start_time = val }"
-                          />
+                          <TimePicker :model-value="getRow(activeTab, subj.id).start_time" placeholder="Start"
+                            @update:model-value="(val) => { getRow(activeTab, subj.id).start_time = val }" />
                         </td>
                         <td class="px-2 py-2">
-                          <TimePicker
-                            :model-value="getRow(activeTab, subj.id).end_time"
-                            placeholder="End"
-                            @update:model-value="(val) => { getRow(activeTab, subj.id).end_time = val }"
-                          />
+                          <TimePicker :model-value="getRow(activeTab, subj.id).end_time" placeholder="End"
+                            @update:model-value="(val) => { getRow(activeTab, subj.id).end_time = val }" />
                         </td>
                         <td class="px-2 py-2">
-                          <Input v-model="getRow(activeTab, subj.id).room_no"
-                            placeholder="Room" class="h-8 text-xs" />
+                          <Input v-model="getRow(activeTab, subj.id).room_no" placeholder="Room" class="h-8 text-xs" />
                         </td>
-                        <td class="px-2 py-2">
-                          <Input type="number" v-model="getRow(activeTab, subj.id).max_theory_marks"
-                            class="h-8 text-xs" min="0"
-                            @input="updateTotalMarks(activeTab, subj.id)" />
+                        <td class="px-2 py-2 hidden">
+                          <Input type="number" v-model="getRow(activeTab, subj.id).max_theory_marks" class="h-8 text-xs"
+                            min="0" @input="updateTotalMarks(activeTab, subj.id)" />
                         </td>
-                        <td class="px-2 py-2">
+                        <td class="px-2 py-2 hidden">
                           <Input type="number" v-model="getRow(activeTab, subj.id).max_practical_marks"
-                            class="h-8 text-xs" min="0"
-                            @input="updateTotalMarks(activeTab, subj.id)" />
+                            class="h-8 text-xs" min="0" @input="updateTotalMarks(activeTab, subj.id)" />
                         </td>
-                        <td class="px-2 py-2">
-                          <Input type="number" v-model="getRow(activeTab, subj.id).pass_marks"
-                            class="h-8 text-xs" min="0" />
+                        <td class="px-2 py-2 hidden">
+                          <Input type="number" v-model="getRow(activeTab, subj.id).pass_marks" class="h-8 text-xs"
+                            min="0" />
                         </td>
                         <td class="px-1 py-2 text-center">
-                          <Button
-                            v-if="i < currentTabData.subjects.length - 1"
-                            type="button" variant="ghost" size="sm"
-                            class="h-7 w-7 p-0" title="Fill time & room down"
-                            @click="fillDown(i)">
+                          <Button v-if="i < currentTabData.subjects.length - 1" type="button" variant="ghost" size="sm"
+                            class="h-7 w-7 p-0" title="Fill time & room down" @click="fillDown(i)">
                             <ArrowDown class="h-3.5 w-3.5 text-muted-foreground" />
                           </Button>
                         </td>
@@ -532,8 +522,7 @@ const handleSubmit = () => {
 
         <!-- Footer -->
         <div class="flex justify-between gap-3 px-6 py-4 border-t">
-          <Button type="button" variant="outline"
-            @click="router.visit(`/exams/${exam.id}/schedule`)">
+          <Button type="button" variant="outline" @click="router.visit(`/exams/${exam.id}/schedule`)">
             <ArrowLeft class="mr-2 h-4 w-4" />
             Cancel
           </Button>
