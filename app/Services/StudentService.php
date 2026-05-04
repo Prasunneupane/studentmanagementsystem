@@ -82,18 +82,18 @@ class StudentService implements StudentServiceInterface
             'photo' => $data['photo'] ?? null,
             'joined_date' => $data['joinedDate'],
             'address' => $data['address'] ?? null,
-            'state_id' => $data['stateId'],
-            'district_id' => $data['districtId'] ?? null,
-            'municipality_id' => $data['municipalityId'] ?? null,
+            'state_id' => (int) $data['stateId'],
+            'district_id' => (int) $data['districtId'] ?? null,
+            'municipality_id' => (int) $data['municipalityId'] ?? null,
             'created_by' => $userId,
         ];
-       // dd($studentData);
+        //dd($studentData);
        // Use database transaction to ensure both student and guardians are created
-        DB::beginTransaction();
-        try {
+        // DB::beginTransaction();
+        // try {
             // Create student
             $student = $this->studentRepository->create($studentData);
-            // dd($data['guardians']);
+             dd($student);
             // Create guardians
             foreach ($data['guardians'] as $guardianData) {
                 $this->guardianRepository->create([
@@ -122,13 +122,13 @@ class StudentService implements StudentServiceInterface
                 'created_by' => $userId,
             ]);
 
-            DB::commit();
+            // DB::commit();
             return $student;
             
-        } catch (\Exception $e) {
-            DB::rollBack();
-            throw $e;
-        }
+        // } catch (\Exception $e) {
+        //     // DB::rollBack();
+        //     throw $e;
+        // }
     }
 
     public function getStudentsByDateRange(string $fromDate, string $toDate)

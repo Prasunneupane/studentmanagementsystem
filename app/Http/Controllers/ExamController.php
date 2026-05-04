@@ -32,11 +32,14 @@ class ExamController extends Controller
         $exams = $this->examScheduleService->getAllSchedulesForIndex();
 
         $academicYears = $this->commonServices->getAcademicYearList();
-        // dd($exams);
+
+        $terms = $this->commonServices->getTermsList();
+        //  dd($exams);
         return Inertia::render('exams/ScheduleIndex', [
             'exams' => $exams,
             'academicYears' => $academicYears,
             'filters' => $request->only(['academic_year_id', 'exam_type', 'status', 'search']),
+            'terms' => $terms,
         ]);
     }
 

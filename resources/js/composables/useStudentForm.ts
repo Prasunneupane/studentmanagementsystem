@@ -82,21 +82,21 @@ export function useStudentForm(
           validationErrors.value = {};
           
           // Reset the main form first
-          form.reset();
+          // form.reset();
           
           // Wait for next tick to ensure DOM is updated, then reset guardians
-          await nextTick();
+          // await nextTick();
           
-          console.log('studentFormRef:', studentFormRef);
-          console.log('studentFormRef?.value:', studentFormRef?.value);
+          // console.log('studentFormRef:', studentFormRef);
+          // console.log('studentFormRef?.value:', studentFormRef?.value);
           
           // Reset guardians using the exposed method
-          if (studentFormRef?.value && typeof studentFormRef.value.resetGuardians === 'function') {
-            console.log('Calling resetGuardians...');
-            studentFormRef.value.resetGuardians();
-          } else {
-            console.warn('resetGuardians method not found on studentFormRef');
-          }
+          // if (studentFormRef?.value && typeof studentFormRef.value.resetGuardians === 'function') {
+          //   console.log('Calling resetGuardians...');
+          //   studentFormRef.value.resetGuardians();
+          // } else {
+          //   console.warn('resetGuardians method not found on studentFormRef');
+          // }
         },
         onError: (errors: any) => {
           console.error('Form submission errors:', errors);

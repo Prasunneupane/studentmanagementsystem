@@ -104,6 +104,8 @@ const breadcrumbs = [
 // ── Stats ────────────────────────────────────────────────────────
 const stats = computed(() => {
   const all = props.exams.data
+  console.log(all);
+  
   return {
     total: props.exams.total,
     ongoing: all.filter(e => e.status === 'ongoing').length,
@@ -164,6 +166,8 @@ const formatDateForInput = (val: any): string => {
 }
 
 const editExam = (exam: Exam) => {
+  // console.log(exam,"exam");
+  
   editForm.id = exam.id
   editForm.name = exam.name
   editForm.exam_type = exam.exam_type
@@ -172,7 +176,7 @@ const editExam = (exam: Exam) => {
   editForm.start_date = exam.start_date
   editForm.end_date = exam.end_date
   editForm.weightage = String(exam.weightage ?? '100')
-  editForm.is_published = exam.is_published
+  editForm.is_published = Boolean(exam.is_published)
   isEditModalOpen.value = true;
 
 }

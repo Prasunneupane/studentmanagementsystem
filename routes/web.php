@@ -275,7 +275,7 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/create', [ExamController::class, 'create'])->name('create');
             Route::post('/store', [ExamController::class, 'store'])->name('store');
         });
-
+        
         // Edit exams
         Route::middleware(['permission:edit_exams'])->group(function () {
             Route::get('/edit/{exam}', [ExamController::class, 'edit'])->name('edit');

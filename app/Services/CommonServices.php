@@ -8,6 +8,7 @@ use App\Models\Classes;
 use App\Models\Subject;
 use App\Models\Teachers;
 use App\Models\Terms;
+use Illuminate\Support\Facades\DB;
 
 class CommonServices implements CommonServiceInterface
 {
@@ -23,7 +24,7 @@ class CommonServices implements CommonServiceInterface
         if($academicYearId){
             return $academicYearId;
         }else{
-            $activeAcademicYear = \DB::table('tbl_academic_years')->where('is_active', 1)->first();
+            $activeAcademicYear = DB::table('tbl_academic_years')->where('is_active', 1)->first();
             return $activeAcademicYear ? $activeAcademicYear->id : null;
         }
     }
@@ -41,12 +42,12 @@ class CommonServices implements CommonServiceInterface
     }
 
     public function getClassTeacherForAcademicYear($academicYearId){
-        return \DB::table('tbl_class_teachers')
+        return DB::table('tbl_class_teachers')
             ->where('academic_year_id', $academicYearId);
     }
 
     public function getAcademicYearList(){
-        return \DB::table('tbl_academic_years')
+        return DB::table('tbl_academic_years')
             ->where('is_active',1)
             ->select('id as value','academic_year as label')
             ->orderBy('start_date','desc')

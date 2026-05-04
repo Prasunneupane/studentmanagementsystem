@@ -105,20 +105,22 @@ class StudentsController extends Controller
     public function store(Request $request)
     {
         // dd($request->all());
-        try {
+        // try {
             $userId = JWTAuth::user()->id; // Get authenticated user ID
-            $this->studentService->createStudent($request->all(), $userId);
-
+           $student =  $this->studentService->createStudent($request->all(), $userId);
+            dd($student);
+           
+            
             // Return an Inertia redirect with a flash message
             return Redirect::route('students.student_list') // Replace 'dashboard' with your target route
                 ->with('success', 'Student registered successfully');
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            // Return validation errors to Inertia
-            return Redirect::back()->withErrors($e->errors())->withInput();
-        } catch (\Exception $e) {
-            // Return error message to Inertia
-            return Redirect::back()->with('error', $e->getMessage());
-        }
+        // } catch (\Illuminate\Validation\ValidationException $e) {
+        //     // Return validation errors to Inertia
+        //     return Redirect::back()->withErrors($e->errors())->withInput();
+        // } catch (\Exception $e) {
+        //     // Return error message to Inertia
+        //     return Redirect::back()->with('error', $e->getMessage());
+        // }
     }
 
     /**
