@@ -9,8 +9,8 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Http\JsonResponse;
 use App\Contracts\StudentServiceInterface;
-use Log;
-use Storage;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Illuminate\Support\Facades\Redirect;
 
@@ -43,7 +43,7 @@ class StudentsController extends Controller
         $classList =  $this->studentService->getClassList();
         $stateList =  $this->studentService->getStateList();
         return Inertia::render('students/StudentList',
-        [
+        [ 
             'initialStudents'=>$studentList,
             'classes'=>$classList,
             'states'=>$stateList,
@@ -53,9 +53,9 @@ class StudentsController extends Controller
         ); // Adjust the view name as needed
     }
 
-/**
+    /**
      * Show the form for creating a new resource.
-     */
+    */
     public function create(Request $request)
     {
         
@@ -296,9 +296,10 @@ class StudentsController extends Controller
             'from_date' => 'required|date',
             'to_date' => 'required|date|after_or_equal:from_date',
         ]);
-
+        
         $students = Students::with(['class', 'section', 'state', 'district', 'municipality'])
-            ->whereBetween('joined_date', [$request->from_date, $request->to_date])
+             ->whereDate('joined_date', '>=', $request->from_date)
+            ->whereDate('joined_date', '<=', $request->to_date)
             ->where('is_active', 1)
             ->orderBy('created_at', 'desc')
             ->get()
