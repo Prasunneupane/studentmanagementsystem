@@ -25,6 +25,7 @@ export interface Permissions {
     classSubjects: CrudPermissions;
     classTeachers: CrudPermissions;
     exams: CrudPermissions;
+    marks: CrudPermissions;
     roles: CrudPermissions & { canAssignPermissions: boolean };
     permissions: CrudPermissions;
     settings: {

@@ -3,7 +3,7 @@ import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
 import NavUser from '@/components/NavUser.vue';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
-import { type NavItem } from '@/types';
+import { type NavItem, type AppPageProps, type Permissions } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import { 
@@ -13,10 +13,10 @@ import {
 } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
 
-const page = usePage();
+const page = usePage<AppPageProps>();
 
 // Get permissions from shared data
-const permissions = computed(() => page.props.auth?.permissions || {});
+const permissions = computed(() => page.props.auth?.permissions || ({} as Permissions));
 
 // Get current URL to determine which nav items should be open
 const currentUrl = computed(() => page.url);
@@ -207,6 +207,40 @@ const mainNavItems = computed((): NavItem[] => {
       items.push(examManagement);
     }
   }
+
+   // Teacher Management
+  if (permissions.value.marks.canManage) {
+    const teacherItems: NavItem[] = [];
+    
+    if (permissions.value.marks.canCreate) {
+      teacherItems.push({
+        title: 'Add Marks',
+        href: '/marks/create',
+        icon: UserRoundPlus,
+      });
+    }
+    
+    if (permissions.value.marks.canView) {
+      teacherItems.push({
+        title: 'View Marks',
+        href: '/marks',
+        icon: Eye,
+      });
+    }
+
+    if (teacherItems.length > 0) {
+      const teacherManagement: NavItem = {
+        title: 'Mark Management',
+        href: '/',
+        icon: BookUser,
+        items: teacherItems,
+        isActive: false,
+      };
+      teacherManagement.isActive = isRouteActive(teacherManagement);
+      items.push(teacherManagement);
+    }
+  }
+
 
   // Master Settings
   if (permissions.value.canManageMasterSettings) {

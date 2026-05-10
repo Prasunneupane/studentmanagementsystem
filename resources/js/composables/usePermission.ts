@@ -1,14 +1,13 @@
 // composables/usePermissions.ts
 import { computed, } from 'vue';
 import { usePage, } from '@inertiajs/vue3';
-
-
+import { type Auth, type Permissions, type AppPageProps } from '@/types';
 
 export function usePermissions() {
 
-  const page = usePage();
+  const page = usePage<AppPageProps>();
 
-  const permissions = computed(() => (page.props.auth as any)?.permissions || {});
+  const permissions = computed<Permissions>(() => page.props.auth?.permissions || ({} as Permissions));
 
   const teachersPermissions = computed(() => {
     return permissions.value.teachers || {};

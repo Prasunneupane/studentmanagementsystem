@@ -165,6 +165,7 @@ class PermissionService
             'classSubjects'           => $crud('class_subjects'),
             'classTeachers'           => $crud('class_teachers'),
             'exams'                   => $crud('exams'),
+            'marks'                   => $crud('marks'),
             'roles'                   => array_merge($crud('roles'), [
                 'canAssignPermissions' => $can('assign_permissions'),
             ]),
