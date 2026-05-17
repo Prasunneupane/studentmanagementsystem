@@ -60,4 +60,6 @@ interface StudentMarksInterface
      * Get student marks history across years
      */
     public function getStudentMarksHistory(int $studentId): array;
+
+    public function getSubjectByRole(Collection $subjectList): Collection;
 }

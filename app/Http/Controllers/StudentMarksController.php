@@ -38,21 +38,23 @@ class StudentMarksController extends Controller
         $academicYears = $this->commonServices->getAcademicYearList();
         $currentYear = $this->commonServices->getCurrentAcademicYear();
         $classes = $this->commonServices->getClassessWithSections();
+        // dd($classes);
 
         $exams = $this->marksService->getExamsWithSchedules(
             $request->input('academic_year_id', $currentYear?->value)
         );
-
+        // dd($exams);
         // If exam + class + section selected, get subjects
         $subjects = collect();
         if ($request->filled(['exam_id', 'class_id', 'section_id'])) {
             $subjects = $this->marksService->getScheduleSubjects(
                 (int) $request->exam_id,
                 (int) $request->class_id,
-                (int) $request->section_id
+                (int) $request->section_id,
             );
         }
-
+        $getSubjectByRole = $this->marksService->getSubjectByRole($subjects);
+        //  dd($subjects);
         return Inertia::render('marks/MarksIndex', [
             'academicYears' => $academicYears,
             'currentAcademicYear' => $currentYear,

@@ -449,4 +449,15 @@ class StudentMarksService implements StudentMarksInterface
 
         return $history;
     }
+
+    public function getSubjectByRole(Collection $subjectList): Collection
+    {
+        $userId = Auth::id();
+        $role = Auth::user()->roles;
+        if (strtolower($role['name']) === 'super admin' || strtolower($role['name']) === 'class teacher') {
+            return $subjectList;
+        } else {
+            return $subjectList;
+        }
+    }
 }

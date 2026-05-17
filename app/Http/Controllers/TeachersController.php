@@ -13,8 +13,8 @@ class TeachersController extends Controller
     /**
      * Display a listing of the resource.
      */
-    private $teacherServices;
-    private $teacherValidation;
+    private TeacherServices $teacherServices;
+    private Validation $teacherValidation;
     public function __construct(
         TeacherServices $teacherServices,
         Validation $validation 
