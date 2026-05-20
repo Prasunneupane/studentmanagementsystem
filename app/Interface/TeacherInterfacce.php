@@ -16,4 +16,6 @@ interface TeacherInterfacce
     public function activateTeacher(int $id);
 
     public function getEnumerationValues(string $columnName): array;
+
+    public function getAllSubject():array;
 }

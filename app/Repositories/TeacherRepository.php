@@ -4,6 +4,7 @@ namespace App\Repositories;
 
 use App\Interface\TeacherInterfacce;
 use App\Models\Teachers;
+use App\Models\Subject;
 use Storage;
 
 class TeacherRepository implements TeacherInterfacce
@@ -85,5 +86,13 @@ class TeacherRepository implements TeacherInterfacce
                 'label' => $label,
             ];
         }, $values);
+    }
+
+    public function getAllSubject():array{
+         return Subject::select('id as value', 'name as label')
+         ->where('is_active', true)
+         ->orderBy('name')
+         ->get()
+         ->toArray();         
     }
 }

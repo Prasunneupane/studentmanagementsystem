@@ -79,4 +79,8 @@ class TeacherServices
     {
         return $this->teacherService->getEnumerationValues($columnName);
     }
+
+    public function getAllSubjects():array{
+        return $this->teacherService->getAllSubject();
+    }
 }

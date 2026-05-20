@@ -37,7 +37,8 @@ class TeachersController extends Controller
     public function create()
     {
         $statusOptions = $this->teacherServices->getEnumerationValues('status');
-        // dd($statusOptions);
+        $subjectList = $this->teacherServices->getAllSubjects();
+         dd($subjectList);
         return Inertia::render('teachers/AddTeacher', [
             'status' => $statusOptions,
         ]);
