@@ -87,6 +87,7 @@ class ClassSubjectController extends Controller
         $subjects = $this->classSubjectService->getSubjectList();
         $teachers = $this->classSubjectService->getTeacherList();
         $academicYears = $this->studentService->getAcademicYearList(); 
+        // dd($academicYears);
         $currentAcademicYear = $this->classSubjectService->getCurrentAcademicYear();
         return Inertia::render('classSubject/Create', [
             'classes' => $classes,

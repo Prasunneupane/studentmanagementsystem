@@ -88,11 +88,12 @@ class TeacherRepository implements TeacherInterfacce
         }, $values);
     }
 
-    public function getAllSubject():array{
-         return Subject::select('id as value', 'name as label')
-         ->where('is_active', true)
-         ->orderBy('name')
-         ->get()
-         ->toArray();         
+    public function getAllSubject(): array
+    {
+        return Subject::select('id as value', 'name as label')
+            ->where('is_active', true)
+            ->orderBy('id')
+            ->get()
+            ->toArray();
     }
 }

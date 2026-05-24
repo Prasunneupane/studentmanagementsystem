@@ -12,7 +12,7 @@ class TeachersController extends Controller
 {
     /**
      * Display a listing of the resource.
-     */
+    */
     private TeacherServices $teacherServices;
     private Validation $teacherValidation;
     public function __construct(
@@ -33,14 +33,15 @@ class TeachersController extends Controller
 
     /**
      * Show the form for creating a new resource.
-     */
+    */
     public function create()
     {
         $statusOptions = $this->teacherServices->getEnumerationValues('status');
         $subjectList = $this->teacherServices->getAllSubjects();
-         dd($subjectList);
+        //  dd($subjectList);
         return Inertia::render('teachers/AddTeacher', [
             'status' => $statusOptions,
+            'subjects' => $subjectList,
         ]);
     }
 

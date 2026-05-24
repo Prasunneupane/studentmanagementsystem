@@ -19,20 +19,27 @@ import { useToast } from '@/composables/useToast'
 import 'vue-sonner/style.css'
 
 import { usePermission } from '@/composables/usePermissions'
+import CustomSelect from '../CustomSelect.vue'
 const { toast } = useToast()
 const { can } = usePermission();
 
+interface Option {
+  value: string
+  label: string
+}
 // Props
 const props = defineProps({
   teacher: {
     type: Object,
     default: null
   },
+  subjects: Array<{ value: number; label: string }>,
   status: {
     type: Array<{ value: string; label: string }>,
     default: () => []
   }
 })
+console.log(props.subjects,"subjects");
 
 const isEdit = computed(() => !!props.teacher)
 
@@ -180,7 +187,7 @@ const handleSubmit = () => {
 
               <div class="space-y-2">
                 <Label>Subject Specialization <span class="text-red-500">*</span></Label>
-                <Input v-model="form.subject_specialization" placeholder="Mathematics, Physics..." />
+                <CustomSelect :options="props.subjects" v-model="form.subject_specialization" placeholder="Select Subject" />
                 <p v-if="form.errors.subject_specialization" class="text-sm text-red-600">{{ form.errors.subject_specialization }}</p>
               </div>
 
