@@ -96,4 +96,10 @@ class TeacherRepository implements TeacherInterfacce
             ->get()
             ->toArray();
     }
+
+    public function getSubjectNameById(int $id): ?string
+    {
+        $subject = Subject::find($id);
+        return $subject ? $subject->name : null;
+    }
 }

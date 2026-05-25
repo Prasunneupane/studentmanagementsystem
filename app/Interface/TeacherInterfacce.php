@@ -18,4 +18,6 @@ interface TeacherInterfacce
     public function getEnumerationValues(string $columnName): array;
 
     public function getAllSubject():array;
+
+    public function getSubjectNameById(int $id): ?string;
 }

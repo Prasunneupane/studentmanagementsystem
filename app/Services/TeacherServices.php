@@ -24,13 +24,13 @@ class TeacherServices
     public function createTeacher(array $data,$request)
     {
         // dd($request['status']['value']);
-       
+       $subjectName = $this->teacherService->getSubjectNameById($request['subject_specialization']);
+       $data['subject_specialization'] = $subjectName;
         $createData = [
             ...$data,
             'status' => $request['status']['value'] ?? null,
             'created_by' => auth()->id(),
             'date_of_birth' => $request['dob'] ?? null,
-           
         ];
         // dd($createData);
         return $this->teacherService->createTeacher($createData);
@@ -82,5 +82,9 @@ class TeacherServices
 
     public function getAllSubjects():array{
         return $this->teacherService->getAllSubject();
+    }
+
+    public function getSubjectNameById(int $id): ?string{
+        return $this->teacherService->getSubjectNameById($id);
     }
 }
