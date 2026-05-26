@@ -36,6 +36,7 @@ export interface Teacher{
   qualification:string;
   is_active:boolean;
   created_by:string;
+  has_user?:boolean; // This field indicates if a user account exists for the teacher
 }
 
 export interface User{

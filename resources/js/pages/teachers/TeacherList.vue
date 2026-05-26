@@ -83,6 +83,7 @@ const columns: ColumnDef<Teacher>[] = [
         h(Button, { variant: 'ghost', size: 'sm', class: 'h-8 w-8 p-0 cursor-pointer', title: 'Edit', onClick: () => handleEdit(teacher) }, () => h(Edit, { class: 'h-4 w-4' })),
          can('teachers.canDelete') &&
         h(Button, { variant: 'ghost', size: 'sm', class: 'h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 cursor-pointer', title: 'Delete', onClick: () => handleDelete(teacher) }, () => h(Trash2, { class: 'h-4 w-4' })),
+        teacher?.has_user ? '<span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-semibold"> User Exists </span>': h(Button, { variant: 'ghost', size: 'sm', class: 'h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50 cursor-pointer', title: 'Create User', onClick: () => router.get(route('users.create-from-teacher', teacher.id)) }, () => h(Plus, { class: 'h-4 w-4' })),
       ]) 
     },
   },

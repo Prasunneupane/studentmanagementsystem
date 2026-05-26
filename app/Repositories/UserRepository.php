@@ -4,6 +4,7 @@ namespace App\Repositories;
 
 use App\Interface\UserInterface;
 use App\Models\Roles;
+use App\Models\Teachers;
 use App\Models\User;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
@@ -62,6 +63,12 @@ class UserRepository implements UserInterface
 
     public function getAllRoles(){
         return Roles::where('is_active',1)->pluck('name','id');
+    }
+
+    public function getTeacherById(int $teacherId):array
+    {
+        // Implementation here  
+        return Teachers::findOrFail($teacherId)->toArray();
     }
 
 

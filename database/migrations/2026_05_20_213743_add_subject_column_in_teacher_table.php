@@ -11,8 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('teacher', function (Blueprint $table) {
-            
+        Schema::create('tbl_teacher_user', function (Blueprint $table) {
+            $table->id();
+            $table->integer('teacher_id');
+            $table->integer('user_id');
+            $table->boolean('is_active')->default(true);
+            $table->integer('created_by')->nullable();
+            $table->timestamps();
         });
     }
 
@@ -21,9 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('teacher', function (Blueprint $table) {
-            //
-        });
+        Schema::dropIfExists('tbl_teacher_user');
     }
 };
-/

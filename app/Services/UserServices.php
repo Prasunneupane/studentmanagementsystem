@@ -81,5 +81,10 @@ class UserServices
         return $userData;
     }
 
+    public function getTeacherById(int $teacherId)
+    {
+        return $this->userService->getTeacherById($teacherId);
+    }
+
 
 }

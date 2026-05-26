@@ -26,6 +26,7 @@ class TeachersController extends Controller
     public function index()
     {
         $teacherList = $this->teacherServices->getAllTeachers();
+        // dd($teacherList);
         return Inertia::render('teachers/TeacherList', [
             'teachers' => $teacherList
         ]);

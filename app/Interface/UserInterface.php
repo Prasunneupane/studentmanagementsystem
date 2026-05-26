@@ -12,4 +12,6 @@ interface UserInterface
     public function activateUser(int $userId);
 
     public function getAllRoles();
+
+    public function getTeacherById(int $teacherId): array;
 }

@@ -18,10 +18,18 @@ class TeacherRepository implements TeacherInterfacce
         $this->model = $teachers;
     }
     public function getAllTeachers()
-    {
-        // Implementation here  
-        return $this->model->where('is_active', true)->get();
-    }
+{
+    return $this->model
+        ->with('teacherUserMapping')
+        ->where('is_active', true)
+        ->get()
+        ->map(function ($teacher) {
+
+            $teacher->has_user = $teacher->teacherUserMapping ? true : false;
+
+            return $teacher;
+        });
+}
     public function createTeacher(array $data)
     {
         // Implementation here 

@@ -142,4 +142,19 @@ class UserCheckController extends Controller
             ], 500);
         }
     }
+
+    public function createFromTeacher($teacherId)
+    {
+        $teacher = $this->userService->getTeacherById($teacherId);
+        if (!$teacher) {
+            return redirect()->route('teachers.index')->with('error', 'Teacher not found.');
+        }
+        // dd($teacher);
+        $allRoles = $this->userService->getAllRoles();
+        $allRoles = $this->userService->transformRoles($allRoles);
+        return Inertia::render('user/RegisterTeacher', [
+            'roles' => $allRoles,
+            'teacher' => $teacher,
+        ]);
+    }
 }

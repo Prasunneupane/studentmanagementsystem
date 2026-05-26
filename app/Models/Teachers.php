@@ -28,9 +28,14 @@ class Teachers extends Model
     protected $appends = ['photo_url'];
 
     public function getPhotoUrlAttribute()
-{
-    return $this->photo
-        ? Storage::disk('public')->url($this->photo)
-        : asset('images/default-avatar.png');
-}
+    {
+        return $this->photo
+            ? Storage::disk('public')->url($this->photo)
+            : asset('images/default-avatar.png');
+    }
+
+    public function teacherUserMapping()
+    {
+        return $this->hasOne(TeacherUserMapping::class, 'teacher_id');
+    }
 }
