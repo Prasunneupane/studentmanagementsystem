@@ -49,7 +49,7 @@ const props = defineProps({
 })
 
 console.log(props.teacher);
-const isEdit = computed(() => !!props.teacher)
+const isEdit = false;
 
 // Status options
 const statusOptions = ref(props.roles)
@@ -75,11 +75,11 @@ const handleSubmit = () => {
   }
   const payload = {
     onSuccess: () => {
-      toast.success(isEdit.value ? "User updated successfully." : "User added successfully.")
+      toast.success(isEdit ? "User updated successfully." : "User added successfully.")
 
-      if (!isEdit.value) {
-        form.reset()
-        form.name = '',
+      if (!isEdit) {
+          form.reset()
+          form.name = '',
           form.email = '',
           form.password = '',
           form.password_confirmation = ''
@@ -94,12 +94,12 @@ const handleSubmit = () => {
       toast.error(msg)
     }
   }
-
-  if (isEdit.value) {
-    form.put(route('users.update', props.teacher!.id), payload)
-  } else {
-    form.post(route('users.store'), payload)
-  }
+  form.post(route('users.create-teacher-user',props.teacher!.id), payload)
+  // if (isEdit.value) {
+  //   form.put(route('users.update', props.teacher!.id), payload)
+  // } else {
+  //   form.post(route('users.create-teacher-user'), payload)
+  // }
 }
 watch(
   () => ({ ...form.data() }),

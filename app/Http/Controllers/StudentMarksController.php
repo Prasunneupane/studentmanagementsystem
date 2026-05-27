@@ -38,7 +38,7 @@ class StudentMarksController extends Controller
         $academicYears = $this->commonServices->getAcademicYearList();
         $currentYear = $this->commonServices->getCurrentAcademicYear();
         $classes = $this->commonServices->getClassessWithSections();
-        // dd($classes);
+        //  dd($classes);
 
         $exams = $this->marksService->getExamsWithSchedules(
             $request->input('academic_year_id', $currentYear?->value)
@@ -53,14 +53,15 @@ class StudentMarksController extends Controller
                 (int) $request->section_id,
             );
         }
+        // dd($subjects);
         $getSubjectByRole = $this->marksService->getSubjectByRole($subjects);
-        //  dd($subjects);
+        //  dd($getSubjectByRole);
         return Inertia::render('marks/MarksIndex', [
             'academicYears' => $academicYears,
             'currentAcademicYear' => $currentYear,
             'classes' => $classes,
             'exams' => $exams,
-            'subjects' => $subjects,
+            'subjects' => $getSubjectByRole,
             'filters' => $request->only(['academic_year_id', 'exam_id', 'class_id', 'section_id']),
         ]);
     }

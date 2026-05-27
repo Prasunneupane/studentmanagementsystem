@@ -14,7 +14,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Loader2, ArrowLeft, BookOpen, Edit, Trash2, Eye, Plus, Pencil } from 'lucide-vue-next'
+import { Loader2, ArrowLeft, BookOpen, Edit, Trash2, Eye, Plus, Pencil, Check } from 'lucide-vue-next'
 import { Link } from '@inertiajs/vue3'
 import { Toaster } from '@/components/ui/sonner'
 import 'vue-sonner/style.css'
@@ -83,7 +83,7 @@ const columns: ColumnDef<Teacher>[] = [
         h(Button, { variant: 'ghost', size: 'sm', class: 'h-8 w-8 p-0 cursor-pointer', title: 'Edit', onClick: () => handleEdit(teacher) }, () => h(Edit, { class: 'h-4 w-4' })),
          can('teachers.canDelete') &&
         h(Button, { variant: 'ghost', size: 'sm', class: 'h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 cursor-pointer', title: 'Delete', onClick: () => handleDelete(teacher) }, () => h(Trash2, { class: 'h-4 w-4' })),
-        teacher?.has_user ? '<span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-semibold"> User Exists </span>': h(Button, { variant: 'ghost', size: 'sm', class: 'h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50 cursor-pointer', title: 'Create User', onClick: () => router.get(route('users.create-from-teacher', teacher.id)) }, () => h(Plus, { class: 'h-4 w-4' })),
+        teacher?.has_user ? h(Button, { variant: 'ghost', size: 'sm', class: 'h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50 cursor-pointer', title: 'User Exists', onClick: () => {} }, () => h(Check, { class: 'h-4 w-4' })) : h(Button, { variant: 'ghost', size: 'sm', class: 'h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50 cursor-pointer', title: 'Create User', onClick: () => router.get(route('users.create-from-teacher', teacher.id)) }, () => h(Plus, { class: 'h-4 w-4' })),
       ]) 
     },
   },

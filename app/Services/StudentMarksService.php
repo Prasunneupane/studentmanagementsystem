@@ -8,6 +8,7 @@ use App\Models\Exam;
 use App\Models\ExamSchedule;
 use App\Models\StudentMark;
 use App\Models\StudentResult;
+use App\Models\TeacherUserMapping;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -20,14 +21,22 @@ class StudentMarksService implements StudentMarksInterface
      */
     private function getGrade(float $percentage): array
     {
-        if ($percentage >= 90) return ['grade' => 'A+', 'gpa' => 4.00];
-        if ($percentage >= 80) return ['grade' => 'A',  'gpa' => 3.60];
-        if ($percentage >= 70) return ['grade' => 'B+', 'gpa' => 3.20];
-        if ($percentage >= 60) return ['grade' => 'B',  'gpa' => 2.80];
-        if ($percentage >= 50) return ['grade' => 'C+', 'gpa' => 2.40];
-        if ($percentage >= 40) return ['grade' => 'C',  'gpa' => 2.00];
-        if ($percentage >= 30) return ['grade' => 'D+', 'gpa' => 1.60];
-        if ($percentage >= 20) return ['grade' => 'D',  'gpa' => 1.20];
+        if ($percentage >= 90)
+            return ['grade' => 'A+', 'gpa' => 4.00];
+        if ($percentage >= 80)
+            return ['grade' => 'A', 'gpa' => 3.60];
+        if ($percentage >= 70)
+            return ['grade' => 'B+', 'gpa' => 3.20];
+        if ($percentage >= 60)
+            return ['grade' => 'B', 'gpa' => 2.80];
+        if ($percentage >= 50)
+            return ['grade' => 'C+', 'gpa' => 2.40];
+        if ($percentage >= 40)
+            return ['grade' => 'C', 'gpa' => 2.00];
+        if ($percentage >= 30)
+            return ['grade' => 'D+', 'gpa' => 1.60];
+        if ($percentage >= 20)
+            return ['grade' => 'D', 'gpa' => 1.20];
         return ['grade' => 'NG', 'gpa' => 0.00]; // Not Graded (Fail)
     }
 
@@ -36,14 +45,22 @@ class StudentMarksService implements StudentMarksInterface
      */
     private function getSubjectGrade(float $percentage): string
     {
-        if ($percentage >= 90) return 'A+';
-        if ($percentage >= 80) return 'A';
-        if ($percentage >= 70) return 'B+';
-        if ($percentage >= 60) return 'B';
-        if ($percentage >= 50) return 'C+';
-        if ($percentage >= 40) return 'C';
-        if ($percentage >= 30) return 'D+';
-        if ($percentage >= 20) return 'D';
+        if ($percentage >= 90)
+            return 'A+';
+        if ($percentage >= 80)
+            return 'A';
+        if ($percentage >= 70)
+            return 'B+';
+        if ($percentage >= 60)
+            return 'B';
+        if ($percentage >= 50)
+            return 'C+';
+        if ($percentage >= 40)
+            return 'C';
+        if ($percentage >= 30)
+            return 'D+';
+        if ($percentage >= 20)
+            return 'D';
         return 'NG';
     }
 
@@ -78,7 +95,8 @@ class StudentMarksService implements StudentMarksInterface
         $students = [];
         foreach ($enrollments as $enrollment) {
             $student = $enrollment->student;
-            if (!$student) continue;
+            if (!$student)
+                continue;
 
             $mark = $existingMarks->get($student->id);
 
@@ -452,12 +470,55 @@ class StudentMarksService implements StudentMarksInterface
 
     public function getSubjectByRole(Collection $subjectList): Collection
     {
-        $userId = Auth::id();
-        $role = Auth::user()->roles;
-        if (strtolower($role['name']) === 'super admin' || strtolower($role['name']) === 'class teacher') {
-            return $subjectList;
-        } else {
+        if ($subjectList->isEmpty()) {
+            return collect();
+        }
+
+        $user = Auth::user();
+
+        if (!$user || $user->roles->isEmpty()) {
+            return collect();
+        }
+
+        $roleName = strtolower($user->roles[0]->name);
+
+        // Super Admin & Class Teacher => all subjects
+        if (
+            $roleName === 'super admin' ||
+            $roleName === 'class teacher'
+        ) {
             return $subjectList;
         }
+
+        // Teacher Role
+        if (str_contains($roleName, 'teacher')) {
+
+            // Get Teacher Mapping
+            $teacherMapping = TeacherUserMapping::with('teacher')
+                ->where('user_id', $user->id)
+                ->first();
+
+            if (
+                !$teacherMapping ||
+                !$teacherMapping->teacher
+            ) {
+                return collect();
+            }
+
+            $teacherSubjectId = $teacherMapping
+                ->teacher
+                ->subject_specialization;
+
+            // Filter only assigned subject
+            return $subjectList
+                ->filter(function ($subject) use ($teacherSubjectId) {
+
+                    return $subject->id == $teacherSubjectId;
+
+                })
+                ->values();
+        }
+
+        return collect();
     }
 }

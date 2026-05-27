@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Roles;
 use App\Models\Students;
+use App\Models\Teachers;
 use App\Models\User;
 use App\Repositories\Validation;
 use App\Services\UserServices;
@@ -149,12 +150,40 @@ class UserCheckController extends Controller
         if (!$teacher) {
             return redirect()->route('teachers.index')->with('error', 'Teacher not found.');
         }
-        // dd($teacher);
+        $checkIfUserExist = $this->userService->checkIfUserExist($teacher);
+        // dd($checkIfUserExist);
+        if($checkIfUserExist){
+            return redirect()->route('teachers.index')->with('error', 'A user account already exists for this teacher.');
+        }
         $allRoles = $this->userService->getAllRoles();
-        $allRoles = $this->userService->transformRoles($allRoles);
+        $transformedRole = $this->userService->transformRoles($allRoles);
+        $filterRolesForTeacher = $this->userService->getTeachersRole($transformedRole);
+        //  dd($filterRolesForTeacher);
         return Inertia::render('user/RegisterTeacher', [
-            'roles' => $allRoles,
+            'roles' => $filterRolesForTeacher,
             'teacher' => $teacher,
         ]);
     }
+
+    public function createTeacherUser(Request $request, Teachers $teacher): RedirectResponse
+    {
+        //  dd($teacher->name);
+        if(!$teacher) {
+            return redirect()->route('teachers.index')->with('error', 'Teacher not found.');
+        }
+       
+        $teacherUserNameCheck = $this->userService->CheckTeacherUserName($request,$teacher->name);
+        // dd($teacherUserNameCheck);
+        if(!$teacherUserNameCheck){
+            return redirect()->back()->withErrors(['name' => 'The name must match the teacher\'s name.'])->withInput();
+        }
+        // dd($teacherUserNameCheck);
+        $data = $request->validate($this->dataValidation->teacherUserValidationRules($request,$teacher->id));
+        // dd($data);
+        $this->userService->createTeacherUser($teacher, $data);
+
+        return redirect()->route('users.index')->with('success', 'User account created successfully for the teacher.');
+    }
+
+
 }

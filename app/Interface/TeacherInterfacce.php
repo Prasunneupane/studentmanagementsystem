@@ -2,6 +2,8 @@
 
 namespace App\Interface;
 
+use phpDocumentor\Reflection\Types\Boolean;
+
 interface TeacherInterfacce
 {
     public function getAllTeachers();
@@ -18,6 +20,6 @@ interface TeacherInterfacce
     public function getEnumerationValues(string $columnName): array;
 
     public function getAllSubject():array;
-
     public function getSubjectNameById(int $id): ?string;
+    
 }

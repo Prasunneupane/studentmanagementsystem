@@ -258,4 +258,14 @@ class Validation
             'is_published'     => 'boolean'
         ]);
     }
+
+    public function teacherUserValidationRules($request, $teacherId)
+    {
+        return [
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users,email,'.$teacherId,
+            'password' => 'required|string|min:8|confirmed',
+            'roles' => 'required|exists:tbl_roles,id',
+        ];
+    }
 }

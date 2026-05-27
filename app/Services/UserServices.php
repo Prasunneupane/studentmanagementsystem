@@ -85,6 +85,27 @@ class UserServices
     {
         return $this->userService->getTeacherById($teacherId);
     }
+    public function CheckTeacherUserName($request, $teacherName)
+    {
+        return $this->userService->CheckTeacherUserNameExist($request, $teacherName);
+    }
 
+    public function checkIfUserExist($teacher)
+    {
+        return $this->userService->checkIfUserExist($teacher);
+    }
 
+    public function createTeacherUser($teacher, $data)
+    {
+        return $this->userService->createTeacherUser($teacher, $data);
+    }
+
+    public function getTeachersRole( $data)
+    {
+           return collect($data)->filter(function ($item) {
+
+                return str_contains(strtolower($item['label']), 'teacher');
+
+            })->values();
+    }
 }

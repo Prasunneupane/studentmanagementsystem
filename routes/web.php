@@ -176,7 +176,9 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/create', [UserCheckController::class, 'create'])->name('create');
             Route::post('/store', [UserCheckController::class, 'store'])->name('store');
             Route::get('/create-from-teacher/{teacher}', [UserCheckController::class, 'createFromTeacher'])->name('create-from-teacher');
-        });
+            Route::post('/create-teacher-user/{teacher}', [UserCheckController::class, 'createTeacherUser'])->name('create-teacher-user');
+        
+            });
 
         // Edit user
         Route::middleware(['permission:users.edit'])->group(function () {
