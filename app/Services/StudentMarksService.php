@@ -505,15 +505,15 @@ class StudentMarksService implements StudentMarksInterface
                 return collect();
             }
 
-            $teacherSubjectId = $teacherMapping
+            $teacherSubjectName = $teacherMapping
                 ->teacher
                 ->subject_specialization;
-
+           // dd($subjectList, $teacherSubjectName);
             // Filter only assigned subject
             return $subjectList
-                ->filter(function ($subject) use ($teacherSubjectId) {
+                ->filter(function ($subject) use ($teacherSubjectName) {
 
-                    return $subject->id == $teacherSubjectId;
+                    return $subject['subject_name'] == $teacherSubjectName;
 
                 })
                 ->values();

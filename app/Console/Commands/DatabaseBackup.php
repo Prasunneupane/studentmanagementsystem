@@ -40,7 +40,7 @@ class DatabaseBackup extends Command
             File::makeDirectory($backupPath, 0755, true);
         }
 
-        $mysqldump = 'D:\xampp\mysql\bin\mysqldump.exe';
+        $mysqldump = 'E:\xampp\mysql\bin\mysqldump.exe';
 
         $command = "\"$mysqldump\" -h $dbHost -u $dbUser -p$dbPass $dbName > \"$fullPath\"";
 
