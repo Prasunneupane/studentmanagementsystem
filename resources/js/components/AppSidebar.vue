@@ -459,9 +459,9 @@ const footerNavItems: NavItem[] = [
       </SidebarMenu>
     </SidebarHeader>
 
-    <SidebarContent>
+    <SidebarContent class="pointer-cursor">
       <NavMain :items="mainNavItems" :isRoot="true" />
-    </SidebarContent>
+  </SidebarContent>
 
     <SidebarFooter>
       <NavFooter :items="footerNavItems" />

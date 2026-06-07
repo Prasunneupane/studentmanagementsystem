@@ -30,15 +30,15 @@ class CommonServices implements CommonServiceInterface
     }
 
     public function getClassList(){
-        return Classes::select('id as value', 'name as label')->get()->toArray();
+        return Classes::select('id as value', 'name as label')->where('is_active',1)->get()->toArray();
     }
 
     public function getSubjectList(){
-        return Subject::select('id as value', 'name as label')->get()->toArray();
+        return Subject::select('id as value', 'name as label')->where('is_active',1)->get()->toArray();
     }
 
     public function getTeacherList(){
-        return Teachers::select('id as value', 'name as label')->get()->toArray();
+        return Teachers::select('id as value', 'name as label')->where('is_active',1)->get()->toArray();
     }
 
     public function getClassTeacherForAcademicYear($academicYearId){
