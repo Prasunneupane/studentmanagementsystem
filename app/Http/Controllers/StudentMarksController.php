@@ -150,7 +150,7 @@ class StudentMarksController extends Controller
                 (int) $request->section_id
             );
         }
-
+        // dd($results);
         return Inertia::render('marks/Results', [
             'exam' => $exam,
             'examClasses' => $examClasses,

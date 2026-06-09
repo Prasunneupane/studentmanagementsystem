@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed,watch } from 'vue'
 import AppLayout from '@/layouts/AppLayout.vue'
 import { Head, router, useForm } from '@inertiajs/vue3'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
@@ -8,11 +8,16 @@ import { Label } from '@/components/ui/label'
 import CustomSelect from '../CustomSelect.vue'
 import { Toaster } from '@/components/ui/sonner'
 import { useToast } from '@/composables/useToast'
+import { Input } from '@/components/ui/input'
 import 'vue-sonner/style.css'
 import {
   ChevronLeft, BarChart3, Calculator, Lock, Eye, Award,
-  CheckCircle2, XCircle, Loader2, AlertCircle, Trophy
+  CheckCircle2, XCircle, Loader2, AlertCircle, Trophy,
+   ChevronRight, ChevronsLeft, ChevronsRight,
+  CheckSquare, Square, FileDown, FileSpreadsheet,
 } from 'lucide-vue-next'
+
+import ExportPdf from '../export-modules/ExportPdf.vue'
 
 const { toast } = useToast()
 
@@ -65,6 +70,75 @@ interface Props {
     section_id?: string
   }
 }
+const searchQuery = ref('')
+// ─── Pagination ───────────────────────────────────────────────────
+const currentPage = ref(1)
+const pageSize = ref(10)
+
+// ─── Filtered + paginated indices (we operate on original array indices) ──
+const filteredIndices = computed(() => {
+  const q = searchQuery.value.trim().toLowerCase()
+  if (!q) return  props.results.map((_, i) => i)
+  return props.results.reduce<number[]>((acc, r, i) => {
+    if (
+      r.student.first_name.toLowerCase().includes(q) ||
+      r.student.last_name.toLowerCase().includes(q) ||
+      r.student.middle_name?.toLowerCase().includes(q) ||
+      r.grade.toLowerCase().includes(q) ||
+      r.gpa.toString().includes(q) ||
+      r.status.toLowerCase().includes(q)
+      // r.student.grade.toLowerCase().includes(q) ||
+      // r.student.gpa.toString().includes(q) ||
+      // r.student.percentage.toString().includes(q)
+      
+    ) acc.push(i)
+    return acc
+  }, [])
+})
+
+// const tableData = props.results.map((s, i) => {
+//       // const m = marks.value[i]
+//       return [
+//         i + 1,
+//         s.student.first_name + (s.student.middle_name ? ` ${s.student.middle_name} ` : ' ') + s.student.last_name,
+//         s.name,
+//         m.is_absent ? 'AB' : (m.theory_marks || '—'),
+//         m.is_absent ? 'AB' : (m.practical_marks || '—'),
+//         m.is_absent ? 'AB' : (m.total_marks || '—'),
+//         m.is_absent ? 'Absent' : (m.total_marks >= passMarks.value ? 'Pass' : m.total_marks > 0 ? 'Fail' : '—'),
+//         m.remarks || '',
+//       ]
+//     });
+
+const totalPages = computed(() => Math.max(1, Math.ceil(filteredIndices.value.length / pageSize.value)))
+
+// Reset to page 1 on search or page size change
+watch([searchQuery, pageSize], () => { 
+  console.log('Search or page size changed, resetting to page 1')
+  currentPage.value = 1 })
+
+const pagedIndices = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  return filteredIndices.value.slice(start, start + pageSize.value)
+})
+
+const pageFrom = computed(() => filteredIndices.value.length === 0 ? 0 : (currentPage.value - 1) * pageSize.value + 1)
+const pageTo = computed(() => Math.min(currentPage.value * pageSize.value, filteredIndices.value.length))
+
+// Page window for pagination buttons
+const pageWindow = computed(() => {
+  const total = totalPages.value
+  const cur = currentPage.value
+  const delta = 2
+  const range: number[] = []
+  for (let i = Math.max(1, cur - delta); i <= Math.min(total, cur + delta); i++) {
+    range.push(i)
+  }
+  return range
+})
+
+const COMPANY_NAME = 'Greenwood Academy'
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
 
 const props = defineProps<Props>()
 
@@ -285,6 +359,64 @@ const gradeColor = (grade: string) => {
               Draft
             </span>
           </div>
+           <div class="ml-auto">
+            <div class="flex items-center gap-2">
+                 <ExportPdf
+                company-name="Greenwood Academy"
+                exam-name="First Terminal Examination"
+                subject="Mathematics"
+                class-name="10"
+                section="A"
+                exam-date="2026-06-09"
+                filename="math_result"
+
+                :headers="[
+                  { title: '#', key: 'sn', width: 10, align: 'center' },
+                  { title: 'Roll No', key: 'roll_no', width: 20 },
+                  { title: 'Name', key: 'name', width: 50 },
+                  { title: 'Theory', key: 'theory', align: 'center' },
+                  { title: 'Practical', key: 'practical', align: 'center' },
+                  { title: 'Total', key: 'total', align: 'center' },
+                  { title: 'Status', key: 'status', align: 'center' },
+                ]"
+
+                :data="[
+                  {
+                    sn: 1,
+                    roll_no: '01',
+                    name: 'Ram Sharma',
+                    theory: 60,
+                    practical: 18,
+                    total: 78,
+                    status: 'Pass',
+                  },
+                  {
+                    sn: 2,
+                    roll_no: '02',
+                    name: 'Hari Karki',
+                    theory: 25,
+                    practical: 10,
+                    total: 35,
+                    status: 'Fail',
+                  },
+                ]"
+              />
+              <Button variant="outline" size="sm" @click="exportExcel">
+                <FileSpreadsheet class="h-4 w-4 mr-1.5" />
+                Excel
+              </Button>
+              <!-- Search -->
+              <div class=" relative">
+                <Search class="" />
+                <Input
+                  v-model="searchQuery"
+                  placeholder="Search name,grade,status..."
+                  class=" pl-8 h-8 text-xs w-52"
+                />
+              </div>
+          </div>
+              
+            </div>
         </CardHeader>
 
         <CardContent class="pt-0 p-0">
@@ -303,57 +435,151 @@ const gradeColor = (grade: string) => {
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(result, i) in results" :key="result.id"
-                  class="border-b last:border-0 transition-colors hover:bg-muted/30"
+                <tr v-for="(origIndex, rowPos) in pagedIndices"
+                  :key="results[origIndex].id"
+                  
+                
+                class="border-b last:border-0 transition-colors hover:bg-muted/30"
                   :class="[
-                    i % 2 === 0 ? 'bg-background' : 'bg-muted/20',
-                    result.status === 'fail' ? 'bg-red-50/30 dark:bg-red-950/10' : ''
+                    rowPos % 2 === 0 ? 'bg-background' : 'bg-muted/20',
+                    results[origIndex].status === 'fail' ? 'bg-red-50/30 dark:bg-red-950/10' : ''
                   ]">
                   <td class="px-3 py-2.5 text-center">
-                    <div v-if="result.rank" class="flex items-center justify-center">
-                      <Trophy v-if="result.rank <= 3"
+                    <div v-if="results[origIndex].rank" class="flex items-center justify-center">
+                      <Trophy v-if="results[origIndex].rank <= 3"
                         class="w-4 h-4 mr-1"
                         :class="{
-                          'text-yellow-500': result.rank === 1,
-                          'text-gray-400': result.rank === 2,
-                          'text-amber-700': result.rank === 3,
+                          'text-yellow-500': results[origIndex].rank === 1,
+                          'text-gray-400': results[origIndex].rank === 2,
+                          'text-amber-700': results[origIndex].rank === 3,
                         }" />
-                      <span class="font-bold">{{ result.rank }}</span>
+                      <span class="font-bold">{{ results[origIndex].rank }}</span>
                     </div>
                     <span v-else class="text-muted-foreground">—</span>
                   </td>
                   <td class="px-4 py-2.5 font-medium">
-                    {{ getStudentName(result.student) }}
+                    {{ getStudentName(results[origIndex].student) }}
                   </td>
                   <td class="px-3 py-2.5 text-center">
-                    <span class="font-semibold">{{ result.total_marks_obtained }}</span>
-                    <span class="text-muted-foreground">/{{ result.total_max_marks }}</span>
+                    <span class="font-semibold">{{ results[origIndex].total_marks_obtained }}</span>
+                    <span class="text-muted-foreground">/{{ results[origIndex].total_max_marks }}</span>
                   </td>
                   <td class="px-3 py-2.5 text-center font-semibold">
-                    {{ result.percentage }}%
+                    {{ results[origIndex].percentage }}%
                   </td>
                   <td class="px-3 py-2.5 text-center">
-                    <span class="font-bold" :class="gradeColor(result.grade)">{{ result.grade }}</span>
+                    <span class="font-bold" :class="gradeColor(results[origIndex].grade)">{{ results[origIndex].grade }}</span>
                   </td>
                   <td class="px-3 py-2.5 text-center">
-                    {{ result.gpa }}
+                    {{ results[origIndex].gpa }}
                   </td>
                   <td class="px-3 py-2.5 text-center">
                     <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold capitalize"
-                      :class="statusColor(result.status)">
-                      <CheckCircle2 v-if="result.status === 'pass'" class="w-3 h-3" />
+                      :class="statusColor(results[origIndex].status)">
+                      <CheckCircle2 v-if="results[origIndex].status === 'pass'" class="w-3 h-3" />
                       <XCircle v-else class="w-3 h-3" />
-                      {{ result.status }}
+                      {{ results[origIndex].status }}
                     </span>
                   </td>
                   <td class="px-3 py-2.5 text-center">
-                    <Button variant="ghost" size="sm" @click="goToMarksheet(result.student_id)" class="h-7 text-xs">
+                    <Button variant="ghost" size="sm" @click="goToMarksheet(results[origIndex].student_id)" class="h-7 text-xs">
                       <Eye class="mr-1 h-3.5 w-3.5" /> View
                     </Button>
                   </td>
                 </tr>
               </tbody>
             </table>
+          </div>
+          <!-- Pagination Starts Here -->
+           <div
+            v-if="filteredIndices.length > 0"
+            class="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-t bg-muted/20"
+          >
+            <!-- Left: rows info + page size -->
+            <div class="flex items-center gap-3 text-sm text-muted-foreground">
+              <span>
+                Showing {{ pageFrom }}–{{ pageTo }} of {{ filteredIndices.length }}
+                <template v-if="searchQuery"> (filtered from {{ results.length }})</template>
+              </span>
+              <div class="flex items-center gap-1.5">
+                <Label class="text-xs">Rows:</Label>
+                <select
+                  v-model.number="pageSize"
+                  class="h-7 text-xs rounded-md border border-input bg-background px-2 focus:outline-none focus:ring-1 focus:ring-ring"
+                >
+                  <option v-for="sz in PAGE_SIZE_OPTIONS" :key="sz" :value="sz">{{ sz }}</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Right: page buttons -->
+            <div class="flex items-center gap-1">
+              <!-- First -->
+              <Button
+                variant="outline"
+                size="icon"
+                class="h-7 w-7"
+                :disabled="currentPage === 1"
+                @click="currentPage = 1"
+              >
+                <ChevronsLeft class="h-3.5 w-3.5" />
+              </Button>
+              <!-- Prev -->
+              <Button
+                variant="outline"
+                size="icon"
+                class="h-7 w-7"
+                :disabled="currentPage === 1"
+                @click="currentPage--"
+              >
+                <ChevronLeft class="h-3.5 w-3.5" />
+              </Button>
+
+              <!-- Page numbers -->
+              <template v-if="pageWindow[0] > 1">
+                <Button variant="ghost" size="icon" class="h-7 w-7 text-xs" @click="currentPage = 1">1</Button>
+                <span v-if="pageWindow[0] > 2" class="text-muted-foreground text-xs px-1">…</span>
+              </template>
+
+              <Button
+                v-for="p in pageWindow"
+                :key="p"
+                :variant="p === currentPage ? 'default' : 'ghost'"
+                size="icon"
+                class="h-7 w-7 text-xs"
+                @click="currentPage = p"
+              >
+                {{ p }}
+              </Button>
+
+              <template v-if="pageWindow[pageWindow.length - 1] < totalPages">
+                <span v-if="pageWindow[pageWindow.length - 1] < totalPages - 1" class="text-muted-foreground text-xs px-1">…</span>
+                <Button variant="ghost" size="icon" class="h-7 w-7 text-xs" @click="currentPage = totalPages">
+                  {{ totalPages }}
+                </Button>
+              </template>
+
+              <!-- Next -->
+              <Button
+                variant="outline"
+                size="icon"
+                class="h-7 w-7"
+                :disabled="currentPage === totalPages"
+                @click="currentPage++"
+              >
+                <ChevronRight class="h-3.5 w-3.5" />
+              </Button>
+              <!-- Last -->
+              <Button
+                variant="outline"
+                size="icon"
+                class="h-7 w-7"
+                :disabled="currentPage === totalPages"
+                @click="currentPage = totalPages"
+              >
+                <ChevronsRight class="h-3.5 w-3.5" />
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>

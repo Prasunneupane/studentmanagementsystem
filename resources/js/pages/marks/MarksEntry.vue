@@ -21,7 +21,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 // ─── jsPDF + AutoTable (loaded via CDN in template) ──────────────
-declare const jspdf: any
+// declare const jspdf: any
 declare const XLSX: any
 
 const { toast } = useToast()
@@ -262,7 +262,7 @@ const pendingCount = computed(() => marks.value.length - enteredCount.value)
 // ─── PDF Export ──────────────────────────────────────────────────
 const exportPDF = () => {
   try {
-    const { jsPDF } = jspdf
+    // const { jsPDF } = jsPDF
     const doc = new jsPDF()
 
     // Header
@@ -292,7 +292,7 @@ const exportPDF = () => {
         m.remarks || '',
       ]
     });
-    (doc as any).autoTable({
+    autoTable(doc, {
       startY: 52,
       head: [['#', 'Roll', 'Name', `Theory (${maxTheory.value})`, `Practical (${maxPractical.value})`, `Total (${maxTotal.value})`, 'Status', 'Remarks']],
       body: tableData,
