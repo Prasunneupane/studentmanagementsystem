@@ -128,19 +128,12 @@ class StudentMarksController extends Controller
      */
     public function results(Request $request, int $examId)
     {
-        $exam = Exam::with(['academicYear', 'term'])->findOrFail($examId);
+        $exam = $this->marksService->getExamWithAcademicYearAndTerms($examId);//Exam::with(['academicYear', 'term'])->findOrFail($examId);
+        // dd($exam);
         $classes = $this->commonServices->getClassessWithSections();
 
         // Get exam classes for filtering
-        $examClasses = ExamClass::where('exam_id', $examId)
-            ->with(['class', 'section'])
-            ->get()
-            ->map(fn($ec) => [
-                'class_id' => $ec->class_id,
-                'class_name' => $ec->class->name ?? 'N/A',
-                'section_id' => $ec->section_id,
-                'section_name' => $ec->section->name ?? 'N/A',
-            ]);
+        // $examClasses = $this->marksService->getExamClasses($examId);
 
         $results = collect();
         if ($request->filled(['class_id', 'section_id'])) {
@@ -150,10 +143,10 @@ class StudentMarksController extends Controller
                 (int) $request->section_id
             );
         }
-        // dd($results);
+        //  dd($classes);
         return Inertia::render('marks/Results', [
             'exam' => $exam,
-            'examClasses' => $examClasses,
+            //'examClasses' => $examClasses,
             'classes' => $classes,
             'results' => $results,
             'filters' => $request->only(['class_id', 'section_id']),

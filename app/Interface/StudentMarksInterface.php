@@ -62,4 +62,6 @@ interface StudentMarksInterface
     public function getStudentMarksHistory(int $studentId): array;
 
     public function getSubjectByRole(Collection $subjectList): Collection;
+    public function getExamWithAcademicYearAndTerms(int $examId): object;
+    public function getExamClasses(int $examId): Collection;
 }

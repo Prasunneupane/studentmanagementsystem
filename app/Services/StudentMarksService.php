@@ -521,4 +521,22 @@ class StudentMarksService implements StudentMarksInterface
 
         return collect();
     }
+
+    public function getExamWithAcademicYearAndTerms(int $examId): object
+    {
+        return Exam::with(['academicYear', 'term'])->findOrFail($examId);
+    }
+
+    public function getExamClasses(int $examId): Collection
+    {
+        return ExamSchedule::where('exam_id', $examId)
+            ->with(['class', 'section'])
+            ->get()
+            ->map(fn($ec) => [
+                'class_id' => $ec->class_id,
+                'class_name' => $ec->class->name ?? 'N/A',
+                'section_id' => $ec->section_id,
+                'section_name' => $ec->section->name ?? 'N/A',
+            ]);
+    }
 }
