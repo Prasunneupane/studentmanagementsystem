@@ -117,7 +117,7 @@ class StudentMarksController extends Controller
     public function marksheet(int $examId, int $studentId)
     {
         $marksheet = $this->marksService->getMarksheet($examId, $studentId);
-        
+        // dd($marksheet);
         return Inertia::render('marks/Marksheet', [
             'marksheet' => $marksheet,
         ]);

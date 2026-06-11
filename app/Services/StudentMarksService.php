@@ -192,12 +192,12 @@ class StudentMarksService implements StudentMarksInterface
     public function getMarksheet(int $examId, int $studentId): array
     {
         $exam = Exam::with(['academicYear', 'term'])->findOrFail($examId);
-
+        
         $marks = StudentMark::with(['subject', 'examSchedule'])
             ->where('exam_id', $examId)
             ->where('student_id', $studentId)
             ->get();
-
+        // dd($marks);
         $result = StudentResult::where('exam_id', $examId)
             ->where('student_id', $studentId)
             ->first();
@@ -238,7 +238,7 @@ class StudentMarksService implements StudentMarksInterface
                 'id' => $exam->id,
                 'name' => $exam->name,
                 'exam_type' => $exam->exam_type,
-                'academic_year' => $exam->academicYear->name ?? 'N/A',
+                'academic_year' => $exam->academicYear->academic_year ?? 'N/A',
                 'term' => $exam->term->name ?? null,
             ],
             'student' => $enrollment ? [

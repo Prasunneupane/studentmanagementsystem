@@ -29,177 +29,309 @@ import { FileSpreadsheet, Loader2 } from 'lucide-vue-next'
 import { useToast } from '@/composables/useToast'
 
 // ─── Types ────────────────────────────────────────────────────────
-export interface ExcelStudentRow {
-  student_id: number
-  roll_no: string
-  name: string
+interface Header {
+    title: string
+    key: string
+    width?: number
 }
 
-export interface ExcelMarkEntry {
-  student_id: number
-  theory_marks: string
-  practical_marks: string
-  total_marks: number
-  is_absent: boolean
-  remarks: string
+interface Metadata {
+    label: string
+    value: string | number
 }
 
-export interface ExcelExam {
-  name: string
-  exam_type?: string
-}
+const props = withDefaults(
+    defineProps<{
+        headers: Header[]
+        data: Record<string, any>[]
 
-export interface ExcelSchedule {
-  exam_date?: string
-}
+        companyName?: string
+        title?: string
+        filename?: string
 
-// ─── Props ────────────────────────────────────────────────────────
-const props = withDefaults(defineProps<{
-  students: ExcelStudentRow[]
-  marks: ExcelMarkEntry[]
-  exam: ExcelExam
-  schedule?: ExcelSchedule | null
-  subjectName?: string
-  maxTheory?: number
-  maxPractical?: number
-  maxTotal?: number
-  passMarks?: number
-  companyName?: string
-  /**
-   * Extra rows inserted BEFORE the column header row.
-   * Each inner array = one row of cells.
-   * Example: [['Note', 'Preliminary Exam Results'], ['Batch', '2081-82']]
-   */
-  extraHeaderRows?: (string | number | null)[][]
-  /**
-   * Extra rows appended AFTER the last student row.
-   * Useful for totals, averages, summaries.
-   * Example: [['', '', 'Class Average', 72, 18, 90, '', '']]
-   */
-  extraFooterRows?: (string | number | null)[][]
-  /** Optional: button label */
-  label?: string
-  variant?: 'default' | 'outline' | 'ghost' | 'secondary' | 'destructive' | 'link'
-  size?: 'default' | 'sm' | 'lg' | 'icon'
-}>(), {
-  subjectName: 'N/A',
-  maxTheory: 80,
-  maxPractical: 20,
-  maxTotal: 100,
-  passMarks: 40,
-  companyName: 'Greenwood Academy',
-  extraHeaderRows: () => [],
-  extraFooterRows: () => [],
-  label: 'Excel',
-  variant: 'outline',
-  size: 'sm',
-})
+        metadata?: Metadata[]
+
+        footerRows?: (string | number)[][]
+
+        label?: string
+        variant?: 'default' | 'outline' | 'ghost' | 'secondary' | 'destructive' | 'link'
+        size?: 'default' | 'sm' | 'lg' | 'icon'
+    }>(),
+    {
+        companyName: '',
+        title: '',
+        filename: 'export',
+        metadata: () => [],
+        footerRows: () => [],
+        label: 'Excel',
+        variant: 'outline',
+        size: 'sm',
+    }
+)
 
 const { toast } = useToast()
 const loading = ref(false)
 
 // ─── Helpers ──────────────────────────────────────────────────────
-const statusLabel = (m: ExcelMarkEntry): string => {
-  if (m.is_absent) return 'Absent'
-  if (m.total_marks >= props.passMarks) return 'Pass'
-  if (m.total_marks > 0) return 'Fail'
-  return ''
-}
+
 
 // ─── Export ───────────────────────────────────────────────────────
 const exportExcel = () => {
-  loading.value = true
-  try {
-    // ── Build rows array ──────────────────────────────────────────
-    const rows: (string | number | null)[][] = []
+    loading.value = true
 
-    // Fixed header block
-    rows.push([props.companyName])
-    rows.push([`Exam: ${props.exam.name}`])
-    rows.push([`Subject: ${props.subjectName}`])
-    rows.push([`Date: ${props.schedule?.exam_date ?? 'N/A'}`])
-    rows.push([`Max Marks: ${props.maxTotal}  (Theory: ${props.maxTheory} + Practical: ${props.maxPractical})`])
-    rows.push([`Pass Marks: ${props.passMarks}`])
-    rows.push([]) // blank spacer
+    try {
+        const rows: any[][] = []
 
-    // Caller-supplied extra header rows (e.g. academic year, batch, teacher name)
-    for (const r of props.extraHeaderRows) {
-      rows.push(r)
+        /*
+        Company Name
+        */
+        if (props.companyName) {
+            rows.push([props.companyName])
+        }
+
+        /*
+        Report Title
+        */
+        if (props.title) {
+            rows.push([props.title])
+        }
+
+        /*
+        Metadata
+        */
+        props.metadata.forEach(item => {
+            rows.push([
+                item.label,
+                item.value,
+            ])
+        })
+
+        if (
+            props.companyName ||
+            props.title ||
+            props.metadata.length
+        ) {
+            rows.push([])
+        }
+
+        /*
+        Headers
+        */
+        rows.push(
+            props.headers.map(h => h.title)
+        )
+
+        /*
+        Data
+        */
+        props.data.forEach(item => {
+            rows.push(
+                props.headers.map(header => {
+                    return item[header.key] ?? ''
+                })
+            )
+        })
+
+        /*
+        Footer
+        */
+        if (props.footerRows.length) {
+            rows.push([])
+
+            props.footerRows.forEach(row => {
+                rows.push(row)
+            })
+        }
+
+        const ws = XLSX.utils.aoa_to_sheet(rows)
+
+        /*
+        Column Width
+        */
+        ws['!cols'] = props.headers.map(header => ({
+            wch: header.width ?? 20,
+        }))
+
+        /*
+        Merge Company Name
+        */
+        const merges: XLSX.Range[] = []
+
+        const totalColumns = props.headers.length - 1
+
+        let currentRow = 0
+
+        if (props.companyName) {
+            merges.push({
+                s: { r: currentRow, c: 0 },
+                e: { r: currentRow, c: totalColumns },
+            })
+
+            currentRow++
+        }
+
+        if (props.title) {
+            merges.push({
+                s: { r: currentRow, c: 0 },
+                e: { r: currentRow, c: totalColumns },
+            })
+
+            currentRow++
+        }
+
+        if (merges.length) {
+            ws['!merges'] = merges
+        }
+
+        /*
+        Styling
+        */
+        const range = XLSX.utils.decode_range(ws['!ref']!)
+
+        for (let row = range.s.r; row <= range.e.r; row++) {
+            for (let col = range.s.c; col <= range.e.c; col++) {
+
+                const address = XLSX.utils.encode_cell({
+                    r: row,
+                    c: col,
+                })
+
+                const cell = ws[address]
+
+                if (!cell) continue
+
+                cell.s = {
+                    border: {
+                        top: { style: 'thin' },
+                        bottom: { style: 'thin' },
+                        left: { style: 'thin' },
+                        right: { style: 'thin' },
+                    },
+                    alignment: {
+                        vertical: 'center',
+                        horizontal: 'center',
+                    },
+                }
+            }
+        }
+
+        /*
+        Company Name Bold
+        */
+        let rowIndex = 0
+
+        if (props.companyName) {
+            const cell = ws[`A${rowIndex + 1}`]
+
+            if (cell) {
+                cell.s = {
+                    font: {
+                        bold: true,
+                        sz: 18,
+                    },
+                    alignment: {
+                        horizontal: 'center',
+                    },
+                }
+            }
+
+            rowIndex++
+        }
+
+        /*
+        Title Bold
+        */
+        if (props.title) {
+            const cell = ws[`A${rowIndex + 1}`]
+
+            if (cell) {
+                cell.s = {
+                    font: {
+                        bold: true,
+                        sz: 14,
+                    },
+                    alignment: {
+                        horizontal: 'center',
+                    },
+                }
+            }
+
+            rowIndex++
+        }
+
+        /*
+        Header Row
+        */
+        const headerRow =
+            rowIndex +
+            props.metadata.length +
+            2
+
+        props.headers.forEach((_, index) => {
+
+            const cellAddress =
+                XLSX.utils.encode_cell({
+                    r: headerRow - 1,
+                    c: index,
+                })
+
+            const cell = ws[cellAddress]
+
+            if (cell) {
+                cell.s = {
+                    font: {
+                        bold: true,
+                        color: {
+                            rgb: 'FFFFFF',
+                        },
+                    },
+                    fill: {
+                        fgColor: {
+                            rgb: '1E5799',
+                        },
+                    },
+                    alignment: {
+                        horizontal: 'center',
+                    },
+                    border: {
+                        top: { style: 'thin' },
+                        bottom: { style: 'thin' },
+                        left: { style: 'thin' },
+                        right: { style: 'thin' },
+                    },
+                }
+            }
+        })
+
+        const wb = XLSX.utils.book_new()
+
+        XLSX.utils.book_append_sheet(
+            wb,
+            ws,
+            props.title || 'Sheet1'
+        )
+
+        XLSX.writeFile(
+            wb,
+            `${props.filename}.xlsx`
+        )
+
+        toast.success(
+            'Excel downloaded successfully'
+        )
+
+    } catch (error) {
+
+        console.error(error)
+
+        toast.error(
+            'Failed to export Excel'
+        )
+
+    } finally {
+
+        loading.value = false
     }
-    if (props.extraHeaderRows.length > 0) rows.push([]) // spacer after extras
-
-    // Column headers
-    const columnHeaders = [
-      '#',
-      'Roll No',
-      'Student Name',
-      `Theory (Max ${props.maxTheory})`,
-      `Practical (Max ${props.maxPractical})`,
-      `Total (Max ${props.maxTotal})`,
-      'Status',
-      'Remarks',
-    ]
-    rows.push(columnHeaders)
-
-    // Data rows
-    props.students.forEach((s, i) => {
-      const m = props.marks[i]
-      rows.push([
-        i + 1,
-        s.roll_no,
-        s.name,
-        m.is_absent ? 'AB' : (m.theory_marks !== '' ? parseFloat(m.theory_marks) : ''),
-        m.is_absent ? 'AB' : (m.practical_marks !== '' ? parseFloat(m.practical_marks) : ''),
-        m.is_absent ? 'AB' : (m.total_marks || ''),
-        statusLabel(m),
-        m.remarks || '',
-      ])
-    })
-
-    // Caller-supplied footer rows (totals, averages, etc.)
-    if (props.extraFooterRows.length > 0) {
-      rows.push([]) // spacer before footer
-      for (const r of props.extraFooterRows) {
-        rows.push(r)
-      }
-    }
-
-    // ── Build worksheet ───────────────────────────────────────────
-    const ws = XLSX.utils.aoa_to_sheet(rows)
-
-    // Column widths
-    ws['!cols'] = [
-      { wch: 5 },   // #
-      { wch: 10 },  // Roll
-      { wch: 32 },  // Name
-      { wch: 18 },  // Theory
-      { wch: 18 },  // Practical
-      { wch: 16 },  // Total
-      { wch: 12 },  // Status
-      { wch: 28 },  // Remarks
-    ]
-
-    // Merge company name across all 8 columns (row 0 = index 0)
-    ws['!merges'] = [
-      { s: { r: 0, c: 0 }, e: { r: 0, c: 7 } }, // company name
-      { s: { r: 1, c: 0 }, e: { r: 1, c: 7 } }, // exam name
-    ]
-
-    // ── Build workbook & save ─────────────────────────────────────
-    const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, 'Marks')
-
-    const filename = `marks_${props.exam.name}_${props.subjectName}.xlsx`
-      .replace(/\s+/g, '_')
-      .toLowerCase()
-    XLSX.writeFile(wb, filename)
-    toast.success('Excel downloaded!')
-  } catch (e) {
-    console.error('[ExportExcel]', e)
-    toast.error('Excel export failed. Please try again.')
-  } finally {
-    loading.value = false
-  }
 }
 
 // Expose for programmatic use

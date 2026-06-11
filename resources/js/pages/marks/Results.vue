@@ -18,6 +18,7 @@ import {
 } from 'lucide-vue-next'
 
 import ExportPdf from '../export-modules/ExportPdf.vue'
+import ExportExcel from '../export-modules/ExportExcel.vue'
 
 const { toast } = useToast()
 
@@ -182,6 +183,8 @@ const sectionOptions = computed((): Option[] => {
 
 const selectedSectionText = computed((): string => {
   const section = sectionOptions.value.find(s => s.value === selectedSection.value)
+  console.log(section,"section");
+  
   return section?.label || ''
 })
 
@@ -382,11 +385,8 @@ const headersForPDF = [
           <div class="ml-auto">
             <div class="flex items-center gap-2">
               <ExportPdf :company-name="companyName" :exam-name="examName" 
-                :class-name="selectedClass" :section="selectedSection" :exam-date="examDate" filename="math_result" :headers="headersForPDF" :data="tableDataForPDF" />
-              <Button variant="outline" size="sm" >
-                <FileSpreadsheet class="h-4 w-4 mr-1.5" />
-                Excel
-              </Button>
+                :class-name="selectedClass" :section="selectedSectionText" :exam-date="examDate" filename="math_result" :headers="headersForPDF" :data="tableDataForPDF" />
+              <ExportExcel :data="tableDataForPDF" :headers="headersForPDF" :filename="`${examName} Results.xlsx`" :company-name="companyName" :title="'Exam Result'"/>
               <!-- Search -->
               <div class=" relative">
                 <Search class="" />
