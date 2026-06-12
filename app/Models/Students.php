@@ -70,7 +70,7 @@ class Students extends Model
 
     public function getPhotoUrlAttribute()
     {
-        return $this->photo ? asset('storage/' . $this->photo) : asset('images/default-avatar.png');
+        return $this->photo ? asset('storage/' . $this->photo) : asset('images/default-avatar.jpg');
     }
 
     public function getClassNameAttribute(): ?string

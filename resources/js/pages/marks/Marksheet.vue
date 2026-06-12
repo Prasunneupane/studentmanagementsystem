@@ -96,8 +96,8 @@ const handlePrint = () => {
     <div class="flex h-full w-full flex-1 flex-col gap-4 rounded-xl p-4">
 
       <!-- Actions Bar (hidden in print) -->
-      <div class="flex items-center justify-between print:hidden">
-        <Button variant="ghost" size="sm" @click="router.back()">
+      <div class="flex items-center justify-between flex-wrap gap-3 print:hidden">
+        <Button variant="link" size="sm" @click="router.back()">
           <ChevronLeft class="mr-1 h-4 w-4" /> Back
         </Button>
         <Button variant="outline" size="sm" @click="handlePrint">
@@ -106,7 +106,7 @@ const handlePrint = () => {
       </div>
 
       <!-- Marksheet Card -->
-      <Card class="shadow-lg rounded-2xl max-w-4xl mx-auto w-full print:shadow-none print:border-2 print:border-black">
+      <Card class="shadow rounded-xl print:shadow-none print:border-2 print:border-black">
 
         <!-- School / Exam Header -->
         <CardHeader class="border-b text-center py-6">
@@ -136,7 +136,7 @@ const handlePrint = () => {
                   Roll No: <span class="font-semibold text-foreground">{{ student.roll_no }}</span>
                 </p>
                 <p class="text-sm text-muted-foreground">
-                  {{ student.class_name }} — Section {{ student.section_name }}
+                  {{ student.class_name }} —  {{ student.section_name }}
                 </p>
               </div>
             </div>
@@ -221,7 +221,7 @@ const handlePrint = () => {
               <p class="text-xs text-muted-foreground uppercase tracking-wider mb-1">Total Marks</p>
               <p class="text-xl font-bold">{{ result.total_marks_obtained }}/{{ result.total_max_marks }}</p>
             </div>
-            <div class="p-4 bg-muted/50 rounded-xl text-center border">
+            <div class="p-4 bg-muted/50 rounded-xl text-center border" v-show="result.percentage == null">
               <p class="text-xs text-muted-foreground uppercase tracking-wider mb-1">Percentage</p>
               <p class="text-xl font-bold">{{ result.percentage }}%</p>
             </div>
