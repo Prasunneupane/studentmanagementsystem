@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
     SidebarGroup,
     SidebarGroupLabel,
@@ -9,7 +10,6 @@ import {
     SidebarMenuSubButton,
     SidebarMenuSubItem,
 } from '@/components/ui/sidebar';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import { ChevronRight } from 'lucide-vue-next';
@@ -31,7 +31,7 @@ const isExactActive = (href?: string) => {
 // Check if any child (recursively) is active
 const hasActiveChild = (items?: NavItem[]): boolean => {
     if (!items) return false;
-    return items.some(item => {
+    return items.some((item) => {
         if (isExactActive(item.href)) return true;
         if (item.items) return hasActiveChild(item.items);
         return false;
@@ -46,7 +46,7 @@ const isParentActive = (item: NavItem) => {
 
 // Process items recursively to add isOpen state
 const processItems = (items: NavItem[]): any[] => {
-    return items.map(item => ({
+    return items.map((item) => ({
         ...item,
         isOpen: hasActiveChild(item.items),
         items: item.items ? processItems(item.items) : undefined,
@@ -58,7 +58,7 @@ const reactiveItems = reactive(processItems(props.items));
 
 // Watch for route changes and update open state
 const updateOpenStates = (items: any[]) => {
-    items.forEach(item => {
+    items.forEach((item) => {
         if (item.items) {
             item.isOpen = hasActiveChild(item.items);
             updateOpenStates(item.items);
@@ -66,9 +66,12 @@ const updateOpenStates = (items: any[]) => {
     });
 };
 
-watch(() => page.url, () => {
-    updateOpenStates(reactiveItems);
-});
+watch(
+    () => page.url,
+    () => {
+        updateOpenStates(reactiveItems);
+    },
+);
 </script>
 
 <template>
@@ -77,12 +80,7 @@ watch(() => page.url, () => {
         <SidebarMenu>
             <SidebarMenuItem v-for="item in reactiveItems" :key="item.title">
                 <!-- Normal menu item without children -->
-                <SidebarMenuButton
-                    v-if="!item.items"
-                    as-child
-                    :tooltip="item.title"
-                    :is-active="isExactActive(item.href)"
-                >
+                <SidebarMenuButton v-if="!item.items" as-child :tooltip="item.title" :is-active="isExactActive(item.href)">
                     <Link :href="item.href || '#'">
                         <component :is="item.icon" />
                         <span>{{ item.title }}</span>
@@ -90,21 +88,12 @@ watch(() => page.url, () => {
                 </SidebarMenuButton>
 
                 <!-- Collapsible menu item with children -->
-                <Collapsible
-                    v-else
-                    v-model:open="item.isOpen"
-                    class="group/collapsible"
-                >
+                <Collapsible v-else v-model:open="item.isOpen" class="group/collapsible">
                     <CollapsibleTrigger as-child>
-                        <SidebarMenuButton
-                            :tooltip="item.title"
-                            :is-active="isParentActive(item)"
-                        >
+                        <SidebarMenuButton :tooltip="item.title" :is-active="isParentActive(item)">
                             <component :is="item.icon" />
                             <span>{{ item.title }}</span>
-                            <ChevronRight
-                                class="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90"
-                            />
+                            <ChevronRight class="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                         </SidebarMenuButton>
                     </CollapsibleTrigger>
 
@@ -113,14 +102,9 @@ watch(() => page.url, () => {
                             <template v-for="subItem in item.items" :key="subItem.title">
                                 <!-- Nested submenu with children (Level 3) -->
                                 <SidebarMenuSubItem v-if="subItem.items">
-                                    <Collapsible
-                                        v-model:open="subItem.isOpen"
-                                        class="group/nested-collapsible"
-                                    >
+                                    <Collapsible v-model:open="subItem.isOpen" class="group/nested-collapsible">
                                         <CollapsibleTrigger as-child>
-                                            <SidebarMenuSubButton
-                                                :is-active="isParentActive(subItem)"
-                                            >
+                                            <SidebarMenuSubButton :is-active="isParentActive(subItem)">
                                                 <component :is="subItem.icon" v-if="subItem.icon" />
                                                 <span>{{ subItem.title }}</span>
                                                 <ChevronRight
@@ -131,16 +115,10 @@ watch(() => page.url, () => {
 
                                         <CollapsibleContent>
                                             <SidebarMenuSub>
-                                                <SidebarMenuSubItem
-                                                    v-for="nestedItem in subItem.items"
-                                                    :key="nestedItem.title"
-                                                >
+                                                <SidebarMenuSubItem v-for="nestedItem in subItem.items" :key="nestedItem.title">
                                                     <!-- Check if nested item has more children (Level 4+) -->
                                                     <template v-if="nestedItem.items">
-                                                        <Collapsible
-                                                            v-model:open="nestedItem.isOpen"
-                                                            class="group/deep-collapsible"
-                                                        >
+                                                        <Collapsible v-model:open="nestedItem.isOpen" class="group/deep-collapsible">
                                                             <CollapsibleTrigger as-child>
                                                                 <SidebarMenuSubButton>
                                                                     <component :is="nestedItem.icon" v-if="nestedItem.icon" />
@@ -156,13 +134,9 @@ watch(() => page.url, () => {
                                                             </CollapsibleContent>
                                                         </Collapsible>
                                                     </template>
-                                                    
+
                                                     <!-- Regular nested item (leaf node) -->
-                                                    <SidebarMenuSubButton
-                                                        v-else
-                                                        as-child
-                                                        :is-active="isExactActive(nestedItem.href)"
-                                                    >
+                                                    <SidebarMenuSubButton v-else as-child :is-active="isExactActive(nestedItem.href)">
                                                         <Link :href="nestedItem.href || '#'">
                                                             <component :is="nestedItem.icon" v-if="nestedItem.icon" />
                                                             <span>{{ nestedItem.title }}</span>
@@ -176,10 +150,7 @@ watch(() => page.url, () => {
 
                                 <!-- Regular submenu item (leaf node) -->
                                 <SidebarMenuSubItem v-else>
-                                    <SidebarMenuSubButton
-                                        as-child
-                                        :is-active="isExactActive(subItem.href)"
-                                    >
+                                    <SidebarMenuSubButton as-child :is-active="isExactActive(subItem.href)">
                                         <Link :href="subItem.href || '#'">
                                             <component :is="subItem.icon" v-if="subItem.icon" />
                                             <span>{{ subItem.title }}</span>

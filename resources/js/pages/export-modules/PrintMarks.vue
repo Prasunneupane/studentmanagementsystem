@@ -20,124 +20,126 @@
  *   />
  */
 
-import { Button } from '@/components/ui/button'
-import { Printer } from 'lucide-vue-next'
-import { useToast } from '@/composables/useToast'
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/composables/useToast';
+import { Printer } from 'lucide-vue-next';
 
 // ─── Types ────────────────────────────────────────────────────────
 export interface PrintStudentRow {
-  student_id: number
-  roll_no: string
-  name: string
+    student_id: number;
+    roll_no: string;
+    name: string;
 }
 
 export interface PrintMarkEntry {
-  student_id: number
-  theory_marks: string
-  practical_marks: string
-  total_marks: number
-  is_absent: boolean
-  remarks: string
+    student_id: number;
+    theory_marks: string;
+    practical_marks: string;
+    total_marks: number;
+    is_absent: boolean;
+    remarks: string;
 }
 
 export interface PrintExam {
-  name: string
-  exam_type?: string
+    name: string;
+    exam_type?: string;
 }
 
 export interface PrintSchedule {
-  exam_date?: string
+    exam_date?: string;
 }
 
 // ─── Props ────────────────────────────────────────────────────────
-const props = withDefaults(defineProps<{
-  students: PrintStudentRow[]
-  marks: PrintMarkEntry[]
-  exam: PrintExam
-  schedule?: PrintSchedule | null
-  subjectName?: string
-  maxTheory?: number
-  maxPractical?: number
-  maxTotal?: number
-  passMarks?: number
-  companyName?: string
-  /**
-   * Extra rows appended at the bottom of the print table.
-   * Each item: { label: string, value: string | number }
-   * Rendered as a summary block below the table.
-   */
-  summaryRows?: { label: string; value: string | number }[]
-  label?: string
-  variant?: 'default' | 'outline' | 'ghost' | 'secondary' | 'destructive' | 'link'
-  size?: 'default' | 'sm' | 'lg' | 'icon'
-}>(), {
-  subjectName: 'N/A',
-  maxTheory: 80,
-  maxPractical: 20,
-  maxTotal: 100,
-  passMarks: 40,
-  companyName: 'Greenwood Academy',
-  summaryRows: () => [],
-  label: 'Print',
-  variant: 'outline',
-  size: 'sm',
-})
+const props = withDefaults(
+    defineProps<{
+        students: PrintStudentRow[];
+        marks: PrintMarkEntry[];
+        exam: PrintExam;
+        schedule?: PrintSchedule | null;
+        subjectName?: string;
+        maxTheory?: number;
+        maxPractical?: number;
+        maxTotal?: number;
+        passMarks?: number;
+        companyName?: string;
+        /**
+         * Extra rows appended at the bottom of the print table.
+         * Each item: { label: string, value: string | number }
+         * Rendered as a summary block below the table.
+         */
+        summaryRows?: { label: string; value: string | number }[];
+        label?: string;
+        variant?: 'default' | 'outline' | 'ghost' | 'secondary' | 'destructive' | 'link';
+        size?: 'default' | 'sm' | 'lg' | 'icon';
+    }>(),
+    {
+        subjectName: 'N/A',
+        maxTheory: 80,
+        maxPractical: 20,
+        maxTotal: 100,
+        passMarks: 40,
+        companyName: 'Greenwood Academy',
+        summaryRows: () => [],
+        label: 'Print',
+        variant: 'outline',
+        size: 'sm',
+    },
+);
 
-const { toast } = useToast()
+const { toast } = useToast();
 
 // ─── Helpers ──────────────────────────────────────────────────────
 const statusLabel = (m: PrintMarkEntry): string => {
-  if (m.is_absent) return 'Absent'
-  if (m.total_marks >= props.passMarks) return 'Pass'
-  if (m.total_marks > 0) return 'Fail'
-  return '—'
-}
+    if (m.is_absent) return 'Absent';
+    if (m.total_marks >= props.passMarks) return 'Pass';
+    if (m.total_marks > 0) return 'Fail';
+    return '—';
+};
 
 const statusColor = (m: PrintMarkEntry): string => {
-  if (m.is_absent) return '#92400e'
-  if (m.total_marks >= props.passMarks) return '#166534'
-  if (m.total_marks > 0) return '#991b1b'
-  return '#6b7280'
-}
+    if (m.is_absent) return '#92400e';
+    if (m.total_marks >= props.passMarks) return '#166534';
+    if (m.total_marks > 0) return '#991b1b';
+    return '#6b7280';
+};
 
 // ─── Build HTML string ────────────────────────────────────────────
 const buildPrintHTML = (): string => {
-  const tableRows = props.students.map((s, i) => {
-    const m = props.marks[i]
-    const status = statusLabel(m)
-    const color = statusColor(m)
-    const rowBg = i % 2 === 0 ? '#ffffff' : '#f8fafc'
-    const failRowBg = !m.is_absent && m.total_marks > 0 && m.total_marks < props.passMarks
-      ? '#fff5f5'
-      : rowBg
+    const tableRows = props.students
+        .map((s, i) => {
+            const m = props.marks[i];
+            const status = statusLabel(m);
+            const color = statusColor(m);
+            const rowBg = i % 2 === 0 ? '#ffffff' : '#f8fafc';
+            const failRowBg = !m.is_absent && m.total_marks > 0 && m.total_marks < props.passMarks ? '#fff5f5' : rowBg;
 
-    return `
+            return `
       <tr style="background:${failRowBg}">
         <td style="text-align:center">${i + 1}</td>
         <td style="text-align:center">${s.roll_no}</td>
         <td>${s.name}</td>
-        <td style="text-align:center">${m.is_absent ? 'AB' : (m.theory_marks || '—')}</td>
-        <td style="text-align:center">${m.is_absent ? 'AB' : (m.practical_marks || '—')}</td>
+        <td style="text-align:center">${m.is_absent ? 'AB' : m.theory_marks || '—'}</td>
+        <td style="text-align:center">${m.is_absent ? 'AB' : m.practical_marks || '—'}</td>
         <td style="text-align:center;font-weight:600;color:${color}">
-          ${m.is_absent ? 'AB' : (m.total_marks || '—')}
+          ${m.is_absent ? 'AB' : m.total_marks || '—'}
         </td>
         <td style="text-align:center;color:${color};font-weight:600">${status}</td>
         <td>${m.remarks || ''}</td>
       </tr>
-    `
-  }).join('')
+    `;
+        })
+        .join('');
 
-  const summaryBlock = props.summaryRows.length > 0
-    ? `<div class="summary">
-        ${props.summaryRows.map(r =>
-          `<span><strong>${r.label}:</strong> ${r.value}</span>`
-        ).join('')}
+    const summaryBlock =
+        props.summaryRows.length > 0
+            ? `<div class="summary">
+        ${props.summaryRows.map((r) => `<span><strong>${r.label}:</strong> ${r.value}</span>`).join('')}
       </div>`
-    : ''
+            : '';
 
-  const now = new Date().toLocaleString()
+    const now = new Date().toLocaleString();
 
-  return `<!DOCTYPE html>
+    return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -297,39 +299,39 @@ const buildPrintHTML = (): string => {
   </div>
 
 </body>
-</html>`
-}
+</html>`;
+};
 
 // ─── Trigger print ────────────────────────────────────────────────
 const triggerPrint = () => {
-  try {
-    const html = buildPrintHTML()
-    const win = window.open('', '_blank', 'width=900,height=700')
-    if (!win) {
-      toast.error('Popup blocked. Please allow popups for this site.')
-      return
+    try {
+        const html = buildPrintHTML();
+        const win = window.open('', '_blank', 'width=900,height=700');
+        if (!win) {
+            toast.error('Popup blocked. Please allow popups for this site.');
+            return;
+        }
+        win.document.write(html);
+        win.document.close();
+        win.focus();
+        // Small delay ensures styles load before print dialog
+        setTimeout(() => {
+            win.print();
+            win.close();
+        }, 400);
+    } catch (e) {
+        console.error('[PrintMarks]', e);
+        toast.error('Print failed. Please try again.');
     }
-    win.document.write(html)
-    win.document.close()
-    win.focus()
-    // Small delay ensures styles load before print dialog
-    setTimeout(() => {
-      win.print()
-      win.close()
-    }, 400)
-  } catch (e) {
-    console.error('[PrintMarks]', e)
-    toast.error('Print failed. Please try again.')
-  }
-}
+};
 
 // Expose for programmatic use
-defineExpose({ triggerPrint })
+defineExpose({ triggerPrint });
 </script>
 
 <template>
-  <Button :variant="variant" :size="size" @click="triggerPrint">
-    <Printer class="h-4 w-4 mr-1.5" />
-    {{ label }}
-  </Button>
+    <Button :variant="variant" :size="size" @click="triggerPrint">
+        <Printer class="mr-1.5 h-4 w-4" />
+        {{ label }}
+    </Button>
 </template>

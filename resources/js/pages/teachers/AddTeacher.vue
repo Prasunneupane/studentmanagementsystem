@@ -1,228 +1,218 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
-import AppLayout from '@/layouts/AppLayout.vue'
-import { Head, useForm } from '@inertiajs/vue3'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import SelectSearch from "@/components/ui/select/Select-Search.vue"
-import DatePicker from "@/components/ui/datepicker/DatePicker.vue"
-import {
-  Card, CardContent, CardDescription, CardHeader, CardTitle
-} from '@/components/ui/card'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Loader2, Eye } from 'lucide-vue-next'
-import { Link } from '@inertiajs/vue3'
-import { Toaster } from '@/components/ui/sonner'
-import { useToast } from '@/composables/useToast'
-import 'vue-sonner/style.css'
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import DatePicker from '@/components/ui/datepicker/DatePicker.vue';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import SelectSearch from '@/components/ui/select/Select-Search.vue';
+import { Toaster } from '@/components/ui/sonner';
+import { useToast } from '@/composables/useToast';
+import AppLayout from '@/layouts/AppLayout.vue';
+import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Eye, Loader2 } from 'lucide-vue-next';
+import { computed, ref, watch } from 'vue';
+import 'vue-sonner/style.css';
 
-import { usePermission } from '@/composables/usePermissions'
-import CustomSelect from '../CustomSelect.vue'
-const { toast } = useToast()
+import { usePermission } from '@/composables/usePermissions';
+import CustomSelect from '../CustomSelect.vue';
+const { toast } = useToast();
 const { can } = usePermission();
 
 interface Option {
-  value: string
-  label: string
+    value: string;
+    label: string;
 }
 // Props
 const props = defineProps({
-  teacher: {
-    type: Object,
-    default: null
-  },
-  subjects: Array<{ value: number; label: string }>,
-  status: {
-    type: Array<{ value: string; label: string }>,
-    default: () => []
-  }
-})
-console.log(props.subjects,"subjects");
+    teacher: {
+        type: Object,
+        default: null,
+    },
+    subjects: Array<{ value: number; label: string }>,
+    status: {
+        type: Array<{ value: string; label: string }>,
+        default: () => [],
+    },
+});
+console.log(props.subjects, 'subjects');
 
-const isEdit = computed(() => !!props.teacher)
+const isEdit = computed(() => !!props.teacher);
 
 // Status options
-const statusOptions = ref(props.status)
-const defaultStatus = computed(() => 
-  statusOptions.value.find(s => s.value === 'active') || statusOptions.value[0]
-)
+const statusOptions = ref(props.status);
+const defaultStatus = computed(() => statusOptions.value.find((s) => s.value === 'active') || statusOptions.value[0]);
 
 // Date of Birth — convert string → Date object for DatePicker
-const   dobDate = ref<Date | null>(null)
+const dobDate = ref<Date | null>(null);
 const photo = props.teacher?.photo_url || null;
 // Initialize form
 const form = useForm({
-  name: props.teacher?.name || '',
-  email: props.teacher?.email || '',
-  phone: props.teacher?.phone || '',
-  address: props.teacher?.address || '',
-  subject_specialization: props.teacher?.subject_specialization || '',
-  qualification: props.teacher?.qualification || '',
-  status: props.teacher
-    ? statusOptions.value.find(s => s.value === props.teacher.status) || defaultStatus.value
-    : defaultStatus.value,
-  joining_date: props.teacher?.joining_date || new Date().toISOString().split('T')[0],
-  leaving_date: props.teacher?.leaving_date || '',
-  photo: null as File | null,  // ← File, not string
-  dob: props.teacher?.date_of_birth || '',
-  is_active: props.teacher?.is_active?.toString() || '1',
-})
-console.log(form,"formdata");
+    name: props.teacher?.name || '',
+    email: props.teacher?.email || '',
+    phone: props.teacher?.phone || '',
+    address: props.teacher?.address || '',
+    subject_specialization: props.teacher?.subject_specialization || '',
+    qualification: props.teacher?.qualification || '',
+    status: props.teacher ? statusOptions.value.find((s) => s.value === props.teacher.status) || defaultStatus.value : defaultStatus.value,
+    joining_date: props.teacher?.joining_date || new Date().toISOString().split('T')[0],
+    leaving_date: props.teacher?.leaving_date || '',
+    photo: null as File | null, // ← File, not string
+    dob: props.teacher?.date_of_birth || '',
+    is_active: props.teacher?.is_active?.toString() || '1',
+});
+console.log(form, 'formdata');
 // Sync form.dob ↔ dobDate (DatePicker uses Date object)
-watch(() => form.dob, (val) => {
-  if (val) {
-    const date = new Date(val)
-    if (!isNaN(date.getTime())) {
-      dobDate.value = date
-    }
-  } else {
-    dobDate.value = null
-  }
-}, { immediate: true })
+watch(
+    () => form.dob,
+    (val) => {
+        if (val) {
+            const date = new Date(val);
+            if (!isNaN(date.getTime())) {
+                dobDate.value = date;
+            }
+        } else {
+            dobDate.value = null;
+        }
+    },
+    { immediate: true },
+);
 
 // When DatePicker changes → update form.dob (string: YYYY-MM-DD)
 const updateDob = (date: Date | null) => {
-  dobDate.value = date
-  form.dob = date ? date.toISOString().split('T')[0] : ''
-}
+    dobDate.value = date;
+    form.dob = date ? date.toISOString().split('T')[0] : '';
+};
 
 // File input handler
 const handlePhotoChange = (e: Event) => {
-  const input = e.target as HTMLInputElement
-  if (input.files?.[0]) {
-    form.photo = input.files[0]
-  }
-}
-const errors = ref<Record<string, string>>({})
+    const input = e.target as HTMLInputElement;
+    if (input.files?.[0]) {
+        form.photo = input.files[0];
+    }
+};
+const errors = ref<Record<string, string>>({});
 // Submit
 const handleSubmit = () => {
-  errors.value = {}
+    errors.value = {};
 
-  const payload = {
-    onSuccess: () => {
-      toast.success(isEdit.value ? "Subject updated successfully." : "Subject added successfully.")
+    const payload = {
+        onSuccess: () => {
+            toast.success(isEdit.value ? 'Subject updated successfully.' : 'Subject added successfully.');
 
-      if (!isEdit.value) {
-        form.reset()
-        form.status = defaultStatus.value
-        form.is_active = '1'
-      }
-    },
+            if (!isEdit.value) {
+                form.reset();
+                form.status = defaultStatus.value;
+                form.is_active = '1';
+            }
+        },
 
-    onError: () => {
-      const errorMessages = Object.values(form.errors)
-      console.log(errorMessages,"errormessage");
-      
-      const msg = errorMessages.length > 0 ? errorMessages[0] : "Something went wrong."
-      toast.error(msg)
+        onError: () => {
+            const errorMessages = Object.values(form.errors);
+            console.log(errorMessages, 'errormessage');
+
+            const msg = errorMessages.length > 0 ? errorMessages[0] : 'Something went wrong.';
+            toast.error(msg);
+        },
+    };
+
+    if (isEdit.value) {
+        form.put(route('teachers.update', props.teacher.id), payload);
+    } else {
+        form.post(route('teachers.store'), payload);
     }
-  }
-
-  if (isEdit.value) {
-    form.put(route('teachers.update', props.teacher.id), payload)
-  } else {
-    form.post(route('teachers.store'), payload)
-  }
-}
+};
 </script>
 
 <template>
-  <Head :title="isEdit ? 'Edit Teacher' : 'Add Teacher'" />
-  <!-- Hero No 1 -->
-  <AppLayout :breadcrumbs="[
-    { title: 'Teachers', href: '/teachers' },
-    { title: isEdit ? 'Edit Teacher' : 'Add Teacher', href: '' }
-  ]">
-    <Toaster position="top-right" />
+    <Head :title="isEdit ? 'Edit Teacher' : 'Add Teacher'" />
+    <!-- Hero No 1 -->
+    <AppLayout
+        :breadcrumbs="[
+            { title: 'Teachers', href: '/teachers' },
+            { title: isEdit ? 'Edit Teacher' : 'Add Teacher', href: '' },
+        ]"
+    >
+        <Toaster position="top-right" />
 
-    <div class="container mx-auto p-6 max-w-7xl">
-      <Card>
-        <CardHeader class="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle>{{ isEdit ? 'Edit Teacher' : 'Add Teacher' }}</CardTitle>
-            <CardDescription>
-              {{ isEdit ? 'Update teacher details.' : 'Add a new teacher to the system.' }}
-            </CardDescription>
-          </div>
-          <Button v-if="can('teachers.canView')" as-child>
-            <Link :href="route('teachers.index')">
-              <Eye class="w-4 h-4 mr-2" /> View Teachers
-            </Link>
-          </Button>
-        </CardHeader>
+        <div class="container mx-auto max-w-7xl p-6">
+            <Card>
+                <CardHeader class="flex flex-row items-center justify-between">
+                    <div>
+                        <CardTitle>{{ isEdit ? 'Edit Teacher' : 'Add Teacher' }}</CardTitle>
+                        <CardDescription>
+                            {{ isEdit ? 'Update teacher details.' : 'Add a new teacher to the system.' }}
+                        </CardDescription>
+                    </div>
+                    <Button v-if="can('teachers.canView')" as-child>
+                        <Link :href="route('teachers.index')"> <Eye class="mr-2 h-4 w-4" /> View Teachers </Link>
+                    </Button>
+                </CardHeader>
 
-        <CardContent>
-          <form @submit.prevent="handleSubmit" class="space-y-8">
+                <CardContent>
+                    <form @submit.prevent="handleSubmit" class="space-y-8">
+                        <!-- Row 1 -->
+                        <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
+                            <div class="space-y-2">
+                                <Label>Name <span class="text-red-500">*</span></Label>
+                                <Input v-model="form.name" placeholder="Ram Thapa" />
+                                <p v-if="form.errors.name" class="text-sm text-red-600">{{ form.errors.name }}</p>
+                            </div>
 
-            <!-- Row 1 -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div class="space-y-2">
-                <Label>Name <span class="text-red-500">*</span></Label>
-                <Input v-model="form.name" placeholder="Ram Thapa" />
-                <p v-if="form.errors.name" class="text-sm text-red-600">{{ form.errors.name }}</p>
-              </div>
+                            <div class="space-y-2">
+                                <Label>Email <span class="text-red-500">*</span></Label>
+                                <Input type="email" v-model="form.email" placeholder="ram@example.com" />
+                                <p v-if="form.errors.email" class="text-sm text-red-600">{{ form.errors.email }}</p>
+                            </div>
 
-              <div class="space-y-2">
-                <Label>Email <span class="text-red-500">*</span></Label>
-                <Input type="email" v-model="form.email" placeholder="ram@example.com" />
-                <p v-if="form.errors.email" class="text-sm text-red-600">{{ form.errors.email }}</p>
-              </div>
+                            <div class="space-y-2">
+                                <Label>Contact No <span class="text-red-500">*</span></Label>
+                                <Input v-model="form.phone" minlength="10" maxlength="10" placeholder="98XXXXXXXX" />
+                                <p v-if="form.errors.phone" class="text-sm text-red-600">{{ form.errors.phone }}</p>
+                            </div>
+                        </div>
 
-              <div class="space-y-2">
-                <Label>Contact No <span class="text-red-500">*</span></Label>
-                <Input v-model="form.phone" minlength="10" maxlength="10" placeholder="98XXXXXXXX" />
-                <p v-if="form.errors.phone" class="text-sm text-red-600">{{ form.errors.phone }}</p>
-              </div>
-            </div>
+                        <!-- Row 2 -->
+                        <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
+                            <div class="space-y-2">
+                                <Label>Address <span class="text-red-500">*</span></Label>
+                                <Input v-model="form.address" placeholder="Kathmandu, Nepal" />
+                                <p v-if="form.errors.address" class="text-sm text-red-600">{{ form.errors.address }}</p>
+                            </div>
 
-            <!-- Row 2 -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div class="space-y-2">
-                <Label>Address <span class="text-red-500">*</span></Label>
-                <Input v-model="form.address" placeholder="Kathmandu, Nepal" />
-                <p v-if="form.errors.address" class="text-sm text-red-600">{{ form.errors.address }}</p>
-              </div>
+                            <div class="space-y-2">
+                                <Label>Subject Specialization <span class="text-red-500">*</span></Label>
+                                <CustomSelect :options="props.subjects" v-model="form.subject_specialization" placeholder="Select Subject" />
+                                <p v-if="form.errors.subject_specialization" class="text-sm text-red-600">{{ form.errors.subject_specialization }}</p>
+                            </div>
 
-              <div class="space-y-2">
-                <Label>Subject Specialization <span class="text-red-500">*</span></Label>
-                <CustomSelect :options="props.subjects" v-model="form.subject_specialization" placeholder="Select Subject" />
-                <p v-if="form.errors.subject_specialization" class="text-sm text-red-600">{{ form.errors.subject_specialization }}</p>
-              </div>
+                            <div class="space-y-2">
+                                <Label>Qualification <span class="text-red-500">*</span></Label>
+                                <Input v-model="form.qualification" placeholder="M.Sc, B.Ed..." />
+                                <p v-if="form.errors.qualification" class="text-sm text-red-600">{{ form.errors.qualification }}</p>
+                            </div>
+                        </div>
 
-              <div class="space-y-2">
-                <Label>Qualification <span class="text-red-500">*</span></Label>
-                <Input v-model="form.qualification" placeholder="M.Sc, B.Ed..." />
-                <p v-if="form.errors.qualification" class="text-sm text-red-600">{{ form.errors.qualification }}</p>
-              </div>
-            </div>
+                        <!-- Row 3: DOB + Status + Is Active -->
+                        <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
+                            <div class="space-y-2">
+                                <Label>Date of Birth <span class="text-red-500">*</span></Label>
+                                <DatePicker
+                                    :model-value="dobDate"
+                                    @update:model-value="updateDob"
+                                    :year-range="[1980, new Date().getFullYear()]"
+                                    month-year-selector
+                                    placeholder="Select date of birth"
+                                />
+                                <p v-if="form.errors.dob" class="text-sm text-red-600">{{ form.errors.dob }}</p>
+                            </div>
 
-            <!-- Row 3: DOB + Status + Is Active -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div class="space-y-2">
-                <Label>Date of Birth <span class="text-red-500">*</span></Label>
-                <DatePicker
-                  :model-value="dobDate"
-                  @update:model-value="updateDob"
-                  :year-range="[1980, new Date().getFullYear()]"
-                  month-year-selector
-                  placeholder="Select date of birth"
-                />
-                <p v-if="form.errors.dob" class="text-sm text-red-600">{{ form.errors.dob }}</p>
-              </div>
+                            <div class="space-y-2">
+                                <Label>Status <span class="text-red-500">*</span></Label>
+                                <SelectSearch v-model="form.status" :options="statusOptions" placeholder="Select status" />
+                                <p v-if="form.errors.status" class="text-sm text-red-600">{{ form.errors.status }}</p>
+                            </div>
 
-              <div class="space-y-2">
-                <Label>Status <span class="text-red-500">*</span></Label>
-                <SelectSearch
-                  v-model="form.status"
-                  :options="statusOptions"
-                  placeholder="Select status"
-                />
-                <p v-if="form.errors.status" class="text-sm text-red-600">{{ form.errors.status }}</p>
-              </div>
-
-              <!-- <div class="space-y-3">
+                            <!-- <div class="space-y-3">
                 <Label>Is Active <span class="text-red-500">*</span></Label>
                 <RadioGroup v-model="form.is_active" class="flex flex-row gap-8">
                   <div class="flex items-center space-x-2">
@@ -235,28 +225,28 @@ const handleSubmit = () => {
                   </div>
                 </RadioGroup>
               </div> -->
-            </div>
+                        </div>
 
-            <!-- Photo Upload -->
-            <div class="space-y-2">
-              <Label>Photo</Label>
-              <Input type="file" accept="image/*" @change="handlePhotoChange" />
-              <p v-if="form.errors.photo" class="text-sm text-red-600">{{ form.errors.photo }}</p>
-              <p v-if="photo" class="text-sm text-muted-foreground">
-                Current photo: <a :href="photo" target="_blank" class="underline">View</a>
-              </p>
-            </div>
+                        <!-- Photo Upload -->
+                        <div class="space-y-2">
+                            <Label>Photo</Label>
+                            <Input type="file" accept="image/*" @change="handlePhotoChange" />
+                            <p v-if="form.errors.photo" class="text-sm text-red-600">{{ form.errors.photo }}</p>
+                            <p v-if="photo" class="text-sm text-muted-foreground">
+                                Current photo: <a :href="photo" target="_blank" class="underline">View</a>
+                            </p>
+                        </div>
 
-            <!-- Submit -->
-            <div class="flex justify-end gap-4 pt-6 border-t" v-if="can('teachers.canCreate') || can('teachers.canEdit')">
-              <Button type="submit" :disabled="form.processing" class="cursor-pointer">
-                <Loader2 v-if="form.processing" class="mr-2 h-4 w-4 animate-spin" />
-                {{ isEdit ? 'Update Teacher' : 'Add Teacher' }}
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
-  </AppLayout>
+                        <!-- Submit -->
+                        <div class="flex justify-end gap-4 border-t pt-6" v-if="can('teachers.canCreate') || can('teachers.canEdit')">
+                            <Button type="submit" :disabled="form.processing" class="cursor-pointer">
+                                <Loader2 v-if="form.processing" class="mr-2 h-4 w-4 animate-spin" />
+                                {{ isEdit ? 'Update Teacher' : 'Add Teacher' }}
+                            </Button>
+                        </div>
+                    </form>
+                </CardContent>
+            </Card>
+        </div>
+    </AppLayout>
 </template>

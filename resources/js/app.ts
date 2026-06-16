@@ -1,14 +1,14 @@
 import '../css/app.css';
 
 import { createInertiaApp } from '@inertiajs/vue3';
+import axios from 'axios';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import type { DefineComponent } from 'vue';
 import { createApp, h } from 'vue';
 import { ZiggyVue } from 'ziggy-js';
 import { initializeTheme } from './composables/useAppearance';
-import axios from 'axios';
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
-axios.interceptors.request.use(config => {
+axios.interceptors.request.use((config) => {
     const token = localStorage.getItem('jwt_token');
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
