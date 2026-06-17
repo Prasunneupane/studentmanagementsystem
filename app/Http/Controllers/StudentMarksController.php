@@ -104,6 +104,7 @@ class StudentMarksController extends Controller
      */
     public function storeMarks(Request $request, int $examId)
     {
+        // dd($request->all());
         $data = $this->validation->validateMarksEntry($request);
         $this->marksService->saveMarks($examId, $data['marks']);
 
@@ -116,7 +117,7 @@ class StudentMarksController extends Controller
     public function marksheet(int $examId, int $studentId)
     {
         $marksheet = $this->marksService->getMarksheet($examId, $studentId);
-
+        
         return Inertia::render('marks/Marksheet', [
             'marksheet' => $marksheet,
         ]);
