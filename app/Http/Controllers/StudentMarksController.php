@@ -76,7 +76,7 @@ class StudentMarksController extends Controller
             'section_id' => 'required|exists:tbl_section,id',
             'subject_id' => 'required|exists:tbl_subjects,id',
         ]);
-
+        // dd($request->all());
         $exam = Exam::with(['academicYear', 'term'])->findOrFail($examId);
 
         $data = $this->marksService->getStudentsForMarksEntry(

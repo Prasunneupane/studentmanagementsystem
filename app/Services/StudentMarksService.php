@@ -147,27 +147,27 @@ class StudentMarksService implements StudentMarksInterface
                     if (!$mark['is_absent'] && ($theoryMarks !== null || $practicalMarks !== null)) {
                         $totalMarks = ($theoryMarks ?? 0) + ($practicalMarks ?? 0);
                     }
+                    $studentMark  = StudentMark::firstOrNew([
+                        'exam_id' => $examId,
+                        'student_id' => $mark['student_id'],
+                        'subject_id' => $mark['subject_id'],
+                    ]);
+                    if (!$studentMark->exists) {
+                        $studentMark->created_by = Auth::id();
+                    } else {
+                        $studentMark->updated_by = Auth::id();
+                    }
+                    $studentMark->exam_schedule_id = $schedule?->id;
+                    $studentMark->class_id = $mark['class_id'];
+                    $studentMark->section_id = $mark['section_id'];
+                    $studentMark->academic_year_id = $exam->academic_year_id;
+                    $studentMark->theory_marks = $theoryMarks;
+                    $studentMark->practical_marks = $practicalMarks;
+                    $studentMark->total_marks = $totalMarks;
+                    $studentMark->is_absent = $mark['is_absent'] ?? false;
+                    $studentMark->remarks = $mark['remarks'] ?? null;
+                    $studentMark->save();
 
-                    StudentMark::updateOrCreate(
-                        [
-                            'exam_id' => $examId,
-                            'student_id' => $mark['student_id'],
-                            'subject_id' => $mark['subject_id'],
-                        ],
-                        [
-                            'exam_schedule_id' => $schedule?->id,
-                            'class_id' => $mark['class_id'],
-                            'section_id' => $mark['section_id'],
-                            'academic_year_id' => $exam->academic_year_id,
-                            'theory_marks' => $theoryMarks,
-                            'practical_marks' => $practicalMarks,
-                            'total_marks' => $totalMarks,
-                            'is_absent' => $mark['is_absent'] ?? false,
-                            'remarks' => $mark['remarks'] ?? null,
-                            'created_by' => Auth::id(),
-                            'updated_by' => Auth::id(),
-                        ]
-                    );
                 }
             });
         } catch (\Exception $e) {
