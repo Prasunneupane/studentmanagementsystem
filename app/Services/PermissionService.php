@@ -117,7 +117,7 @@ class PermissionService
 
         return !empty(array_intersect($requiredSlugs, $userPermissions));
     }
-
+    
     /**
      * User has ALL of the given permission slugs.
      * Super admin always returns true.
