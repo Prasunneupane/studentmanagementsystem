@@ -15,7 +15,7 @@ defineProps<{
 }>();
 
 const form = useForm({
-    email: '',
+    user_name: '',
     password: '',
     remember: false,
 });
@@ -43,6 +43,20 @@ const submit = () => {
         <form @submit.prevent="submit" class="flex flex-col gap-6">
             <div class="grid gap-6">
                 <div class="grid gap-2">
+                    <Label for="user_name">Username</Label>
+                    <Input
+                        id="user_name"
+                        type="user_name"
+                        required
+                        autofocus
+                        :tabindex="1"
+                        autocomplete="user_name"
+                        v-model="form.user_name"
+                        placeholder="Username"
+                    />
+                    <InputError :message="form.errors.user_name" />
+                </div>
+                <!-- <div class="grid gap-2">
                     <Label for="email">Email address</Label>
                     <Input
                         id="email"
@@ -55,7 +69,7 @@ const submit = () => {
                         placeholder="email@example.com"
                     />
                     <InputError :message="form.errors.email" />
-                </div>
+                </div> -->
 
                 <div class="grid gap-2">
                     <div class="flex items-center justify-between">
@@ -89,7 +103,7 @@ const submit = () => {
                 </Button>
             </div>
 
-            <div class="text-center text-sm text-muted-foreground">
+            <div class="hidden text-center text-sm text-muted-foreground">
                 Don't have an account?
                 <TextLink :href="route('register')" :tabindex="5">Sign up</TextLink>
             </div>
