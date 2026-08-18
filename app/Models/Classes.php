@@ -23,4 +23,9 @@ class Classes extends Model
         ->wherePivot('is_active', 1)   // only active links
         ->withTimestamps();
     }
+
+    public function students()
+    {
+        return $this->hasMany(Students::class, 'class_id', 'id');
+    }
 }

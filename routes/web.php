@@ -4,6 +4,7 @@ use App\Http\Controllers\ClassesController;
 use App\Http\Controllers\ClassSectionController;
 use App\Http\Controllers\ClassSubjectController;
 use App\Http\Controllers\ClassTeacherController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExamController;
 use App\Http\Controllers\ExamScheduleController;
 use App\Http\Controllers\StudentMarksController;
@@ -20,15 +21,16 @@ use Inertia\Inertia;
 
 
 Route::get('/', function () {
+    if (auth()->check()) {
+        return redirect()->route('dashboard');
+    }
     return Inertia::render('auth/Login');
 })->name('home');
 
 Route::middleware(['auth'])->group(function () {
 
     // Dashboard - accessible to all authenticated users
-    Route::get('/dashboard', function () {
-        return Inertia::render('Dashboard');
-    })->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // Student Management Routes
     Route::prefix('students')->name('students.')->group(function () {

@@ -28,6 +28,7 @@ use App\Repositories\UserRepository;
 use App\Services\ClassSubjectService;
 use App\Services\ClassTeacherService;
 use App\Services\CommonServices;
+use App\Services\DashboardService;
 use App\Services\ExamScheduleService;
 use App\Services\StudentMarksService;
 use App\Services\GuardianService;
@@ -35,6 +36,7 @@ use App\Services\TermsServices;
 use Illuminate\Support\ServiceProvider;
 use App\Contracts\StudentRepositoryInterface;
 use App\Contracts\StudentServiceInterface;
+use App\Interface\DashboardInterface;
 use App\Services\StudentService;
 use App\Repositories\StudentRepository;
 use Inertia\Inertia;
@@ -61,6 +63,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(TermsInterface::class, TermsServices::class);
         $this->app->bind(ExamScheduleInterface::class, ExamScheduleService::class);
         $this->app->bind(StudentMarksInterface::class, StudentMarksService::class);
+        $this->app->bind(DashboardInterface::class, DashboardService::class);
     }
 
     /**
