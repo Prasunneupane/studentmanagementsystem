@@ -24,6 +24,7 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '/dashboard',
     },
 ];
+
 interface Props {
     dashboardData: {
         students: number;
@@ -166,11 +167,16 @@ const alertStyles: Record<'warning' | 'danger', string> = {
                     <CardContent>
                         <div class="flex h-40 items-end gap-3">
                             <div v-for="d in attendanceTrend" :key="d.label" class="flex flex-1 flex-col items-center gap-2">
-                                <div class="flex h-32 w-full items-end overflow-hidden rounded-md bg-muted">
+                                <div class="group relative flex h-32 w-full items-end overflow-visible rounded-md bg-muted">
                                     <div
                                         class="w-full rounded-md bg-primary transition-all"
                                         :style="{ height: `${(d.value / maxAttendance) * 100}%` }"
                                     />
+                                    <div
+                                        class="pointer-events-none absolute -top-8 left-1/2 z-10 -translate-x-1/2 rounded-md bg-foreground px-2 py-1 text-xs whitespace-nowrap text-background opacity-0 shadow-md transition-opacity group-hover:opacity-100"
+                                    >
+                                        {{ d.label }}: {{ d.value }}%
+                                    </div>
                                 </div>
                                 <span class="text-xs text-muted-foreground">{{ d.label }}</span>
                             </div>
@@ -187,11 +193,16 @@ const alertStyles: Record<'warning' | 'danger', string> = {
                     <CardContent>
                         <div class="flex h-40 items-end gap-2">
                             <div v-for="d in classDistribution" :key="d.label" class="flex flex-1 flex-col items-center gap-2">
-                                <div class="flex h-32 w-full items-end overflow-hidden rounded-md bg-muted">
+                                <div class="group relative flex h-32 w-full items-end overflow-visible rounded-md bg-muted">
                                     <div
                                         class="w-full rounded-md bg-sky-500/80 transition-all dark:bg-sky-400/80"
                                         :style="{ height: `${(d.value / maxClass) * 100}%` }"
                                     />
+                                    <div
+                                        class="pointer-events-none absolute -top-8 left-1/2 z-10 -translate-x-1/2 rounded-md bg-foreground px-2 py-1 text-xs whitespace-nowrap text-background opacity-0 shadow-md transition-opacity group-hover:opacity-100"
+                                    >
+                                        Class {{ d.label.replace('C', '') }}: {{ d.value }} students
+                                    </div>
                                 </div>
                                 <span class="text-[10px] text-muted-foreground">{{ d.label }}</span>
                             </div>

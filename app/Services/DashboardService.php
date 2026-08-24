@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Interface\DashboardInterface;
 use App\Models\Classes;
+use App\Models\Guardian;
 use App\Models\Students;
 use App\Models\Teachers;
 use Illuminate\Support\Facades\DB;
@@ -15,29 +16,29 @@ class DashboardService implements DashboardInterface
      */
     public function __construct()
     {
-        //
+        
     }
 
     public function getDashboardData(): array
     {
         $students = Students::count('*');
         $teachers = Teachers::count('*');
-        $parents = [];
+        $parents = Guardian::count('*');
         $staff = [];
         $studentByClass = Classes::withCount('students')->get()->map(function ($class) {
             return [
-                'name' => $class->name,
-                'count' => $class->students_count,
+                'label' => $class->name,
+                'value' => $class->students_count,
             ];
         });
-        $thisMonthStudentCount = Students::whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()])->count();
+        $thisMonthStudentCount = Students::whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()])->count('*');
 
         return [
             'students' => $students,
             'teachers' => $teachers,
             'parents' => $parents,
             'staff' => $staff,
-            'studentByClass' => $studentByClass,
+            'studentByClass' => json_encode($studentByClass),
             'thisMonthStudentCount' => $thisMonthStudentCount,
         ];
     }
