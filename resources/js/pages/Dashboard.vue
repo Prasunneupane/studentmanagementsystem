@@ -31,7 +31,7 @@ interface Props {
         teachers: number;
         parents: number;
         staff: number;
-        studentByClass: { name: string; count: number }[];
+        studentByClass: { label: string; value: number }[];
         thisMonthStudentCount: number;
     };
 }
@@ -68,18 +68,7 @@ const attendanceTrend = [
     { label: 'Sat', value: 91 },
 ];
 
-const classDistribution = [
-    { label: 'C1', value: 85 },
-    { label: 'C2', value: 92 },
-    { label: 'C3', value: 88 },
-    { label: 'C4', value: 95 },
-    { label: 'C5', value: 79 },
-    { label: 'C6', value: 101 },
-    { label: 'C7', value: 96 },
-    { label: 'C8', value: 110 },
-    { label: 'C9', value: 118 },
-    { label: 'C10', value: 124 },
-];
+const classDistribution = props.dashboardData.studentByClass;
 
 const academicPerformance = [
     { label: 'Math', value: 68 },
@@ -201,7 +190,7 @@ const alertStyles: Record<'warning' | 'danger', string> = {
                                     <div
                                         class="pointer-events-none absolute -top-8 left-1/2 z-10 -translate-x-1/2 rounded-md bg-foreground px-2 py-1 text-xs whitespace-nowrap text-background opacity-0 shadow-md transition-opacity group-hover:opacity-100"
                                     >
-                                        Class {{ d.label.replace('C', '') }}: {{ d.value }} students
+                                        {{ d.value }} students
                                     </div>
                                 </div>
                                 <span class="text-[10px] text-muted-foreground">{{ d.label }}</span>

@@ -38,7 +38,7 @@ class DashboardService implements DashboardInterface
             'teachers' => $teachers,
             'parents' => $parents,
             'staff' => $staff,
-            'studentByClass' => json_encode($studentByClass),
+            'studentByClass' => $studentByClass,
             'thisMonthStudentCount' => $thisMonthStudentCount,
         ];
     }
