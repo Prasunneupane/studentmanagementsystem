@@ -20,6 +20,7 @@ return new class extends Migration
             $table->string('location')->nullable();
             $table->string('event_type')->nullable();
             $table->string('status')->default('upcoming');
+            $table->string('banner_image')->default('default-banner.jpg');
             $table->boolean('is_active')->default(true);
             $table->foreignId('created_by')->constrained('users')->onDelete('cascade');
             $table->timestamps();
