@@ -5,6 +5,7 @@ use App\Http\Controllers\ClassSectionController;
 use App\Http\Controllers\ClassSubjectController;
 use App\Http\Controllers\ClassTeacherController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\EventsController;
 use App\Http\Controllers\ExamController;
 use App\Http\Controllers\ExamScheduleController;
 use App\Http\Controllers\StudentMarksController;
@@ -325,6 +326,34 @@ Route::middleware(['auth'])->group(function () {
         // Finalize results
         Route::middleware(['permission:finalize_results'])->group(function () {
             Route::post('/{exam}/finalize', [StudentMarksController::class, 'finalizeResults'])->name('finalize');
+        });
+    });
+
+    // Events Management Routes
+    Route::prefix('events')->name('events.')->group(function () {
+        // View events
+        Route::middleware(['permission:view_events'])->group(function () {
+            Route::get('/', [EventsController::class, 'index'])->name('index');
+            Route::get('/{event}/permissions/get', [EventsController::class, 'getEventPermissions'])->name('permissions.get');
+        });
+
+        // Create event
+        Route::middleware(['permission:events.create'])->group(function () {
+            Route::get('/create', [EventsController::class, 'create'])->name('create');
+            Route::post('/store', [EventsController::class, 'store'])->name('store');
+        });
+
+        // Edit event
+        Route::middleware(['permission:events.edit'])->group(function () {
+            Route::get('/edit/{event}', [EventsController::class, 'edit'])->name('edit');
+            Route::put('/update/{event}', [EventsController::class, 'update'])->name('update');
+            Route::get('/assign-permission/{event}', [EventsController::class, 'assign_permission'])->name('assign_permissions');
+            Route::post('/permissions/assign', [EventsController::class, 'assignPermissions'])->name('permissions.assign');
+        });
+
+        // Delete event
+        Route::middleware(['permission:events.delete'])->group(function () {
+            Route::put('/delete-event/{event}', [EventsController::class, 'deactivate'])->name('delete');
         });
     });
 

@@ -27,6 +27,7 @@ export interface Permissions {
     marks: CrudPermissions;
     roles: CrudPermissions & { canAssignPermissions: boolean };
     permissions: CrudPermissions;
+    events: CrudPermissions;
     settings: {
         canView: boolean;
         canEdit: boolean;

@@ -219,7 +219,7 @@ const mainNavItems = computed((): NavItem[] => {
         }
     }
 
-    // Teacher Management
+    // Mark Management
     if (permissions.value.marks.canManage) {
         const teacherItems: NavItem[] = [];
 
@@ -249,6 +249,39 @@ const mainNavItems = computed((): NavItem[] => {
             };
             teacherManagement.isActive = isRouteActive(teacherManagement);
             items.push(teacherManagement);
+        }
+    }
+
+    // Event Management
+    if (permissions.value.events.canManage) {
+        const eventItems: NavItem[] = [];
+
+        if (permissions.value.events.canCreate) {
+            eventItems.push({
+                title: 'Add Event',
+                href: '/events/create',
+                icon: CalendarPlus,
+            });
+        }
+
+        if (permissions.value.events.canView) {
+            eventItems.push({
+                title: 'View Events',
+                href: '/events',
+                icon: CalendarRange,
+            });
+        }
+
+        if (eventItems.length > 0) {
+            const eventManagement: NavItem = {
+                title: 'Events Management',
+                href: '/',
+                icon: CalendarRange,
+                items: eventItems,
+                isActive: false,
+            };
+            eventManagement.isActive = isRouteActive(eventManagement);
+            items.push(eventManagement);
         }
     }
 

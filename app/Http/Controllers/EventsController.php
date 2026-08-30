@@ -2,17 +2,28 @@
 
 namespace App\Http\Controllers;
 
+use App\Interface\EventsInterface;
 use App\Models\Events;
+use App\Services\EventsService;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class EventsController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
+    private EventsInterface $eventsService;
+    public function __construct(EventsInterface $eventsInterface)
+    {
+        $this->eventsService = $eventsInterface;
+    }
     public function index()
     {
-        //
+        $events = $this->eventsService->getAllEvents();
+        return Inertia::render('events/Index', [
+            'events' => $events,
+        ]);
     }
 
     /**
@@ -20,7 +31,12 @@ class EventsController extends Controller
      */
     public function create()
     {
-        //
+        $statusOptions = $this->eventsService->getStatusOptions();
+        $eventTypeOptions = $this->eventsService->getEventTypeOptions();
+        return Inertia::render('events/Create', [
+            'statusOptions' => $statusOptions,
+            'eventTypeOptions' => $eventTypeOptions,
+        ]);
     }
 
     /**

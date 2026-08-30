@@ -479,6 +479,47 @@ class PermissionSeeder extends Seeder
         'created_at' => now(),
         'updated_at' => now(),
     ],
+    // Event permissions
+    [
+        'name' => 'View Events',
+        'slug' => 'view_events',
+        'module' => 'Events',
+        'description' => 'Allows viewing events',
+        'is_active' => 1,
+        'created_by' => 1,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ],
+    [
+        'name' => 'Create Events',
+        'slug' => 'create_events',
+        'module' => 'Events',
+        'description' => 'Allows creating events',
+        'is_active' => 1,
+        'created_by' => 1,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ],
+    [
+        'name' => 'Edit Events',
+        'slug' => 'edit_events',
+        'module' => 'Events',
+        'description' => 'Allows editing events',
+        'is_active' => 1,
+        'created_by' => 1,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ],
+    [
+        'name' => 'Delete Events',
+        'slug' => 'delete_events',
+        'module' => 'Events',
+        'description' => 'Allows deleting events',
+        'is_active' => 1,
+        'created_by' => 1,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ],
 ];
 
         foreach ($permissions as $permission) {

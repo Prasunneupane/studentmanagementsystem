@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Interface\EventsInterface;
 use App\Interface\ExamScheduleInterface;
 use App\Interface\StudentMarksInterface;
 use App\Interface\TermsInterface;
@@ -29,6 +30,7 @@ use App\Services\ClassSubjectService;
 use App\Services\ClassTeacherService;
 use App\Services\CommonServices;
 use App\Services\DashboardService;
+use App\Services\EventsService;
 use App\Services\ExamScheduleService;
 use App\Services\StudentMarksService;
 use App\Services\GuardianService;
@@ -64,6 +66,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(ExamScheduleInterface::class, ExamScheduleService::class);
         $this->app->bind(StudentMarksInterface::class, StudentMarksService::class);
         $this->app->bind(DashboardInterface::class, DashboardService::class);
+        $this->app->bind(EventsInterface::class, EventsService::class);
     }
 
     /**

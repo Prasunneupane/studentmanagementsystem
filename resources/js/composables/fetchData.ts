@@ -62,6 +62,25 @@ export interface Terms {
     updated_by: string;
 }
 
+export interface EventGalleryImage {
+    id: number;
+    url: string;
+}
+
+export interface Event {
+    id: number;
+    title: string;
+    description?: string;
+    start_date: string;
+    end_date: string;
+    location?: string;
+    event_type?: string;
+    status: string;
+    banner_image: string;
+    is_active: number;
+    images: EventGalleryImage[];
+}
+
 export function useStudentData(form?: any) {
     const students = ref<Student[]>([]);
     const loading = ref(false);
@@ -282,6 +301,7 @@ export function useStudentData(form?: any) {
         deleteGuardian,
         updateStudent,
         guardians,
+        
         // Teacher,
         // subject,
     };
