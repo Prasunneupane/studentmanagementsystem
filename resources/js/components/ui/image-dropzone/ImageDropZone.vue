@@ -2,11 +2,10 @@
 /**
  * ImageDropzone.vue
  * -------------------------------------------------------------
- * Generic drag-and-drop image upload component.
+ * Generic drag-and-drop image upload component (dropzone.js style).
  *
  * - Works for single OR multiple images (controlled by `multiple` prop)
- * - Shows previews immediately after drop / selection
- * - Each preview has a "remove" button
+ * - Previews render INSIDE the dropzone box as small thumbnails with an X
  * - Also supports showing already-uploaded images (edit forms) via
  *   `existingImages`, which can be removed independently (emits
  *   `remove-existing` so the parent can call an API / mark for deletion)
@@ -26,10 +25,12 @@
  *   />
  */
 import { ref, computed, watch, onBeforeUnmount } from 'vue'
-import { UploadCloud, X, ImageIcon } from 'lucide-vue-next'
-import { Button } from '@/components/ui/button'
+import { UploadCloud, X, Plus } from 'lucide-vue-next'
 import { cn } from '@/lib/utils'
-
+import 'vue-sonner/style.css';
+import { useToast } from '@/composables/useToast';
+import { Toaster } from '@/components/ui/sonner';
+const { toast } = useToast();
 interface ExistingImage {
   id: string | number
   url: string
@@ -108,6 +109,13 @@ onBeforeUnmount(() => {
 
 const totalCount = computed(() => props.existingImages.length + files.value.length)
 
+const canAddMore = computed(() => {
+  if (totalCount.value === 0) return false // handled by the big empty-state prompt instead
+  if (!props.multiple) return false // single mode: clicking the box itself replaces the image
+  if (!props.maxFiles) return true
+  return totalCount.value < props.maxFiles
+})
+
 function emitUpdate() {
   emit('update:modelValue', props.multiple ? files.value : files.value[0] ?? null)
 }
@@ -119,6 +127,7 @@ function addFiles(fileList: FileList | File[]) {
 
   for (const file of incoming) {
     if (props.maxSizeMb && file.size > props.maxSizeMb * 1024 * 1024) {
+      // toast.error(`"${file.name}" is larger than ${props.maxSizeMb}MB`)
       emit('error', `"${file.name}" is larger than ${props.maxSizeMb}MB`)
       continue
     }
@@ -168,13 +177,14 @@ function openFileDialog() {
 </script>
 
 <template>
+  <Toaster />
   <div class="space-y-2">
     <label v-if="label" class="text-sm font-medium leading-none">{{ label }}</label>
 
     <div
       :class="
         cn(
-          'flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-6 text-center transition-colors cursor-pointer',
+          'rounded-lg border-2 border-dashed transition-colors cursor-pointer',
           isDragging ? 'border-primary bg-primary/5' : 'border-muted-foreground/25 hover:border-muted-foreground/50',
           disabled && 'pointer-events-none opacity-50'
         )
@@ -184,15 +194,62 @@ function openFileDialog() {
       @drop.prevent="onDrop"
       @click="openFileDialog"
     >
-      <UploadCloud class="h-8 w-8 text-muted-foreground" />
-      <p class="text-sm text-muted-foreground">
-        <span class="font-medium text-foreground">Click to upload</span> or drag and drop
-      </p>
-      <p v-if="description" class="text-xs text-muted-foreground">{{ description }}</p>
-      <p class="text-xs text-muted-foreground">
-        {{ multiple ? 'PNG, JPG up to' : 'PNG, JPG up to' }} {{ maxSizeMb }}MB
-        {{ maxFiles ? `· max ${maxFiles} images` : '' }}
-      </p>
+      <!-- Empty state: big centered prompt -->
+      <div v-if="totalCount === 0" class="flex flex-col items-center justify-center gap-2 p-6 text-center">
+        <UploadCloud class="h-8 w-8 text-muted-foreground" />
+        <p class="text-sm text-muted-foreground">
+          <span class="font-medium text-foreground">Click to upload</span> or drag and drop
+        </p>
+        <p v-if="description" class="text-xs text-muted-foreground">{{ description }}</p>
+        <p class="text-xs text-muted-foreground">
+          PNG, JPG up to {{ maxSizeMb }}MB {{ maxFiles ? `· max ${maxFiles} images` : '' }}
+        </p>
+      </div>
+
+      <!-- Has images: small thumbnails INSIDE the dropzone box -->
+      <div v-else class="flex flex-wrap gap-2 p-3">
+        <!-- already-uploaded images (edit mode) -->
+        <div
+          v-for="img in existingImages"
+          :key="`existing-${img.id}`"
+          class="group relative h-16 w-16 shrink-0 overflow-hidden rounded-md border"
+        >
+          <img :src="img.url" class="h-full w-full object-cover" alt="Uploaded image" />
+          <button
+            type="button"
+            class="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-destructive-foreground shadow"
+            @click.stop="emit('remove-existing', img.id)"
+          >
+            <X class="h-2.5 w-2.5" />
+          </button>
+        </div>
+
+        <!-- newly dropped/selected files, not yet uploaded -->
+        <div
+          v-for="(preview, index) in previews"
+          :key="preview.url"
+          class="group relative h-16 w-16 shrink-0 overflow-hidden rounded-md border"
+        >
+          <img :src="preview.url" class="h-full w-full object-cover" :alt="preview.file.name" />
+          <button
+            type="button"
+            class="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-destructive-foreground shadow"
+            @click.stop="removeFile(index)"
+          >
+            <X class="h-2.5 w-2.5" />
+          </button>
+        </div>
+
+        <!-- compact "add more" tile, same size as thumbnails, only for multiple mode -->
+        <div
+          v-if="canAddMore"
+          class="flex h-16 w-16 shrink-0 flex-col items-center justify-center gap-0.5 rounded-md border-2 border-dashed border-muted-foreground/25 text-muted-foreground hover:border-primary hover:text-primary"
+          @click.stop="openFileDialog"
+        >
+          <Plus class="h-4 w-4" />
+          <span class="text-[9px] leading-none">Add</span>
+        </div>
+      </div>
 
       <input
         ref="inputRef"
@@ -202,55 +259,6 @@ function openFileDialog() {
         class="hidden"
         @change="onInputChange"
       />
-    </div>
-
-    <div
-      v-if="existingImages.length || previews.length"
-      class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4"
-    >
-      <!-- already-uploaded images (edit mode) -->
-      <div
-        v-for="img in existingImages"
-        :key="`existing-${img.id}`"
-        class="group relative aspect-square overflow-hidden rounded-md border"
-      >
-        <img :src="img.url" class="h-full w-full object-cover" :alt="'Uploaded image'" />
-        <Button
-          type="button"
-          variant="destructive"
-          size="icon"
-          class="absolute right-1 top-1 h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100"
-          @click.stop="emit('remove-existing', img.id)"
-        >
-          <X class="h-3.5 w-3.5" />
-        </Button>
-      </div>
-
-      <!-- newly dropped/selected files, not yet uploaded -->
-      <div
-        v-for="(preview, index) in previews"
-        :key="preview.url"
-        class="group relative aspect-square overflow-hidden rounded-md border"
-      >
-        <img :src="preview.url" class="h-full w-full object-cover" :alt="preview.file.name" />
-        <Button
-          type="button"
-          variant="destructive"
-          size="icon"
-          class="absolute right-1 top-1 h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100"
-          @click.stop="removeFile(index)"
-        >
-          <X class="h-3.5 w-3.5" />
-        </Button>
-      </div>
-    </div>
-
-    <div
-      v-else
-      class="flex items-center gap-2 text-xs text-muted-foreground"
-    >
-      <ImageIcon class="h-3.5 w-3.5" />
-      <span>No images selected yet</span>
     </div>
   </div>
 </template>

@@ -20,11 +20,25 @@ import { Button } from '@/components/ui/button'
 import ImageDropzone from '@/components/ui/image-dropzone/ImageDropZone.vue'
 import { toast } from 'vue-sonner' // swap for whatever toast lib you use, or drop this
 import { Toaster } from '@/components/ui/sonner';
+import CustomSelect from '../CustomSelect.vue';
+import DatePicker from '@/components/ui/customdatepicker/CustomDatePicker.vue';
+
+const props = defineProps<{
+    statusOptions: { value: string; label: string }[],
+    eventTypeOptions: { value: string; label: string }[],
+}>()
+console.log(new Date().toISOString().split('T')[0], "start date")
+console.log(new Date().toISOString().split('T')[0], "end date")
 const form = useForm({
     title: '',
+    status: 'upcoming',
+    event_type: 'holiday',
+    start_date: new Date().toISOString().split('T')[0], // default to today
+    end_date: new Date().toISOString().split('T')[0], // default to today
     description: '',
-    main_image: null as File | null,
-    images: [] as File[],
+    location: '',
+    banner_image: null as File | null,
+    gallery_images: [] as File[],
 })
 const breadcrumbs = [{ title: 'Events', href: '/events' }];
 
@@ -54,46 +68,102 @@ function submit() {
                     </CardHeader>
 
                     <CardContent class="space-y-6">
-                        <div class="space-y-2">
-                            <Label for="title">Title</Label>
-                            <Input id="title" v-model="form.title" placeholder="Event title" />
-                            <p v-if="form.errors.title" class="text-sm text-destructive">{{ form.errors.title }}</p>
+                        <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+                            <div class="space-y-2">
+                                <Label for="title">Title</Label>
+                                <Input id="title" v-model="form.title" placeholder="Event title" />
+                                <p v-if="form.errors.title" class="text-sm text-destructive">{{ form.errors.title }}</p>
+                            </div>
+
+                            <div class="space-y-2">
+                                <Label for="status">Status</Label>
+                                <CustomSelect id="status" v-model="form.status" placeholder="Event status"
+                                    :options="props.statusOptions" />
+                                <p v-if="form.errors.status" class="text-sm text-destructive">{{ form.errors.status }}
+                                </p>
+                            </div>
+
+                            <div class="space-y-2">
+                                <Label for="event_type">Event Type</Label>
+                                <CustomSelect id="event_type" v-model="form.event_type" placeholder="Event type"
+                                    :options="props.eventTypeOptions" />
+                                <p v-if="form.errors.event_type" class="text-sm text-destructive">{{
+                                    form.errors.event_type }}</p>
+                            </div>
+
+                            <div class="space-y-2">
+                                <Label for="event_type">Event Start Date</Label>
+                                <DatePicker id="start_date" v-model="form.start_date"
+                                    placeholder="Event start date" />
+                                <p v-if="form.errors.start_date" class="text-sm text-destructive">{{
+                                    form.errors.start_date }}</p>
+                            </div>
+                            <div class="space-y-2">
+                                <Label for="location">Location</Label>
+                                <Input id="location" v-model="form.location" placeholder="Event location" />
+                                <p v-if="form.errors.location" class="text-sm text-destructive">{{ form.errors.location
+                                    }}</p>
+                            </div>
+
+
+                            <div class="space-y-2">
+                                <Label for="event_type">Event End Date</Label>
+                                <DatePicker id="end_date" v-model="form.end_date"
+                                    placeholder="Event end date" />
+                                <p v-if="form.errors.end_date" class="text-sm text-destructive">{{
+                                    form.errors.end_date }}</p>
+                            </div>
+
                         </div>
-
                         <div class="space-y-2">
-                            <Label for="description">Description</Label>
-                            <Textarea id="description" v-model="form.description" placeholder="Event description"
-                                rows="4" />
-                            <p v-if="form.errors.description" class="text-sm text-destructive">
-                                {{ form.errors.description }}
-                            </p>
-                        </div>
+                                    <Label for="description">Description</Label>
+                                    <Textarea id="description" v-model="form.description"
+                                        placeholder="Event description" rows="4" />
+                                    <p v-if="form.errors.description" class="text-sm text-destructive">
+                                        {{ form.errors.description }}
+                                    </p>
+                                </div>
+                        <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+                            <div class="space-y-2">
+                                <!-- Main image: single only -->
+                                <ImageDropzone v-model="form.banner_image" :multiple="false" label="Banner image"
+                                    description="This is the banner image for the event"
+                                    @error="handleUploadError" />
+                                <p v-if="form.errors.banner_image" class="text-sm text-destructive">
+                                    {{ form.errors.banner_image }}
+                                </p>
+                            </div>
+                            <div class="space-y-2">
+                                <!-- Gallery: multiple images -->
+                                <ImageDropzone v-model="form.gallery_images" :multiple="true" :max-files="10"
+                                    label="Event images" description="Add photos for the event gallery"
+                                    @error="handleUploadError" />
+                                <p v-if="form.errors.gallery_images" class="text-sm text-destructive">
+                                    {{ form.errors.gallery_images }}
+                                </p>
+                            </div>
+                            </div>
 
-                        <!-- Main image: single only -->
-                        <ImageDropzone v-model="form.main_image" :multiple="false" label="Main image"
-                            description="This is the cover image shown on event listings" @error="handleUploadError" />
-                        <p v-if="form.errors.main_image" class="text-sm text-destructive">
-                            {{ form.errors.main_image }}
-                        </p>
-
-                        <!-- Gallery: multiple images -->
-                        <ImageDropzone v-model="form.images" :multiple="true" :max-files="10" label="Event images"
-                            description="Add photos for the event gallery" @error="handleUploadError" />
-                        <p v-if="form.errors.images" class="text-sm text-destructive">
-                            {{ form.errors.images }}
-                        </p>
+                            <!-- <div class="grid grid-cols-1 gap-6 md:grid-cols-2"> -->
+                                
+                            <!-- </div> -->
                     </CardContent>
-
-                    <CardFooter class="justify-end gap-2">
-                        <Button type="button" variant="outline" :disabled="form.processing" @click="form.reset()">
-                            Reset
-                        </Button>
-                        <Button type="submit" :disabled="form.processing">
-                            {{ form.processing ? 'Saving...' : 'Create Event' }}
-                        </Button>
+                    <br>
+                    <CardFooter class="justify-end gap-6">
+                    <div class="flex justify-between gap-3 border-t px-6 py-4">
+                        
+                            <Button type="button" variant="outline" :disabled="form.processing" @click="form.reset()">
+                                Reset
+                            </Button>
+                            <Button type="submit" :disabled="form.processing">
+                                {{ form.processing ? 'Saving...' : 'Create Event' }}
+                            </Button>
+                       
+                    </div>
                     </CardFooter>
                 </form>
             </Card>
         </div>
     </AppLayout>
 </template>
+<!--  -->

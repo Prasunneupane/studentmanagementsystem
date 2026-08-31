@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Events\EventRequest;
+use App\Http\Requests\Events\StoreEventRequest;
 use App\Interface\EventsInterface;
 use App\Models\Events;
 use App\Services\EventsService;
@@ -42,9 +44,12 @@ class EventsController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(StoreEventRequest $request)
     {
-        //
+        $validatedData = $request->validated();
+        $this->eventsService->createEvent($validatedData);
+        return redirect()->route('events.index')->with('success', 'Event created successfully.');
+
     }
 
     /**

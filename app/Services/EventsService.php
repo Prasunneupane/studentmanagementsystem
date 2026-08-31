@@ -9,6 +9,8 @@ use App\Models\Event;
 use App\Models\EventGallery;
 use App\Models\Events;
 use App\Models\EventsGallery;
+use DB;
+use Illuminate\Support\Facades\Storage;
 
 class EventsService implements EventsInterface
 {
@@ -55,40 +57,51 @@ class EventsService implements EventsInterface
 
     public function createEvent(array $eventData): array
     {
+        DB::beginTransaction();
+        $uploadedFiles = []; // track paths to delete on failure
 
-        $status = isset($eventData['status'])
-            ? EventStatus::tryFrom($eventData['status'])
-            : EventStatus::UPCOMING; // Default if not sent
-
-        $eventType = isset($eventData['event_type'])
-            ? EventCategory::tryFrom($eventData['event_type'])
-            : null;
-
-
-        $event = Events::create([
-            'title' => $eventData['title'],
-            'description' => $eventData['description'] ?? null,
-            'start_date' => $eventData['start_date'],
-            'end_date' => $eventData['end_date'],
-            'location' => $eventData['location'] ?? null,
-            'status' => $status?->value ?? EventStatus::UPCOMING->value,
-            'event_type' => $eventType?->value, // Saves null if not provided
-            'banner_image' => $eventData['banner_image'] ?? 'default-banner.jpg',
-            'is_active' => $eventData['is_active'] ?? true,
-            'created_by' => $eventData['created_by'],
-        ]);
-
-        if (!empty($eventData['gallery_images']) && is_array($eventData['gallery_images'])) {
-            foreach ($eventData['gallery_images'] as $path) {
-                $this->eventGallery->create([
-                    'event_id' => $event->id,
-                    'image_path' => $path,
-                    'is_active' => true,
-                ]);
+        try {
+            $bannerPath = null;
+            if (isset($eventData['banner_image']) && $eventData['banner_image'] instanceof UploadedFile) {
+                $bannerPath = $eventData['banner_image']->store('events/banner', 'public');
+                $uploadedFiles[] = $bannerPath;
             }
-        }
+            $eventData['banner_image'] = $bannerPath;
+            $eventData['is_active'] = true; // default to active on creation
+            $eventData['created_by'] = auth()->id(); // assuming you want to track who created the event
+            dd($eventData);
+            $event = Events::create([...$eventData]); // as before
 
-        return $this->getEventsById($event->id);
+            if (!empty($eventData['gallery_images']) && is_array($eventData['gallery_images'])) {
+                foreach ($eventData['gallery_images'] as $image) {
+                    if ($image instanceof UploadedFile) {
+                        $galleryPath = $image->store('events/gallery', 'public');
+                        $uploadedFiles[] = $galleryPath;
+                        $this->eventGallery->create([
+                            'event_id' => $event->id,
+                            'image_path' => $galleryPath,
+                            'is_active' => true,
+                        ]);
+                    }
+                }
+            }
+
+            DB::commit();
+
+            return $this->getEventsById($event->id);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            // Delete all uploaded files
+            foreach ($uploadedFiles as $path) {
+                if (Storage::disk('public')->exists($path)) {
+                    Storage::disk('public')->delete($path);
+                }
+            }
+
+            throw $e;
+        }
     }
 
     public function updateEvent($eventId, array $eventData): array
