@@ -1,265 +1,180 @@
 <script setup lang="ts">
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
-import { Toaster } from '@/components/ui/sonner';
-import { useToast } from '@/composables/useToast';
+/**
+ * EventForm.vue
+ * -------------------------------------------------------------
+ * Example "create event" form showing how to use ImageDropzone:
+ *  - `mainImage`   -> single image   (multiple = false)
+ *  - `galleryImages` -> multiple images (multiple = true)
+ *
+ * Submits via Inertia's useForm + FormData (needed because we're
+ * sending files). Adjust the route name / field names to match
+ * your EventController.
+ */
+import { useForm,Link } from '@inertiajs/vue3'
 import AppLayout from '@/layouts/AppLayout.vue';
-import { Head, router, useForm } from '@inertiajs/vue3';
-import { AlertCircle, Loader2, Save, UserCheck, X } from 'lucide-vue-next';
-import { computed, ref, watch } from 'vue';
-import 'vue-sonner/style.css';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Button } from '@/components/ui/button'
+import ImageDropzone from '@/components/ui/image-dropzone/ImageDropZone.vue'
+import { toast } from 'vue-sonner' // swap for whatever toast lib you use, or drop this
+import { Toaster } from '@/components/ui/sonner';
 import CustomSelect from '../CustomSelect.vue';
-// import { Alert, AlertDescription } from '@/components/ui/alert'
-import axios from 'axios';
+import DatePicker from '@/components/ui/customdatepicker/CustomDatePicker.vue';
+import {Events} from '../../composables/fetchData'
+import { Eye, Loader2 } from 'lucide-vue-next';
 
-const { toast } = useToast();
 
-interface Option {
-    value: string;
-    label: string;
-}
-
-interface ClassTeacherData {
-    id: number;
-    class_id: string;
-    section_id: string;
-    teacher_id: string;
-    academic_year_id: string;
-    is_class_teacher: boolean;
-    is_active: boolean;
-}
-
-interface Props {
-    classTeacher: ClassTeacherData;
-    classes: Option[];
-    sections: Option[];
-    teachers: Option[];
-    academicYears: Option[];
-}
-
-const props = defineProps<Props>();
-
-const breadcrumbs = [
-    { title: 'Class Teachers', href: '/class-teachers' },
-    { title: 'Edit Assignment', href: `/class-teachers/${props.classTeacher.id}/edit` },
-];
-
-const loadingSections = ref(false);
-const sectionsOptions = ref<Option[]>(props.sections);
-
+const props = defineProps<{
+    statusOptions: { value: string; label: string }[],
+    eventTypeOptions: { value: string; label: string }[],
+    event: Events
+}>()
+console.log(new Date().toISOString().split('T')[0], "start date")
+console.log(new Date().toISOString().split('T')[0], "end date")
 const form = useForm({
-    class_id: props.classTeacher.class_id ?? '',
-    section_id: props.classTeacher.section_id ?? '',
-    teacher_id: props.classTeacher.teacher_id ?? '',
-    academic_year_id: props.classTeacher.academic_year_id ?? '',
-    is_class_teacher: props.classTeacher.is_class_teacher,
-    is_active: props.classTeacher.is_active,
-});
+    title: props.event.title,
+    status: props.event.status,
+    event_type: props.event.event_type,
+    start_date: props.event.start_date || new Date().toISOString().split('T')[0], // default to today
+    end_date: props.event.end_date || new Date().toISOString().split('T')[0], // default to today
+    description: props.event.description,
+    location: props.event.location,
+    banner_image: props.event.banner_image || null as File | null,
+    gallery_images: (props.event.images ?? []).map((image) => image.url) as string[],
+})
+const breadcrumbs = [{ title: 'Events', href: '/events' }];
 
-// Fetch sections when class changes
-watch(
-    () => form.class_id,
-    async (newClass, oldClass) => {
-        if (oldClass === null) return;
+function handleUploadError(message: string) {
+    toast.error(message)
+}
 
-        form.section_id = '';
-        sectionsOptions.value = [];
-
-        if (!newClass) return;
-
-        loadingSections.value = true;
-        try {
-            const response = await axios.get('/class-teachers/sections-by-class', {
-                params: { class_id: newClass },
-            });
-            sectionsOptions.value = response.data;
-        } catch (error) {
-            console.error('Failed to fetch sections:', error);
-            toast.error('Failed to load sections');
-        } finally {
-            loadingSections.value = false;
-        }
-    },
-);
-
-// Validation
-const errors = computed(() => {
-    const errs: Record<string, string> = {};
-    if (!form.class_id) errs.class_id = 'Class is required';
-    if (!form.section_id) errs.section_id = 'Section is required';
-    if (!form.teacher_id) errs.teacher_id = 'Teacher is required';
-    if (!form.academic_year_id) errs.academic_year_id = 'Academic year is required';
-    return errs;
-});
-
-const canSubmit = computed(() => {
-    return Object.keys(errors.value).length === 0 && !form.processing;
-});
-
-const handleSubmit = () => {
-    if (!canSubmit.value) {
-        toast.error('Please fill all required fields correctly');
-        return;
-    }
-
-    form.transform((data) => ({
-        class_id: data.class_id,
-        section_id: data.section_id,
-        teacher_id: data.teacher_id,
-        academic_year_id: data.academic_year_id,
-        is_class_teacher: data.is_class_teacher,
-        is_active: data.is_active,
-        _method: 'PUT',
-    })).post(`/class-teacher/${props.classTeacher.id}`, {
-        onSuccess: () => {
-            toast.success('Assignment updated successfully');
-        },
-        onError: (errors) => {
-            const firstError = Object.values(errors)[0];
-            toast.error(firstError as string);
-        },
-    });
-};
-
-const handleCancel = () => {
-    router.visit('/class-teacher');
-};
+function submit() {
+    form.post(route('events.store'), {
+        forceFormData: true, // required since we have files in the payload
+        onSuccess: () => form.reset(),
+    })
+}
 </script>
 
 <template>
-    <Head title="Edit Teacher Assignment" />
+
+    <Head title="View Events" />
     <AppLayout :breadcrumbs="breadcrumbs">
         <Toaster />
-
         <div class="flex h-full w-full flex-1 flex-col gap-4 rounded-xl p-4">
             <Card class="w-full rounded-2xl shadow-lg">
-                <CardHeader class="border-b">
-                    <CardTitle class="text-2xl font-bold">Edit Teacher Assignment</CardTitle>
-                    <p class="mt-1 text-sm text-muted-foreground">Update teacher assignment configuration</p>
+                
+                     <CardHeader class="flex flex-row items-center justify-between">
+                    <div>
+                        <CardTitle>Edit Event</CardTitle>
+                        <CardDescription>
+                           Update Events details and images below. Make sure to fill in all required fields.
+                        </CardDescription>
+                    </div>
+                    <Button as-child>
+                        <Link :href="route('events.index')"> <Eye class="mr-2 h-4 w-4" /> View Events </Link>
+                    </Button>
                 </CardHeader>
-
-                <CardContent class="pt-6">
-                    <form @submit.prevent="handleSubmit" class="space-y-6">
-                        <!-- Academic Year -->
+                    <CardContent class="space-y-6">
+                        <form @submit.prevent="submit">
                         <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
                             <div class="space-y-2">
-                                <Label for="academic_year_id"> Academic Year <span class="text-red-500">*</span> </Label>
-                                <CustomSelect
-                                    id="academic_year_id"
-                                    v-model="form.academic_year_id"
-                                    :options="academicYears"
-                                    placeholder="Select Academic Year"
-                                    :class="{ 'border-red-500': errors.academic_year_id }"
-                                />
-                                <p v-if="errors.academic_year_id" class="text-sm text-red-600">
-                                    {{ errors.academic_year_id }}
-                                </p>
+                                <Label for="title">Title</Label>
+                                <Input id="title" v-model="form.title" placeholder="Event title" />
+                                <p v-if="form.errors.title" class="text-sm text-destructive">{{ form.errors.title }}</p>
                             </div>
-                        </div>
 
-                        <!-- Class and Section -->
-                        <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
                             <div class="space-y-2">
-                                <Label for="class_id"> Class <span class="text-red-500">*</span> </Label>
-                                <CustomSelect
-                                    id="class_id"
-                                    v-model="form.class_id"
-                                    :options="classes"
-                                    placeholder="Select Class"
-                                    :class="{ 'border-red-500': errors.class_id }"
-                                />
-                                <p v-if="errors.class_id" class="text-sm text-red-600">
-                                    {{ errors.class_id }}
+                                <Label for="status">Status</Label>
+                                <CustomSelect id="status" v-model="form.status" placeholder="Event status"
+                                    :options="props.statusOptions" />
+                                <p v-if="form.errors.status" class="text-sm text-destructive">{{ form.errors.status }}
                                 </p>
                             </div>
 
                             <div class="space-y-2">
-                                <Label for="section_id"> Section <span class="text-red-500">*</span> </Label>
-                                <CustomSelect
-                                    id="section_id"
-                                    v-model="form.section_id"
-                                    :options="sectionsOptions"
-                                    :disabled="!form.class_id || loadingSections"
-                                    :placeholder="loadingSections ? 'Loading...' : 'Select Section'"
-                                    :class="{ 'border-red-500': errors.section_id }"
-                                />
-                                <p v-if="errors.section_id" class="text-sm text-red-600">
-                                    {{ errors.section_id }}
-                                </p>
+                                <Label for="event_type">Event Type</Label>
+                                <CustomSelect id="event_type" v-model="form.event_type" placeholder="Event type"
+                                    :options="props.eventTypeOptions" />
+                                <p v-if="form.errors.event_type" class="text-sm text-destructive">{{
+                                    form.errors.event_type }}</p>
                             </div>
-                        </div>
 
-                        <!-- Teacher -->
+                            <div class="space-y-2">
+                                <Label for="event_type">Event Start Date</Label>
+                                <DatePicker id="start_date" v-model="form.start_date"
+                                    placeholder="Event start date" />
+                                <p v-if="form.errors.start_date" class="text-sm text-destructive">{{
+                                    form.errors.start_date }}</p>
+                            </div>
+                            <div class="space-y-2">
+                                <Label for="location">Location</Label>
+                                <Input id="location" v-model="form.location" placeholder="Event location" />
+                                <p v-if="form.errors.location" class="text-sm text-destructive">{{ form.errors.location
+                                    }}</p>
+                            </div>
+
+
+                            <div class="space-y-2">
+                                <Label for="event_type">Event End Date</Label>
+                                <DatePicker id="end_date" v-model="form.end_date"
+                                    placeholder="Event end date" />
+                                <p v-if="form.errors.end_date" class="text-sm text-destructive">{{
+                                    form.errors.end_date }}</p>
+                            </div>
+
+                        </div>
                         <div class="space-y-2">
-                            <Label for="teacher_id"> Teacher <span class="text-red-500">*</span> </Label>
-                            <CustomSelect
-                                id="teacher_id"
-                                v-model="form.teacher_id"
-                                :options="teachers"
-                                placeholder="Select Teacher"
-                                :class="{ 'border-red-500': errors.teacher_id }"
-                            />
-                            <p v-if="errors.teacher_id" class="text-sm text-red-600">
-                                {{ errors.teacher_id }}
-                            </p>
-                        </div>
-
-                        <!-- Configuration -->
-                        <div class="space-y-4 rounded-lg bg-muted/50 p-4">
-                            <h3 class="text-sm font-semibold">Assignment Configuration</h3>
-
-                            <div class="space-y-3">
-                                <div class="flex items-start space-x-3">
-                                    <Checkbox id="is_class_teacher" v-model="form.is_class_teacher" />
-                                    <div class="grid gap-1.5 leading-none">
-                                        <Label for="is_class_teacher" class="flex cursor-pointer items-center gap-2 font-medium">
-                                            <UserCheck class="h-4 w-4" />
-                                            Class Teacher
-                                        </Label>
-                                        <p class="text-sm text-muted-foreground">Mark this teacher as the primary class teacher for this section</p>
-                                    </div>
+                                    <Label for="description">Description</Label>
+                                    <Textarea id="description" v-model="form.description"
+                                        placeholder="Event description" rows="4" />
+                                    <p v-if="form.errors.description" class="text-sm text-destructive">
+                                        {{ form.errors.description }}
+                                    </p>
                                 </div>
-
-                                <Alert v-if="form.is_class_teacher" variant="default" class="border-blue-200 bg-blue-50">
-                                    <AlertCircle class="h-4 w-4 text-blue-600" />
-                                    <AlertDescription class="text-blue-800">
-                                        Marking as class teacher will automatically unset any existing class teacher for this section.
-                                    </AlertDescription>
-                                </Alert>
-
-                                <div class="flex items-start space-x-3">
-                                    <Checkbox id="is_active" v-model="form.is_active" />
-                                    <div class="grid gap-1.5 leading-none">
-                                        <Label for="is_active" class="cursor-pointer font-medium"> Active Status </Label>
-                                        <p class="text-sm text-muted-foreground">Set whether this assignment is currently active</p>
-                                    </div>
-                                </div>
+                        <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+                            <div class="space-y-2">
+                                <!-- Main image: single only -->
+                                <ImageDropzone v-model="form.banner_image" :multiple="false" label="Banner image"
+                                    description="This is the banner image for the event"
+                                    @error="handleUploadError" />
+                                <p v-if="form.errors.banner_image" class="text-sm text-destructive">
+                                    {{ form.errors.banner_image }}
+                                </p>
                             </div>
-                        </div>
+                            <div class="space-y-2">
+                                <!-- Gallery: multiple images -->
+                                <ImageDropzone v-model="form.gallery_images" :multiple="true" :max-files="10"
+                                    label="Event images" description="Add photos for the event gallery"
+                                    @error="handleUploadError" />
+                                <p v-if="form.errors.gallery_images" class="text-sm text-destructive">
+                                    {{ form.errors.gallery_images }}
+                                </p>
+                            </div>
+                            </div>
 
-                        <!-- Actions -->
-                        <div class="flex justify-end gap-3 border-t pt-4">
-                            <Button type="button" variant="outline" @click="handleCancel" :disabled="form.processing">
-                                <X class="mr-2 h-4 w-4" />
-                                Cancel
-                            </Button>
-                            <Button type="submit" :disabled="!canSubmit">
-                                <Loader2 v-if="form.processing" class="mr-2 h-4 w-4 animate-spin" />
-                                <Save v-else class="mr-2 h-4 w-4" />
-                                {{ form.processing ? 'Updating...' : 'Update Assignment' }}
-                            </Button>
-                        </div>
-                    </form>
-                </CardContent>
+                            <!-- <div class="grid grid-cols-1 gap-6 md:grid-cols-2"> -->
+                                
+                            <!-- </div> -->
+                            
+                            <CardFooter class="justify-end gap-6">
+                            <div class="flex justify-between gap-3 border-t px-6 py-4">
+                                
+                                        
+                                    <Button type="submit" :disabled="form.processing">
+                                        {{ form.processing ? 'Updating...' : 'Update Event' }}
+                                    </Button>
+                            
+                            </div>
+                            </CardFooter>
+                             </form>
+                    </CardContent>
+                    
+               
             </Card>
         </div>
     </AppLayout>
 </template>
-
-<style scoped>
-.border-red-500 {
-    border-color: rgb(239 68 68) !important;
-}
-</style>
+<!--  -->

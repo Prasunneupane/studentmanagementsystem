@@ -24,6 +24,7 @@ class StoreEventRequest extends FormRequest
      */
     public function rules(): array
     {
+        // dd($this->all());
         return [
             'title' => 'required|string|max:255',
             'description' => 'required|string',

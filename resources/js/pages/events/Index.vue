@@ -2,7 +2,7 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Toaster } from '@/components/ui/sonner';
-import { useStudentData, type Event, type EventGalleryImage } from '@/composables/fetchData';
+import { useStudentData, type Events, type EventGalleryImage } from '@/composables/fetchData';
 import { useToast } from '@/composables/useToast';
 import AppLayout from '@/layouts/AppLayout.vue';
 import DialogueDelete from '@/pages/Dialogue/DialogueDelete.vue';
@@ -19,9 +19,9 @@ import { usePermission } from '@/composables/usePermissions';
 const { can } = usePermission();
 const { toast } = useToast();
 
-const props = defineProps<{ events: Event[] }>();
+const props = defineProps<{ events: Events[] }>();
 const event = ref(props.events);
-const selectedEvent = ref<Event | null>(null);
+const selectedEvent = ref<Events | null>(null);
 const isDeleteOpen = ref(false);
 const { loading } = useStudentData();
 
@@ -32,15 +32,18 @@ const isGalleryOpen = ref(false);
 const galleryImages = ref<EventGalleryImage[]>([]);
 const galleryStartIndex = ref(0);
 
-const buildGallery = (evt: Event): EventGalleryImage[] => [{ id: -1, url: evt.banner_image }, ...(evt.images ?? [])];
+const buildGallery = (evt: Events, mode: 'banner' | 'gallery' = 'gallery'): EventGalleryImage[] => {
+    if (mode === 'banner') return [{ id: -1, url: evt.banner_image }];
+    return evt.images ?? [];
+};
 
-const openGallery = (evt: Event, startIndex = 0) => {
-    galleryImages.value = buildGallery(evt);
+const openGallery = (evt: Events, mode: 'banner' | 'gallery' = 'gallery', startIndex = 0) => {
+    galleryImages.value = buildGallery(evt, mode);
     galleryStartIndex.value = startIndex;
     isGalleryOpen.value = true;
 };
 
-const columns: ColumnDef<Event>[] = [
+const columns: ColumnDef<Events>[] = [
     { accessorKey: 'id', header: 'ID', cell: ({ row }) => h('div', { class: 'font-medium' }, row.getValue('id')) },
     {
         id: 'image',
@@ -55,7 +58,7 @@ const columns: ColumnDef<Event>[] = [
                     src: evt.banner_image,
                     alt: evt.title,
                     class: 'h-14 w-20 rounded-md object-cover cursor-pointer transition hover:opacity-80',
-                    onClick: () => openGallery(evt, 0),
+                    onClick: () => openGallery(evt, 'banner', 0),
                 }),
                 extraCount > 0 &&
                     h(
@@ -106,8 +109,8 @@ const columns: ColumnDef<Event>[] = [
 
             return h(
                 Button,
-                { variant: 'outline', size: 'sm', class: 'h-8 cursor-pointer gap-1', onClick: () => openGallery(evt, 0) },
-                () => [h(Images, { class: 'h-4 w-4' }), `View all (${evt.images.length + 1})`],
+                { variant: 'outline', size: 'sm', class: 'h-8 cursor-pointer gap-1', onClick: () => openGallery(evt, 'gallery', 0) },
+                () => [h(Images, { class: 'h-4 w-4' }), `View all (${evt.images.length})`],
             );
         },
     },
@@ -141,11 +144,11 @@ const columns: ColumnDef<Event>[] = [
     },
 ];
 
-const handleEdit = (evt?: Event) => {
+const handleEdit = (evt?: Events) => {
     if (evt) router.get(route('events.edit', evt.id));
 };
 
-const handleDelete = (evt?: Event) => {
+const handleDelete = (evt?: Events) => {
     if (evt) {
         selectedEvent.value = evt;
         isDeleteOpen.value = true;

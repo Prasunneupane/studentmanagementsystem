@@ -25,6 +25,7 @@
  *   />
  */
 import { ref, computed, watch, onBeforeUnmount } from 'vue'
+import { router } from '@inertiajs/vue3'
 import { UploadCloud, X, Plus } from 'lucide-vue-next'
 import { cn } from '@/lib/utils'
 import 'vue-sonner/style.css';
@@ -36,10 +37,12 @@ interface ExistingImage {
   url: string
 }
 
+type ModelValue = File[] | File | ExistingImage[] | ExistingImage | string[] | string | null
+
 const props = withDefaults(
   defineProps<{
-    /** v-model — the raw File objects the user just picked/dropped */
-    modelValue: File[] | File | null
+    /** v-model — raw File objects, URL strings, or existing image objects */
+    modelValue: ModelValue
     /** allow more than one image */
     multiple?: boolean
     /** cap on total images (existing + new). undefined = no cap */
@@ -50,6 +53,12 @@ const props = withDefaults(
     accept?: string
     /** already-uploaded images, e.g. when editing an event */
     existingImages?: ExistingImage[]
+    /** URL to call when a newly selected file is removed */
+    removeUrl?: string
+    /** HTTP method used for the remove request */
+    removeMethod?: 'DELETE' | 'POST' | 'PUT' | 'PATCH'
+    /** Optional custom delete handler; receives the item being removed */
+    onRemove?: (payload: { index: number; item: File | ExistingImage; url?: string }) => Promise<unknown> | unknown
     label?: string
     description?: string
     disabled?: boolean
@@ -60,6 +69,9 @@ const props = withDefaults(
     maxSizeMb: 5,
     accept: 'image/*',
     existingImages: () => [],
+    removeUrl: undefined,
+    removeMethod: 'DELETE',
+    onRemove: undefined,
     label: '',
     description: '',
     disabled: false,
@@ -67,7 +79,7 @@ const props = withDefaults(
 )
 
 const emit = defineEmits<{
-  (e: 'update:modelValue', value: File[] | File | null): void
+  (e: 'update:modelValue', value: ModelValue): void
   (e: 'remove-existing', id: string | number): void
   (e: 'error', message: string): void
 }>()
@@ -75,20 +87,54 @@ const emit = defineEmits<{
 const isDragging = ref(false)
 const inputRef = ref<HTMLInputElement | null>(null)
 
-/** Always work internally with an array, regardless of single/multiple mode */
-const files = ref<File[]>(
-  Array.isArray(props.modelValue) ? props.modelValue : props.modelValue ? [props.modelValue] : []
-)
+function normalizeExistingImages(value: ModelValue): ExistingImage[] {
+  const result: ExistingImage[] = []
 
-// keep internal array in sync if parent resets modelValue externally (e.g. form.reset())
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      if (typeof item === 'string' && item.trim()) {
+        result.push({ id: item, url: item })
+        continue
+      }
+
+      if (item && typeof item === 'object' && 'url' in item && typeof item.url === 'string' && item.url.trim()) {
+        result.push({
+          id: 'id' in item && item.id != null ? String(item.id) : item.url,
+          url: item.url,
+        })
+      }
+    }
+
+    return result
+  }
+
+  if (typeof value === 'string' && value.trim()) {
+    return [{ id: value, url: value }]
+  }
+
+  if (value && typeof value === 'object' && 'url' in value && typeof value.url === 'string' && value.url.trim()) {
+    return [{ id: 'id' in value && value.id != null ? String(value.id) : value.url, url: value.url }]
+  }
+
+  return result
+}
+
+/** Always work internally with an array, regardless of single/multiple mode */
+const files = ref<File[]>([])
+
 watch(
   () => props.modelValue,
   (val) => {
-    const next = Array.isArray(val) ? val : val ? [val] : []
-    if (next.length === 0 && files.value.length !== 0) {
-      files.value = []
-    }
-  }
+    const nextFiles = Array.isArray(val)
+      ? val.filter((item): item is File => item instanceof File)
+      : val instanceof File
+        ? [val]
+        : []
+
+    // keep the file list synced with the parent payload, but keep URL previews separate
+    files.value = nextFiles
+  },
+  { immediate: true }
 )
 
 interface Preview {
@@ -107,7 +153,18 @@ onBeforeUnmount(() => {
   previews.value.forEach((p) => URL.revokeObjectURL(p.url))
 })
 
-const totalCount = computed(() => props.existingImages.length + files.value.length)
+const modelExistingImages = computed(() => normalizeExistingImages(props.modelValue))
+const totalExistingImages = computed(() => {
+  const map = new Map<string, ExistingImage>()
+
+  for (const image of [...props.existingImages, ...modelExistingImages.value]) {
+    map.set(String(image.id), image)
+  }
+
+  return [...map.values()]
+})
+
+const totalCount = computed(() => totalExistingImages.value.length + files.value.length)
 
 const canAddMore = computed(() => {
   if (totalCount.value === 0) return false // handled by the big empty-state prompt instead
@@ -153,7 +210,35 @@ function addFiles(fileList: FileList | File[]) {
   }
 }
 
-function removeFile(index: number) {
+async function removeFile(index: number) {
+  const item = files.value[index]
+  if (!item) return
+
+  try {
+    if (props.onRemove) {
+      await props.onRemove({ index, item, url: props.removeUrl })
+    } else if (props.removeUrl) {
+      await new Promise<void>((resolve, reject) => {
+        router.delete(props.removeUrl!, {
+          data: {
+            index,
+            fileName: item.name,
+          },
+          preserveScroll: true,
+          onSuccess: () => resolve(),
+          onError: (errors) => {
+            console.error(errors)
+            reject(new Error('Delete request failed'))
+          },
+        })
+      })
+    }
+  } catch (error) {
+    console.error('Failed to delete file:', error)
+    emit('error', 'Failed to delete image. Please try again.')
+    return
+  }
+
   files.value.splice(index, 1)
   rebuildPreviews()
   emitUpdate()
@@ -210,17 +295,18 @@ function openFileDialog() {
       <div v-else class="flex flex-wrap gap-2 p-3">
         <!-- already-uploaded images (edit mode) -->
         <div
-          v-for="img in existingImages"
+          v-for="img in totalExistingImages"
           :key="`existing-${img.id}`"
-          class="group relative h-16 w-16 shrink-0 overflow-hidden rounded-md border"
+          class="group relative h-16 w-16 shrink-0 overflow-visible rounded-md border"
         >
           <img :src="img.url" class="h-full w-full object-cover" alt="Uploaded image" />
           <button
+            v-if="multiple"
             type="button"
-            class="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-destructive-foreground shadow"
+            class="absolute -right-2 -top-2 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground shadow-md ring-2 ring-background"
             @click.stop="emit('remove-existing', img.id)"
           >
-            <X class="h-2.5 w-2.5" />
+            <X class="h-3 w-3" />
           </button>
         </div>
 
@@ -228,15 +314,16 @@ function openFileDialog() {
         <div
           v-for="(preview, index) in previews"
           :key="preview.url"
-          class="group relative h-16 w-16 shrink-0 overflow-hidden rounded-md border"
+          class="group relative h-16 w-16 shrink-0 overflow-visible rounded-md border"
         >
           <img :src="preview.url" class="h-full w-full object-cover" :alt="preview.file.name" />
           <button
+            v-if="multiple"
             type="button"
-            class="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-destructive-foreground shadow"
+            class="absolute -right-2 -top-2 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground shadow-md ring-2 ring-background"
             @click.stop="removeFile(index)"
           >
-            <X class="h-2.5 w-2.5" />
+            <X class="h-3 w-3" />
           </button>
         </div>
 

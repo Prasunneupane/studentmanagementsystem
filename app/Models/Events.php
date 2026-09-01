@@ -9,12 +9,18 @@ class Events extends Model
 {
     protected $table = 'tbl_events';
 
-    // protected $fillable = [
-    //     'name',
-    //     'description',
-    //     'event_date',
-    //     'is_active',
-    // ];
+    protected $fillable = [
+        'title',
+        'description',
+        'start_date',
+        'end_date',
+        'location',
+        'event_type',
+        'status',
+        'banner_image',
+        'created_by',
+        'is_active',
+    ];
 
     // Automatically casts string to Enum
     protected $casts = [

@@ -8,11 +8,11 @@ class EventsGallery extends Model
 {
     protected $table = 'tbl_event_gallery';
 
-    // protected $fillable = [
-    //     'event_id',
-    //     'image_path',
-    //     'caption',
-    // ];
+    protected $fillable = [
+        'event_id',
+        'image_path',
+        'is_active',
+    ];
 
     public function event()
     {

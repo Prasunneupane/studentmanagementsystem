@@ -5,8 +5,6 @@ namespace App\Services;
 use App\Enums\EventCategory;
 use App\Enums\EventStatus;
 use App\Interface\EventsInterface;
-use App\Models\Event;
-use App\Models\EventGallery;
 use App\Models\Events;
 use App\Models\EventsGallery;
 use DB;
@@ -62,19 +60,19 @@ class EventsService implements EventsInterface
 
         try {
             $bannerPath = null;
-            if (isset($eventData['banner_image']) && $eventData['banner_image'] instanceof UploadedFile) {
+            if (isset($eventData['banner_image']) && $eventData['banner_image'] instanceof \Illuminate\Http\UploadedFile) {
                 $bannerPath = $eventData['banner_image']->store('events/banner', 'public');
                 $uploadedFiles[] = $bannerPath;
             }
             $eventData['banner_image'] = $bannerPath;
             $eventData['is_active'] = true; // default to active on creation
             $eventData['created_by'] = auth()->id(); // assuming you want to track who created the event
-            dd($eventData);
+            // dd($eventData);
             $event = Events::create([...$eventData]); // as before
 
             if (!empty($eventData['gallery_images']) && is_array($eventData['gallery_images'])) {
                 foreach ($eventData['gallery_images'] as $image) {
-                    if ($image instanceof UploadedFile) {
+                    if ($image instanceof \Illuminate\Http\UploadedFile) {
                         $galleryPath = $image->store('events/gallery', 'public');
                         $uploadedFiles[] = $galleryPath;
                         $this->eventGallery->create([
@@ -211,7 +209,7 @@ class EventsService implements EventsInterface
             return asset('images/default-banner.jpg');
         }
 
-        return asset('storage/events/' . $path);
+        return asset('storage/' . $path);
     }
 
     public function getStatusOptions(): array

@@ -63,17 +63,28 @@ class EventsController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(Events $events)
+    public function edit(Events $event)
     {
-        //
+        $events = $this->eventsService->getEventsById($event->id);
+        $statusOptions = $this->eventsService->getStatusOptions();
+        $eventTypeOptions = $this->eventsService->getEventTypeOptions();
+        return Inertia::render('events/Edit', [
+            'event' => $events,
+            'statusOptions' => $statusOptions,
+            'eventTypeOptions' => $eventTypeOptions,
+        ]);
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Events $events)
+    public function update(
+        //EventRequest $request, Events $events
+        )
     {
-        //
+        // $validatedData = $request->validated();
+        // $this->eventsService->updateEvent($events, $validatedData);
+        // return redirect()->route('events.index')->with('success', 'Event updated successfully.');
     }
 
     /**

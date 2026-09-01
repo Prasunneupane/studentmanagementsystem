@@ -67,7 +67,7 @@ export interface EventGalleryImage {
     url: string;
 }
 
-export interface Event {
+export interface Events {
     id: number;
     title: string;
     description?: string;
@@ -77,7 +77,7 @@ export interface Event {
     event_type?: string;
     status: string;
     banner_image: string;
-    is_active: number;
+    is_active: boolean;
     images: EventGalleryImage[];
 }
 
