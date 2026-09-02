@@ -9,6 +9,8 @@ use App\Models\Events;
 use App\Services\EventsService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\Storage;
+use App\Models\EventsGallery;
 
 class EventsController extends Controller
 {
@@ -78,13 +80,32 @@ class EventsController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(
-        //EventRequest $request, Events $events
-        )
+    public function update(StoreEventRequest $request, Events $event)
     {
-        // $validatedData = $request->validated();
-        // $this->eventsService->updateEvent($events, $validatedData);
-        // return redirect()->route('events.index')->with('success', 'Event updated successfully.');
+        $this->eventsService->updateEvent($event->id, $request->validated());
+        return redirect()->route('events.index')->with('success', 'Event updated successfully.');
+    }
+
+    public function destroyGallery(EventsGallery $gallery)
+    {
+        abort_unless($gallery->is_active, 404);
+
+        $gallery->update(['is_active' => false]);
+        if (Storage::disk('public')->exists($gallery->image_path)) {
+            Storage::disk('public')->delete($gallery->image_path);
+        }
+
+        return back();
+    }
+
+    public function destroyBanner(Events $event)
+    {
+        if ($event->banner_image && Storage::disk('public')->exists($event->banner_image)) {
+            Storage::disk('public')->delete($event->banner_image);
+        }
+
+        $event->update(['banner_image' => null]);
+        return back();
     }
 
     /**

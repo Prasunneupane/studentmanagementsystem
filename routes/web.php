@@ -347,6 +347,8 @@ Route::middleware(['auth'])->group(function () {
         Route::middleware(['permission:events.edit'])->group(function () {
             Route::get('/edit/{event}', [EventsController::class, 'edit'])->name('edit');
             Route::put('/update/{event}', [EventsController::class, 'update'])->name('update');
+            Route::delete('/gallery/{gallery}', [EventsController::class, 'destroyGallery'])->name('gallery.destroy');
+            Route::delete('/{event}/banner', [EventsController::class, 'destroyBanner'])->name('banner.destroy');
             Route::get('/assign-permission/{event}', [EventsController::class, 'assign_permission'])->name('assign_permissions');
             Route::post('/permissions/assign', [EventsController::class, 'assignPermissions'])->name('permissions.assign');
         });

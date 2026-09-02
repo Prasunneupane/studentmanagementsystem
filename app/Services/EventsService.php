@@ -120,8 +120,12 @@ class EventsService implements EventsInterface
             $updateData['end_date'] = $eventData['end_date'];
         if (array_key_exists('location', $eventData))
             $updateData['location'] = $eventData['location'];
-        if (array_key_exists('banner_image', $eventData))
-            $updateData['banner_image'] = $eventData['banner_image'];
+        if (isset($eventData['banner_image']) && $eventData['banner_image'] instanceof \Illuminate\Http\UploadedFile) {
+            if ($event->banner_image && Storage::disk('public')->exists($event->banner_image)) {
+                Storage::disk('public')->delete($event->banner_image);
+            }
+            $updateData['banner_image'] = $eventData['banner_image']->store('events/banner', 'public');
+        }
         if (array_key_exists('is_active', $eventData))
             $updateData['is_active'] = $eventData['is_active'];
 
@@ -149,10 +153,14 @@ class EventsService implements EventsInterface
         $event->update($updateData);
 
         if (!empty($eventData['gallery_images']) && is_array($eventData['gallery_images'])) {
-            foreach ($eventData['gallery_images'] as $path) {
+            foreach ($eventData['gallery_images'] as $image) {
+                if (!$image instanceof \Illuminate\Http\UploadedFile) {
+                    continue;
+                }
+
                 $this->eventGallery->create([
                     'event_id' => $event->id,
-                    'image_path' => $path,
+                    'image_path' => $image->store('events/gallery', 'public'),
                     'is_active' => true,
                 ]);
             }

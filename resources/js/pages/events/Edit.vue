@@ -10,7 +10,7 @@
  * sending files). Adjust the route name / field names to match
  * your EventController.
  */
-import { useForm,Link } from '@inertiajs/vue3'
+import { useForm, Link } from '@inertiajs/vue3'
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -41,9 +41,11 @@ const form = useForm({
     end_date: props.event.end_date || new Date().toISOString().split('T')[0], // default to today
     description: props.event.description,
     location: props.event.location,
-    banner_image: props.event.banner_image || null as File | null,
-    gallery_images: (props.event.images ?? []).map((image) => image.url) as string[],
+    banner_image: null as File | null,
+    gallery_images: [] as File[],
 })
+const existingBannerImages = props.event.banner_image ? [{ id: props.event.id, url: props.event.banner_image }] : []
+const existingGalleryImages = props.event.images ?? []
 const breadcrumbs = [{ title: 'Events', href: '/events' }];
 
 function handleUploadError(message: string) {
@@ -51,11 +53,11 @@ function handleUploadError(message: string) {
 }
 
 function submit() {
-    form.post(route('events.store'), {
+    form.transform((data) => ({ ...data, _method: 'put' })).post(route('events.update', props.event.id), {
         forceFormData: true, // required since we have files in the payload
-        onSuccess: () => form.reset(),
     })
 }
+
 </script>
 
 <template>
@@ -138,6 +140,8 @@ function submit() {
                             <div class="space-y-2">
                                 <!-- Main image: single only -->
                                 <ImageDropzone v-model="form.banner_image" :multiple="false" label="Banner image"
+                                    :existing-images="existingBannerImages"
+                                    :remove-existing-url="(id) => route('events.banner.destroy', id)"
                                     description="This is the banner image for the event"
                                     @error="handleUploadError" />
                                 <p v-if="form.errors.banner_image" class="text-sm text-destructive">
@@ -147,6 +151,8 @@ function submit() {
                             <div class="space-y-2">
                                 <!-- Gallery: multiple images -->
                                 <ImageDropzone v-model="form.gallery_images" :multiple="true" :max-files="10"
+                                    :existing-images="existingGalleryImages"
+                                    :remove-existing-url="(id) => route('events.gallery.destroy', id)"
                                     label="Event images" description="Add photos for the event gallery"
                                     @error="handleUploadError" />
                                 <p v-if="form.errors.gallery_images" class="text-sm text-destructive">

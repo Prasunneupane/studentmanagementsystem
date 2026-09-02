@@ -33,9 +33,9 @@ class StoreEventRequest extends FormRequest
             'location' => 'nullable|string|max:255',
             'status' => ['required', new Enum(EventStatus::class)], //  Check enum cases
             'event_type' => ['required', new Enum(EventCategory::class)], //  Check your enum cases
-            'banner_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'banner_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120',
             'gallery_images' => 'nullable|array',
-            'gallery_images.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
+            'gallery_images.*' => 'image|mimes:jpeg,png,jpg,gif|max:5120',
         ];
     }
 }

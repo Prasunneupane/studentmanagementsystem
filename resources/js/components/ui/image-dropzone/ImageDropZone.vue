@@ -7,8 +7,7 @@
  * - Works for single OR multiple images (controlled by `multiple` prop)
  * - Previews render INSIDE the dropzone box as small thumbnails with an X
  * - Also supports showing already-uploaded images (edit forms) via
- *   `existingImages`, which can be removed independently (emits
- *   `remove-existing` so the parent can call an API / mark for deletion)
+ *   `existingImages`, which are kept separate from pending File objects.
  *
  * Usage (create form, single image):
  *   <ImageDropzone v-model="form.image" :multiple="false" label="Main image" />
@@ -21,7 +20,7 @@
  *     v-model="form.newImages"
  *     :multiple="true"
  *     :existing-images="existingImages"
- *     @remove-existing="onRemoveExisting"
+ *     :remove-existing-url="(id) => route('events.gallery.destroy', id)"
  *   />
  */
 import { ref, computed, watch, onBeforeUnmount } from 'vue'
@@ -55,6 +54,8 @@ const props = withDefaults(
     existingImages?: ExistingImage[]
     /** URL to call when a newly selected file is removed */
     removeUrl?: string
+    /** Build the URL used to remove an already-uploaded image */
+    removeExistingUrl?: (id: string | number) => string
     /** HTTP method used for the remove request */
     removeMethod?: 'DELETE' | 'POST' | 'PUT' | 'PATCH'
     /** Optional custom delete handler; receives the item being removed */
@@ -70,6 +71,7 @@ const props = withDefaults(
     accept: 'image/*',
     existingImages: () => [],
     removeUrl: undefined,
+    removeExistingUrl: undefined,
     removeMethod: 'DELETE',
     onRemove: undefined,
     label: '',
@@ -122,21 +124,6 @@ function normalizeExistingImages(value: ModelValue): ExistingImage[] {
 /** Always work internally with an array, regardless of single/multiple mode */
 const files = ref<File[]>([])
 
-watch(
-  () => props.modelValue,
-  (val) => {
-    const nextFiles = Array.isArray(val)
-      ? val.filter((item): item is File => item instanceof File)
-      : val instanceof File
-        ? [val]
-        : []
-
-    // keep the file list synced with the parent payload, but keep URL previews separate
-    files.value = nextFiles
-  },
-  { immediate: true }
-)
-
 interface Preview {
   url: string
   file: File
@@ -148,6 +135,22 @@ function rebuildPreviews() {
   previews.value.forEach((p) => URL.revokeObjectURL(p.url))
   previews.value = files.value.map((file) => ({ file, url: URL.createObjectURL(file) }))
 }
+
+watch(
+  () => props.modelValue,
+  (val) => {
+    const nextFiles = Array.isArray(val)
+      ? val.filter((item): item is File => item instanceof File)
+      : val instanceof File
+        ? [val]
+        : []
+
+    // keep the file list synced with the parent payload, but keep URL previews separate
+    files.value = nextFiles
+    rebuildPreviews()
+  },
+  { immediate: true }
+)
 
 onBeforeUnmount(() => {
   previews.value.forEach((p) => URL.revokeObjectURL(p.url))
@@ -164,7 +167,12 @@ const totalExistingImages = computed(() => {
   return [...map.values()]
 })
 
-const totalCount = computed(() => totalExistingImages.value.length + files.value.length)
+const removedExistingIds = ref<Set<string>>(new Set())
+const visibleExistingImages = computed(() =>
+  totalExistingImages.value.filter((image) => !removedExistingIds.value.has(String(image.id)))
+)
+
+const totalCount = computed(() => visibleExistingImages.value.length + files.value.length)
 
 const canAddMore = computed(() => {
   if (totalCount.value === 0) return false // handled by the big empty-state prompt instead
@@ -214,16 +222,18 @@ async function removeFile(index: number) {
   const item = files.value[index]
   if (!item) return
 
+  files.value.splice(index, 1)
+  rebuildPreviews()
+  emitUpdate()
+}
+
+async function removeExistingImage(image: ExistingImage) {
+  if (props.disabled) return
+
   try {
-    if (props.onRemove) {
-      await props.onRemove({ index, item, url: props.removeUrl })
-    } else if (props.removeUrl) {
+    if (props.removeExistingUrl) {
       await new Promise<void>((resolve, reject) => {
-        router.delete(props.removeUrl!, {
-          data: {
-            index,
-            fileName: item.name,
-          },
+        router.delete(props.removeExistingUrl!(image.id), {
           preserveScroll: true,
           onSuccess: () => resolve(),
           onError: (errors) => {
@@ -232,16 +242,15 @@ async function removeFile(index: number) {
           },
         })
       })
+    } else {
+      emit('remove-existing', image.id)
     }
-  } catch (error) {
-    console.error('Failed to delete file:', error)
-    emit('error', 'Failed to delete image. Please try again.')
-    return
-  }
 
-  files.value.splice(index, 1)
-  rebuildPreviews()
-  emitUpdate()
+    removedExistingIds.value.add(String(image.id))
+  } catch (error) {
+    console.error('Failed to delete existing image:', error)
+    emit('error', 'Failed to delete image. Please try again.')
+  }
 }
 
 function onDrop(e: DragEvent) {
@@ -295,7 +304,7 @@ function openFileDialog() {
       <div v-else class="flex flex-wrap gap-2 p-3">
         <!-- already-uploaded images (edit mode) -->
         <div
-          v-for="img in totalExistingImages"
+          v-for="img in visibleExistingImages"
           :key="`existing-${img.id}`"
           class="group relative h-16 w-16 shrink-0 overflow-visible rounded-md border"
         >
@@ -304,7 +313,7 @@ function openFileDialog() {
             v-if="multiple"
             type="button"
             class="absolute -right-2 -top-2 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground shadow-md ring-2 ring-background"
-            @click.stop="emit('remove-existing', img.id)"
+            @click.stop="removeExistingImage(img)"
           >
             <X class="h-3 w-3" />
           </button>
