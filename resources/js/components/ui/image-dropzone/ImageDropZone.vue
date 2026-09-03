@@ -168,9 +168,11 @@ const totalExistingImages = computed(() => {
 })
 
 const removedExistingIds = ref<Set<string>>(new Set())
-const visibleExistingImages = computed(() =>
-  totalExistingImages.value.filter((image) => !removedExistingIds.value.has(String(image.id)))
-)
+const visibleExistingImages = computed(() => {
+  if (!props.multiple && files.value.length > 0) return []
+
+  return totalExistingImages.value.filter((image) => !removedExistingIds.value.has(String(image.id)))
+})
 
 const totalCount = computed(() => visibleExistingImages.value.length + files.value.length)
 
