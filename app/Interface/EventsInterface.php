@@ -13,4 +13,8 @@ interface EventsInterface
     public function getStatusOptions(): array;
     public function getEventTypeOptions(): array;
 
+    public function deleteGalleryImage($gallery): void;
+
+    public function deleteBannerImage($event): void;
+
 }

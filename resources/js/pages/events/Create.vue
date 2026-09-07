@@ -22,7 +22,9 @@ import { toast } from 'vue-sonner' // swap for whatever toast lib you use, or dr
 import { Toaster } from '@/components/ui/sonner';
 import CustomSelect from '../CustomSelect.vue';
 import DatePicker from '@/components/ui/customdatepicker/CustomDatePicker.vue';
-
+import { usePermission } from '@/composables/usePermissions';
+import { Eye } from 'lucide-vue-next';
+const { can } = usePermission();
 const props = defineProps<{
     statusOptions: { value: string; label: string }[],
     eventTypeOptions: { value: string; label: string }[],
@@ -61,13 +63,22 @@ function submit() {
         <Toaster />
         <div class="flex h-full w-full flex-1 flex-col gap-4 rounded-xl p-4">
             <Card class="w-full rounded-2xl shadow-lg">
-                <form @submit.prevent="submit">
-                    <CardHeader>
-                        <CardTitle>Create Event</CardTitle>
-                        <CardDescription>Fill in the event details and upload images.</CardDescription>
-                    </CardHeader>
 
-                    <CardContent class="space-y-6">
+                <CardHeader class="flex flex-row items-center justify-between">
+                    <div>
+                        <CardTitle>Edit Event</CardTitle>
+                        <CardDescription>
+                            Update Events details and images below. Make sure to fill in all required fields.
+                        </CardDescription>
+                    </div>
+                    <Button as-child>
+                        <Link :href="route('events.index')">
+                        <Eye class="mr-2 h-4 w-4" /> View Events </Link>
+                    </Button>
+                </CardHeader>
+
+                <CardContent class="space-y-6">
+                    <form @submit.prevent="submit">
                         <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
                             <div class="space-y-2">
                                 <Label for="title">Title</Label>
@@ -93,8 +104,7 @@ function submit() {
 
                             <div class="space-y-2">
                                 <Label for="event_type">Event Start Date</Label>
-                                <DatePicker id="start_date" v-model="form.start_date"
-                                    placeholder="Event start date" />
+                                <DatePicker id="start_date" v-model="form.start_date" placeholder="Event start date" />
                                 <p v-if="form.errors.start_date" class="text-sm text-destructive">{{
                                     form.errors.start_date }}</p>
                             </div>
@@ -102,33 +112,31 @@ function submit() {
                                 <Label for="location">Location</Label>
                                 <Input id="location" v-model="form.location" placeholder="Event location" />
                                 <p v-if="form.errors.location" class="text-sm text-destructive">{{ form.errors.location
-                                    }}</p>
+                                }}</p>
                             </div>
 
 
                             <div class="space-y-2">
                                 <Label for="event_type">Event End Date</Label>
-                                <DatePicker id="end_date" v-model="form.end_date"
-                                    placeholder="Event end date" />
+                                <DatePicker id="end_date" v-model="form.end_date" placeholder="Event end date" />
                                 <p v-if="form.errors.end_date" class="text-sm text-destructive">{{
                                     form.errors.end_date }}</p>
                             </div>
 
                         </div>
                         <div class="space-y-2">
-                                    <Label for="description">Description</Label>
-                                    <Textarea id="description" v-model="form.description"
-                                        placeholder="Event description" rows="4" />
-                                    <p v-if="form.errors.description" class="text-sm text-destructive">
-                                        {{ form.errors.description }}
-                                    </p>
-                                </div>
+                            <Label for="description">Description</Label>
+                            <Textarea id="description" v-model="form.description" placeholder="Event description"
+                                rows="4" />
+                            <p v-if="form.errors.description" class="text-sm text-destructive">
+                                {{ form.errors.description }}
+                            </p>
+                        </div>
                         <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
                             <div class="space-y-2">
                                 <!-- Main image: single only -->
                                 <ImageDropzone v-model="form.banner_image" :multiple="false" label="Banner image"
-                                    description="This is the banner image for the event"
-                                    @error="handleUploadError" />
+                                    description="This is the banner image for the event" @error="handleUploadError" />
                                 <p v-if="form.errors.banner_image" class="text-sm text-destructive">
                                     {{ form.errors.banner_image }}
                                 </p>
@@ -142,26 +150,26 @@ function submit() {
                                     {{ form.errors.gallery_images }}
                                 </p>
                             </div>
-                            </div>
+                        </div>
 
-                            <!-- <div class="grid grid-cols-1 gap-6 md:grid-cols-2"> -->
-                                
-                            <!-- </div> -->
-                    </CardContent>
-                    <br>
-                    <CardFooter class="justify-end gap-6">
-                    <div class="flex justify-between gap-3 border-t px-6 py-4">
-                        
-                            <Button type="button" variant="outline" :disabled="form.processing" @click="form.reset()">
-                                Reset
-                            </Button>
-                            <Button type="submit" :disabled="form.processing">
-                                {{ form.processing ? 'Saving...' : 'Create Event' }}
-                            </Button>
-                       
-                    </div>
-                    </CardFooter>
-                </form>
+                        <CardFooter class="justify-end gap-6">
+                            <div class="flex justify-between gap-3 border-t px-6 py-4">
+
+                                <Button type="button" variant="outline" :disabled="form.processing"
+                                    @click="form.reset()">
+                                    Reset
+                                </Button>
+                                <Button type="submit" :disabled="form.processing">
+                                    {{ form.processing ? 'Saving...' : 'Create Event' }}
+                                </Button>
+
+                            </div>
+                        </CardFooter>
+                    </form>
+                </CardContent>
+
+
+
             </Card>
         </div>
     </AppLayout>

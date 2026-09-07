@@ -24,6 +24,7 @@ import CustomSelect from '../CustomSelect.vue';
 import DatePicker from '@/components/ui/customdatepicker/CustomDatePicker.vue';
 import {Events} from '../../composables/fetchData'
 import { Eye, Loader2 } from 'lucide-vue-next';
+import { Checkbox } from '@/components/ui/checkbox';
 
 
 const props = defineProps<{
@@ -43,6 +44,7 @@ const form = useForm({
     location: props.event.location,
     banner_image: null as File | null,
     gallery_images: [] as File[],
+    is_active: props.event.is_active ? true:false,
 })
 const existingBannerImages = props.event.banner_image ? [{ id: props.event.id, url: props.event.banner_image }] : []
 const existingGalleryImages = props.event.images ?? []
@@ -127,7 +129,13 @@ function submit() {
                                     form.errors.end_date }}</p>
                             </div>
 
+                            <div class="space-y-2">
+                                <Label for="event_type">Is Active</Label>
+                                <Checkbox id="is_active"v-model="form.is_active" />
+                            </div>
+
                         </div>
+                        <br>
                         <div class="space-y-2">
                                     <Label for="description">Description</Label>
                                     <Textarea id="description" v-model="form.description"

@@ -36,6 +36,7 @@ class StoreEventRequest extends FormRequest
             'banner_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120',
             'gallery_images' => 'nullable|array',
             'gallery_images.*' => 'image|mimes:jpeg,png,jpg,gif|max:5120',
+            'is_active' => 'boolean:default,true',
         ];
     }
 }

@@ -88,23 +88,13 @@ class EventsController extends Controller
 
     public function destroyGallery(EventsGallery $gallery)
     {
-        abort_unless($gallery->is_active, 404);
-
-        $gallery->update(['is_active' => false]);
-        if (Storage::disk('public')->exists($gallery->image_path)) {
-            Storage::disk('public')->delete($gallery->image_path);
-        }
-
+        $this->eventsService->deleteGalleryImage($gallery);
         return back();
     }
 
     public function destroyBanner(Events $event)
     {
-        if ($event->banner_image && Storage::disk('public')->exists($event->banner_image)) {
-            Storage::disk('public')->delete($event->banner_image);
-        }
-
-        $event->update(['banner_image' => null]);
+        $this->eventsService->deleteBannerImage($event);
         return back();
     }
 
@@ -113,6 +103,7 @@ class EventsController extends Controller
      */
     public function destroy(Events $events)
     {
-        //
+        $this->eventsService->deleteEvent($events->id);
+        return redirect()->route('events.index')->with('success', 'Event deleted successfully.');
     }
 }

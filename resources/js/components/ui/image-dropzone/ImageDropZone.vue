@@ -314,9 +314,10 @@ function openFileDialog() {
           <button
             v-if="multiple"
             type="button"
-            class="absolute -right-2 -top-2 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground shadow-md ring-2 ring-background"
+            class="absolute -right-2 -top-2 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-destructive mouse-none"
             @click.stop="removeExistingImage(img)"
           >
+          
             <X class="h-3 w-3" />
           </button>
         </div>
@@ -331,7 +332,7 @@ function openFileDialog() {
           <button
             v-if="multiple"
             type="button"
-            class="absolute -right-2 -top-2 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground shadow-md ring-2 ring-background"
+            class="absolute -right-2 -top-2 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-destructive "
             @click.stop="removeFile(index)"
           >
             <X class="h-3 w-3" />

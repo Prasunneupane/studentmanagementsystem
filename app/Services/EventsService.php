@@ -65,7 +65,7 @@ class EventsService implements EventsInterface
                 $uploadedFiles[] = $bannerPath;
             }
             $eventData['banner_image'] = $bannerPath;
-            $eventData['is_active'] = true; // default to active on creation
+            // $eventData['is_active'] = true; // default to active on creation
             $eventData['created_by'] = auth()->id(); // assuming you want to track who created the event
             // dd($eventData);
             $event = Events::create([...$eventData]); // as before
@@ -234,5 +234,27 @@ class EventsService implements EventsInterface
             'value' => $type->value,
             'label' => ucfirst($type->label()),
         ], EventCategory::cases());
+    }
+
+    public function deleteGalleryImage($gallery): void
+    {
+
+        abort_unless($gallery->is_active, 404);
+
+        $gallery->update(['is_active' => false]);
+        if (Storage::disk('public')->exists($gallery->image_path)) {
+            Storage::disk('public')->delete($gallery->image_path);
+        }
+    }
+
+    public function deleteBannerImage($event): void
+    {
+        abort_unless($event->is_active, 404);
+
+        if ($event->banner_image && Storage::disk('public')->exists($event->banner_image)) {
+            Storage::disk('public')->delete($event->banner_image);
+        }
+
+        $event->update(['banner_image' => null]);
     }
 }
