@@ -79,7 +79,7 @@ function submit() {
 
                 <CardContent class="space-y-6">
                     <form @submit.prevent="submit">
-                        <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+                        <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
                             <div class="space-y-2">
                                 <Label for="title">Title</Label>
                                 <Input id="title" v-model="form.title" placeholder="Event title" />
@@ -124,6 +124,7 @@ function submit() {
                             </div>
 
                         </div>
+                        <br>
                         <div class="space-y-2">
                             <Label for="description">Description</Label>
                             <Textarea id="description" v-model="form.description" placeholder="Event description"
