@@ -27,42 +27,7 @@ class StudentService implements StudentServiceInterface
 
     public function createStudent(array $data, int $userId): Students
     {
-        // Validate required fields
-        $requiredFields = [
-            'fName' => 'First name is required',
-            'lName' => 'Last name is required',
-            'phone' => 'Phone number is required',
-            'age' => 'Age is required',
-            'dateOfBirth' => 'Date of birth is required',
-            'classId' => 'Class is required',
-            // 'fatherName' => 'Father name is required',
-            // 'guardianName' => 'Guardian name is required',
-            'joinedDate' => 'Joined date is required',
-            'stateId' => 'State is required',
-        ];
-
-        foreach ($requiredFields as $field => $message) {
-            if (empty($data[$field])) {
-                throw ValidationException::withMessages([$field => $message]);
-            }
-        }
-
-        // Validate age
-        $age = (int) $data['age'];
-        if ($age < 1 || $age > 100) {
-            throw ValidationException::withMessages(['age' => 'Age must be between 1 and 100']);
-        }
-
-        // Validate phone
-        if (!preg_match('/^\d{10}$/', $data['phone'])) {
-            throw ValidationException::withMessages(['phone' => 'Phone must be a valid 10-digit number']);
-        }
-
-        // Validate date formats
-        $dateRegex = '/^\d{4}-\d{2}-\d{2}$/';
-        if (!preg_match($dateRegex, $data['dateOfBirth']) || !preg_match($dateRegex, $data['joinedDate'])) {
-            throw ValidationException::withMessages(['date' => 'Invalid date format']);
-        }
+        
 
         // Prepare data for repository
         $studentData = [
@@ -71,7 +36,7 @@ class StudentService implements StudentServiceInterface
             'last_name' => $data['lName'],
             'email' => $data['email'] ?? null,
             'phone' => $data['phone'],
-            'age' => $age,
+            'age' => $data['age'],
             'date_of_birth' => $data['dateOfBirth'],
             'class_id' => $data['classId'],
             'section_id' => $data['sectionId'] ?? null,

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Students\StudentsCreateRequest;
 use App\Models\Guardian;
 use App\Models\Students;
 use App\Transformers\CommonTransformers;
@@ -102,12 +103,13 @@ class StudentsController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(StudentsCreateRequest $request)
     {
         // dd($request->all());
+        $request->validated();
         try {
-            $userId = JWTAuth::user()->id; // Get authenticated user ID
-           $student =  $this->studentService->createStudent($request->all(), $userId);
+            $userId = JWTAuth::user()->id; 
+            $student =  $this->studentService->createStudent($request->all(), $userId);
            
             // Return an Inertia redirect with a flash message
             return Redirect::route('students.student_list') // Replace 'dashboard' with your target route
