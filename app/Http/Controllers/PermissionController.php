@@ -4,9 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Permission;
 use App\Models\Roles;
-use App\Repositories\Validation;
+use App\Http\Requests\Permission\PermissionRequest;
 use App\Services\PermissionServices;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class PermissionController extends Controller
@@ -15,14 +14,9 @@ class PermissionController extends Controller
      * Display a listing of the resource.
      */
     private $permissionServices;
-    private $dataValidation;
-    public function __construct(
-        PermissionServices $permissionServices,
-        Validation $validation
-    )
+    public function __construct(PermissionServices $permissionServices)
     {
-        $this->permissionServices = $permissionServices;  
-        $this->dataValidation = $validation;
+        $this->permissionServices = $permissionServices;
     }
     public function index()
     {
@@ -42,10 +36,9 @@ class PermissionController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(PermissionRequest $request)
     {
-        $request->validate($this->dataValidation->permissionValidationRules($request));
-        $createPermission = $this->permissionServices->createPermission($request->all());
+        $this->permissionServices->createPermission($request->validated());
         return redirect()->route('permissions.index')->with('success', 'Permission created successfully.');
     }
 
@@ -71,10 +64,9 @@ class PermissionController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Permission $permission)
+    public function update(PermissionRequest $request, Permission $permission)
     {
-        $request->validate($this->dataValidation->permissionUpdateValidationRules($request, $permission->id));
-        $updatePermission = $this->permissionServices->updatePermission($permission->id,$request->all());
+        $this->permissionServices->updatePermission($permission->id, $request->validated());
         return redirect()->route('permissions.index')->with('success', 'Permission updated successfully.');
     }
 

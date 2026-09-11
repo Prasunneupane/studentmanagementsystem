@@ -5,25 +5,20 @@ namespace App\Http\Controllers;
 use App\Interface\TermsInterface;
 use App\Interface\CommonServiceInterface;
 use App\Models\Terms;
-use App\Repositories\Validation;
-use Illuminate\Http\Request;
+use App\Http\Requests\Term\TermRequest;
 
 class TermsController extends Controller
 {
     protected TermsInterface $termsService;
     protected CommonServiceInterface $commonService;
 
-    protected $validation;
-
     public function __construct(
         TermsInterface $termsService,
-        CommonServiceInterface $commonService,
-        Validation $validation
+        CommonServiceInterface $commonService
     )
     {
         $this->termsService = $termsService;
         $this->commonService = $commonService;
-        $this->validation = $validation;
     }
     /**
      * Display a listing of the resource.
@@ -54,11 +49,11 @@ class TermsController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(TermRequest $request)
     {
         //  
         // dd($request);
-        $validatedData = $request->validate($this->validation->termValidationRules($request));
+        $validatedData = $request->validated();
         // dd($validatedData);
         $this->termsService->store($validatedData);
 
@@ -89,9 +84,9 @@ class TermsController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Terms $terms)
+    public function update(TermRequest $request, Terms $terms)
     {
-        $validatedData = $request->validate($this->validation->termUpdateValidationRules($request, $terms->id));
+        $validatedData = $request->validated();
         $this->termsService->update($validatedData, $terms->id);
 
         return redirect()->route('terms.index')->with('success', 'Term updated successfully.');

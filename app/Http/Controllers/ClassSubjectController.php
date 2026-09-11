@@ -10,7 +10,7 @@ use App\Models\Subject;
 use App\Models\Teacher;
 use App\Models\AcademicYear;
 use App\Models\Teachers;
-use App\Repositories\Validation;
+use App\Http\Requests\ClassSubject\ClassSubjectRequest;
 use App\Services\ClassSubjectService;
 use App\Services\StudentService;
 use DB;
@@ -23,16 +23,13 @@ class ClassSubjectController extends Controller
      * Display list of class-subject assignments
      */
     private $studentService;
-    private $validation;
     private $classSubjectService;
     public function __construct(
         StudentService $studentService,
-        Validation $validation,
         ClassSubjectService $classSubjectService
     )
     {   
         $this->studentService = $studentService;
-        $this->validation = $validation;
         $this->classSubjectService = $classSubjectService;
     }
     public function index(Request $request)
@@ -105,9 +102,9 @@ class ClassSubjectController extends Controller
      * 
      * somewhere we need to change all the file name from classSubject to class-subject because in inertia we are using class-subject but in controller we are using classSubject so we need to change all the file name to class-subject
      */
-    public function store(Request $request)
+    public function store(ClassSubjectRequest $request)
     {
-        $validated = $request->validate($this->validation->classSubjectValidationRules($request));
+        $validated = $request->validated();
 
         // dd($validated);
         // Validate pass_marks <= max_marks
@@ -163,9 +160,9 @@ class ClassSubjectController extends Controller
     /**
      * Update assignment
      */
-    public function update(Request $request, ClassSubject $classSubject)
+    public function update(ClassSubjectRequest $request, ClassSubject $classSubject)
     {
-        $validated = $request->validate($this->validation->classSubjectUpdateValidationRules($request, $classSubject->id));
+        $validated = $request->validated();
         if ($validated['pass_marks'] > $validated['max_marks']) {
             return back()->withErrors(['pass_marks' => 'Pass marks cannot exceed max marks']);
         }

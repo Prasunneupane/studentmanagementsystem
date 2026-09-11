@@ -3,8 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Students\StudentsCreateRequest;
+use App\Http\Requests\Students\StudentUpdateRequest;
 use App\Models\Guardian;
 use App\Models\Students;
+use App\Http\Requests\Student\StudentRequest;
+use App\Http\Requests\Guardian\GuardianRequest;
+use App\Http\Requests\Students\LoadByDateRangeRequest;
 use App\Transformers\CommonTransformers;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -134,17 +138,24 @@ class StudentsController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(Students $students)
+    public function edit(Students $student)
     {
-        //
+        $student->load(['class', 'section', 'state', 'district', 'municipality']);
+
+        return Inertia::render('students/StudentEdit', [
+            'student' => $this->transformers->studentListTransform(collect([$student]))[0],
+            'classes' => $this->studentService->getClassList(),
+            'states' => $this->studentService->getStateList(),
+        ]);
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update_student_by_student_id(Request $request, $student_id)
+    public function update_student_by_student_id(StudentUpdateRequest $request, $student_id)
     {
         // dd( JWTAuth::user()->id );
+        $request->validated();
         try {
             $userId = JWTAuth::user()->id; // Get authenticated user ID
             $student= $this->studentService->updateStudentById($student_id, $request->all());
@@ -184,7 +195,7 @@ class StudentsController extends Controller
 
     /**
      * Remove the specified resource from storage.
-     */
+    */
     public function destroy($id): JsonResponse
     {
         try {
@@ -231,26 +242,9 @@ class StudentsController extends Controller
 
     }
 
-    public function update(Request $request, Students $student)
+    public function update(StudentRequest $request, Students $student)
     {
-        $validated = $request->validate([
-            'first_name' => 'required|string|max:255',
-            'middle_name' => 'nullable|string|max:255',
-            'last_name' => 'required|string|max:255',
-            'email' => 'nullable|email|unique:students,email,' . $student->id,
-            'phone' => 'required|string|size:10',
-            'age' => 'required|integer|min:1|max:100',
-            'date_of_birth' => 'required|date', 
-            'class_id' => 'required|exists:tbl_classes,id',
-            'section_id' => 'nullable|exists:tbl_section,id',
-            'contact_number' => 'nullable|string',
-            'joined_date' => 'required|date',
-            'address' => 'nullable|string',
-            'state_id' => 'required|exists:tbl_states,id',
-            'district_id' => 'nullable|exists:tbl_districts,id',
-            'municipality_id' => 'nullable|exists:tbl_municipalities,id',
-            'photo' => 'nullable|image|max:2048',
-        ]);
+        $validated = $request->validated();
 
         if ($request->hasFile('photo')) {
             // Delete old photo
@@ -292,12 +286,9 @@ class StudentsController extends Controller
         ]);
     }
 
-    public function loadByDateRange(Request $request)
+    public function loadByDateRange(LoadByDateRangeRequest $request)
     {
-        $request->validate([
-            'from_date' => 'required|date',
-            'to_date' => 'required|date|after_or_equal:from_date',
-        ]);
+        $request->validated();
         
         $students = Students::with(['class', 'section', 'state', 'district', 'municipality'])
              ->whereDate('joined_date', '>=', $request->from_date)
@@ -360,17 +351,9 @@ class StudentsController extends Controller
     /**
      * Store guardian
      */
-    public function storeGuardian(Request $request, Students $student)
+    public function storeGuardian(GuardianRequest $request, Students $student)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'relation' => 'nullable|string|max:255',
-            'phone' => 'nullable|string|max:20',
-            'email' => 'nullable|email|max:255',
-            'occupation' => 'nullable|string|max:255',
-            'address' => 'nullable|string',
-            'is_primary_contact' => 'boolean',
-        ]);
+        $validated = $request->validated();
 
         $guardian = $student->guardians()->create($validated);
 
@@ -392,17 +375,9 @@ class StudentsController extends Controller
     /**
      * Update guardian
      */
-    public function updateGuardian(Request $request, Guardian $guardian)
+    public function updateGuardian(GuardianRequest $request, Guardian $guardian)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'relation' => 'nullable|string|max:255',
-            'phone' => 'nullable|string|max:20',
-            'email' => 'nullable|email|max:255',
-            'occupation' => 'nullable|string|max:255',
-            'address' => 'nullable|string',
-            'is_primary_contact' => 'boolean',
-        ]);
+        $validated = $request->validated();
 
         $guardian->update($validated);
 

@@ -5,23 +5,20 @@ namespace App\Http\Controllers;
 use App\Interface\ClassTeacherInterface;
 use App\Interface\CommonServiceInterface;
 use App\Models\ClassTeacher;
-use App\Repositories\Validation;
+use App\Http\Requests\ClassTeacher\ClassTeacherRequest;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class ClassTeacherController extends Controller
 {
     private $commonService;
-    private $validation;
     private $classTeacherService;
 
     public function __construct(
         CommonServiceInterface $commonService,
-        Validation $validation,
         ClassTeacherInterface $classTeacherService
     ) {
         $this->commonService = $commonService;
-        $this->validation = $validation;
         $this->classTeacherService = $classTeacherService;
     }
 
@@ -90,12 +87,12 @@ class ClassTeacherController extends Controller
     /**
      * Store new assignment
      */
-    public function store(Request $request)
+    public function store(ClassTeacherRequest $request)
     {
         // Validation rules
        
 
-        $validated = $request->validate($this->validation->classTeacherValidationRules($request));
+        $validated = $request->validated();
         // Check for duplicate
         $this->classTeacherService->checkDuplicateAssignment(
            $validated
@@ -137,11 +134,10 @@ class ClassTeacherController extends Controller
     /**
      * Update assignment
      */
-    public function update(Request $request, ClassTeacher $classTeacher)
+    public function update(ClassTeacherRequest $request, ClassTeacher $classTeacher)
     {
         // Validation rules
-        $rules = $this->validation->classTeacherUpdateValidationRules($request, $classTeacher->id);   
-        $validated = $request->validate($rules);
+        $validated = $request->validated();
         // Check for duplicate (excluding current record)
         $exists = $this->classTeacherService->checkDuplicateAssignmentForUpdate(
             $validated,$classTeacher->id

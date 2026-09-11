@@ -22,7 +22,26 @@ class StudentUpdateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            //
+                'fName' => ['required', 'string', 'max:100'],
+                'lName' => ['required', 'string', 'max:100'],
+                'phone' => ['required', 'digits:10'],
+                'age' => ['required', 'integer', 'between:1,100'],
+                'dateOfBirth' => ['required', 'date_format:Y-m-d'],
+                'classId' => ['required'],
+                'stateId' => ['required'],
+            ];
+    }
+    public function messages(): array
+    {
+        return [
+            'fName.required' => 'The first name field is required.',
+            'lName.required' => 'The last name field is required.',
+            'phone.required' => 'The phone field is required.',
+            'age.required' => 'The age field is required.',
+            'dateOfBirth.required' => 'The date of birth field is required.',
+            'classId.required' => 'The class field is required.',
+            'stateId.required' => 'The state field is required.',
         ];
     }
 }
+

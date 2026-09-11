@@ -3,9 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Teachers;
-use App\Repositories\validation;
+use App\Http\Requests\Teacher\TeacherRequest;
 use App\Services\TeacherServices;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class TeachersController extends Controller
@@ -14,14 +13,11 @@ class TeachersController extends Controller
      * Display a listing of the resource.
     */
     private TeacherServices $teacherServices;
-    private Validation $teacherValidation;
     public function __construct(
-        TeacherServices $teacherServices,
-        Validation $validation 
+        TeacherServices $teacherServices
         )
     {
         $this->teacherServices = $teacherServices;
-        $this->teacherValidation = $validation;
     }
     public function index()
     {
@@ -49,12 +45,10 @@ class TeachersController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(TeacherRequest $request)
     {
         // dd($request->all());
-         $validatedData = $request->validate(
-            $this->teacherValidation->teacherValidationRules($this->teacherServices)
-        );
+         $validatedData = $request->validated();
         // dd($validatedData);
         $createTeacher = $this->teacherServices->createTeacher($validatedData,$request->all());
         return redirect()->route('teachers.index')->with('success', 'Teacher created successfully.');
@@ -83,11 +77,9 @@ class TeachersController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Teachers $teacher)
+    public function update(TeacherRequest $request, Teachers $teacher)
     {
-        $validatedData = $request->validate(
-            $this->teacherValidation->teacherUpdateValidationRules($this->teacherServices, $teacher->id)
-        );
+        $validatedData = $request->validated();
         // dd($validatedData);
         $updateTeacher = $this->teacherServices->updateTeacher($teacher->id, $validatedData, $request->all());
         return redirect()->route('teachers.index')->with('success', 'Teacher updated successfully.');

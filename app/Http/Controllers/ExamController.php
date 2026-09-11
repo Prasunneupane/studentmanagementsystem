@@ -5,9 +5,8 @@ namespace App\Http\Controllers;
 use App\Interface\CommonServiceInterface;
 use App\Interface\ExamScheduleInterface;
 use App\Models\Exam;
-use App\Repositories\Validation;
+use App\Http\Requests\Exam\ExamRequest;
 use Illuminate\Http\Request;
-use Illuminate\Validation\ValidationData;
 use Inertia\Inertia;
 
 class ExamController extends Controller
@@ -17,14 +16,11 @@ class ExamController extends Controller
      */
     private CommonServiceInterface $commonServices;
     private ExamScheduleInterface $examScheduleService;
-    private Validation $validation;
     public function __construct(
         CommonServiceInterface $commonServices,
-        ExamScheduleInterface $examScheduleService,
-        Validation $validation
+        ExamScheduleInterface $examScheduleService
     ) {
         $this->commonServices = $commonServices;
-        $this->validation = $validation;
         $this->examScheduleService = $examScheduleService;
     }
     public function index(Request $request)
@@ -69,9 +65,9 @@ class ExamController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-   public function store(Request $request)
+   public function store(ExamRequest $request)
     {
-        $data = $this->validation->validateExam($request);
+       $data = $request->validated();
 
         $exam = $this->examScheduleService->createExam($data);
         // dd($exam->id);
@@ -95,9 +91,9 @@ class ExamController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Exam $exam)
+    public function update(ExamRequest $request, Exam $exam)
     {
-        $data = $this->validation->validateExamUpdate($request, $exam->id);
+        $data = $request->validated();
         // dd($data);
         $this->examScheduleService->updateExam($exam->id, $data);
 

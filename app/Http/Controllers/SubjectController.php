@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Subject;
+use App\Http\Requests\Subject\SubjectRequest;
 use App\Services\SubjectService;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class SubjectController extends Controller
@@ -37,15 +37,9 @@ class SubjectController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(SubjectRequest $request)
     {
-        $validatedData = $request->validate([
-            'name' => 'required|string|max:255',
-            'code' => 'required|string|max:50|unique:tbl_subjects,code',
-            'is_active' => 'required|boolean',
-            'description' => 'nullable|string',
-            // 'type' => 'required|string|max:100',
-        ]);
+        $validatedData = $request->validated();
         // dd($validatedData);
        $data = [
             ...$validatedData,
@@ -82,15 +76,9 @@ class SubjectController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Subject $subject)
+    public function update(SubjectRequest $request, Subject $subject)
     {
-        $validatedData = $request->validate([
-            'name' => 'required|string|max:255',
-            'code' => 'required|string|max:50|unique:tbl_subjects,code,'.$subject->id,
-            'is_active' => 'required|boolean',
-            'description' => 'nullable|string',
-            // 'type' => 'required|string|max:100',
-        ]);
+        $validatedData = $request->validated();
         // dd($validatedData);
        $data = [
             ...$validatedData,

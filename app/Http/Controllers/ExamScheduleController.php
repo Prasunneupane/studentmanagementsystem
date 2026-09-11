@@ -8,23 +8,20 @@ use App\Models\Exam;
 use App\Models\ExamClass;
 use App\Models\ExamSchedule;
 use App\Models\Subject;
-use App\Repositories\Validation;
+use App\Http\Requests\ExamSchedule\ExamScheduleRequest;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class ExamScheduleController extends Controller
 {
     private CommonServiceInterface $commonServices;
-    private Validation $validation;
     private ExamScheduleInterface $examSchedule;
 
     public function __construct(
         CommonServiceInterface $commonServices,
-        Validation             $validation,
         ExamScheduleInterface  $examSchedule
     ) {
         $this->commonServices = $commonServices;
-        $this->validation     = $validation;
         $this->examSchedule   = $examSchedule;
     }
 
@@ -51,9 +48,9 @@ class ExamScheduleController extends Controller
     }
 
     // ── Store ─────────────────────────────────────────────────────────
-    public function store(Request $request, Exam $exam)
+    public function store(ExamScheduleRequest $request, Exam $exam)
     {
-        $data = $this->validation->validateExamSchedule($request);
+        $data = $request->validated();
         $this->examSchedule->saveExamSchedule($exam, $data['schedules']);
 
         return redirect()->route('exams.index')
@@ -101,10 +98,10 @@ class ExamScheduleController extends Controller
     }
 
     // ── Update ────────────────────────────────────────────────────────
-    public function update(Request $request, int $id)
+    public function update(ExamScheduleRequest $request, int $id)
     {
         $exam = Exam::findOrFail($id);
-        $data = $this->validation->validateExamSchedule($request);
+        $data = $request->validated();
 
         $this->examSchedule->updateExamSchedule($exam, $data['schedules']);
 

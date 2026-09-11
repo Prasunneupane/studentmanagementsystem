@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Permission;
 use App\Models\Roles;
-use App\Repositories\Validation;
+use App\Http\Requests\Role\RoleRequest;
 use App\Services\PermissionService;
 use App\Services\RoleServices;
 // use DB;
@@ -19,12 +19,10 @@ class RolesController extends Controller
      * Display a listing of the resource.
      */
     private $roleServices;
-    private $dataValidation;
     protected $permissionService;
-    public function __construct(RoleServices $roleServices,Validation $validation,PermissionService $permissionService)
+    public function __construct(RoleServices $roleServices, PermissionService $permissionService)
     {
         $this->roleServices = $roleServices;
-        $this->dataValidation = $validation;
         $this->permissionService = $permissionService;
     }
     public function index()
@@ -46,10 +44,9 @@ class RolesController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(RoleRequest $request)
     {
-        $this->dataValidation->roleValidationRules($request);
-        $createRole = $this->roleServices->createRole($request->all());
+        $this->roleServices->createRole($request->validated());
         return redirect()->route('roles.index')->with('success', 'Role created successfully.');
     }
 
@@ -74,11 +71,10 @@ class RolesController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Roles $role)
+    public function update(RoleRequest $request, Roles $role)
     {
         // dd($request->all());
-        $this->dataValidation->roleUpdateValidationRules($request, $role->id);
-        $updateRole = $this->roleServices->updateRole($role->id, $request->all());
+        $this->roleServices->updateRole($role->id, $request->validated());
         return redirect()->route('roles.index')->with('success', 'Role updated successfully.');
     }
 
@@ -159,13 +155,9 @@ class RolesController extends Controller
     /**
      * Assign permissions to role
      */
-    public function assignPermissions(Request $request)
+    public function assignPermissions(\App\Http\Requests\Role\RoleRequest $request)
 {
-        $validated = $request->validate([
-            'role_id' => 'required|exists:tbl_roles,id',
-            'permissions' => 'nullable|array',
-            'permissions.*' => 'exists:tbl_permissions,id',
-        ]);
+    $validated = $request->validated();
         // dd($request->all());
         try {
             DB::beginTransaction();

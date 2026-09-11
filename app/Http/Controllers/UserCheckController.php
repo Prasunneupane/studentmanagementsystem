@@ -8,7 +8,7 @@ use App\Models\Roles;
 use App\Models\Students;
 use App\Models\Teachers;
 use App\Models\User;
-use App\Repositories\Validation;
+use App\Http\Requests\User\UserRequest;
 use App\Services\UserServices;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -26,14 +26,9 @@ class UserCheckController extends Controller
      */
 
     
-    private $dataValidation;
     private $userService;
-    public function __construct(
-        Validation $validation,
-        UserServices $userService
-    )
+    public function __construct(UserServices $userService)
     {
-        $this->dataValidation = $validation;
         $this->userService = $userService;
         // $this->middleware('auth:api'); 
     }
@@ -65,10 +60,10 @@ class UserCheckController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request):RedirectResponse
+    public function store(UserRequest $request):RedirectResponse
     {
         
-        $data =$request->validate($this->dataValidation->userValidationRules($request));
+        $data = $request->validated();
         // dd($data);
         $this->userService->createUsers($data);
 
@@ -91,11 +86,9 @@ class UserCheckController extends Controller
     }
 
 
-    public function update(Request $request,User $user):RedirectResponse
+    public function update(UserRequest $request,User $user):RedirectResponse
     {
-        $data =  $request->validate(
-            $this->dataValidation->userUpdateValidationRules($request, $user)
-        );
+        $data = $request->validated();
         $this->userService->updateUsers($user->id, $data);
         // dd($request->all());
         $data = [
@@ -165,7 +158,7 @@ class UserCheckController extends Controller
         ]);
     }
 
-    public function createTeacherUser(Request $request, Teachers $teacher): RedirectResponse
+    public function createTeacherUser(UserRequest $request, Teachers $teacher): RedirectResponse
     {
         //  dd($teacher->name);
         if(!$teacher) {
@@ -178,7 +171,7 @@ class UserCheckController extends Controller
             return redirect()->back()->withErrors(['name' => 'The name must match the teacher\'s name.'])->withInput();
         }
         // dd($teacherUserNameCheck);
-        $data = $request->validate($this->dataValidation->teacherUserValidationRules($request,$teacher->id));
+        $data = $request->validated();
         // dd($data);
         $this->userService->createTeacherUser($teacher, $data);
 

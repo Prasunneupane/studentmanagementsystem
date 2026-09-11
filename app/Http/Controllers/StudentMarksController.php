@@ -7,7 +7,7 @@ use App\Interface\StudentMarksInterface;
 use App\Interface\ExamScheduleInterface;
 use App\Models\Exam;
 use App\Models\ExamClass;
-use App\Repositories\Validation;
+use App\Http\Requests\StudentMarks\StudentMarksRequest;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -16,18 +16,15 @@ class StudentMarksController extends Controller
     private CommonServiceInterface $commonServices;
     private StudentMarksInterface $marksService;
     private ExamScheduleInterface $examScheduleService;
-    private Validation $validation;
 
     public function __construct(
         CommonServiceInterface $commonServices,
         StudentMarksInterface $marksService,
-        ExamScheduleInterface $examScheduleService,
-        Validation $validation
+        ExamScheduleInterface $examScheduleService
     ) {
         $this->commonServices = $commonServices;
         $this->marksService = $marksService;
         $this->examScheduleService = $examScheduleService;
-        $this->validation = $validation;
     }
 
     /**
@@ -69,13 +66,9 @@ class StudentMarksController extends Controller
     /**
      * Show marks entry form for a specific exam+class+section+subject
      */
-    public function enterMarks(Request $request, int $examId)
+    public function enterMarks(StudentMarksRequest $request, int $examId)
     {
-        $request->validate([
-            'class_id' => 'required|exists:tbl_classes,id',
-            'section_id' => 'required|exists:tbl_section,id',
-            'subject_id' => 'required|exists:tbl_subjects,id',
-        ]);
+        $request->validated();
         // dd($request->all());
         $exam = Exam::with(['academicYear', 'term'])->findOrFail($examId);
 
@@ -102,10 +95,10 @@ class StudentMarksController extends Controller
     /**
      * Save marks
      */
-    public function storeMarks(Request $request, int $examId)
+    public function storeMarks(StudentMarksRequest $request, int $examId)
     {
         // dd($request->all());
-        $data = $this->validation->validateMarksEntry($request);
+        $data = $request->validated();
         $this->marksService->saveMarks($examId, $data['marks']);
 
         return back()->with('success', 'Marks saved successfully.');
@@ -156,12 +149,9 @@ class StudentMarksController extends Controller
     /**
      * Calculate results for a class/section
      */
-    public function calculateResults(Request $request, int $examId)
+    public function calculateResults(StudentMarksRequest $request, int $examId)
     {
-        $request->validate([
-            'class_id' => 'required|exists:tbl_classes,id',
-            'section_id' => 'nullable|exists:tbl_section,id',
-        ]);
+        $request->validated();
 
         $this->marksService->calculateResults(
             $examId,
@@ -175,12 +165,9 @@ class StudentMarksController extends Controller
     /**
      * Finalize results for a class/section
      */
-    public function finalizeResults(Request $request, int $examId)
+    public function finalizeResults(StudentMarksRequest $request, int $examId)
     {
-        $request->validate([
-            'class_id' => 'required|exists:tbl_classes,id',
-            'section_id' => 'nullable|exists:tbl_section,id',
-        ]);
+        $request->validated();
 
         $this->marksService->finalizeResults(
             $examId,

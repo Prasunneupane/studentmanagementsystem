@@ -11,7 +11,7 @@ import { useStudents } from '@/composables/useStudents';
 import { useToast } from '@/composables/useToast';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { Guardian, Student } from '@/services/studentService';
-import { Head, usePage } from '@inertiajs/vue3';
+import { Head, router, usePage } from '@inertiajs/vue3';
 import type { ColumnDef } from '@tanstack/vue-table';
 import { Edit, Eye, Loader2, Pencil, Plus, Trash2 } from 'lucide-vue-next';
 import { computed, h, ref, watch } from 'vue';
@@ -37,6 +37,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 // Props from Inertia
@@ -432,9 +433,7 @@ const startEdit = async (student: Student) => {
 
 const handleEdit = (student?: Student) => {
     const s = student || selectedStudent.value;
-    console.log(s, 'editStudent');
-
-    if (s) startEdit(s);
+    if (s) router.visit(`/students/${s.id}/edit`);
 };
 
 // Form Validation & Submit
@@ -651,24 +650,24 @@ const columns: ColumnDef<Student>[] = [
     </AppLayout>
 
     <!-- VIEW MODAL -->
-    <Dialog v-model:open="isDialogOpen">
-        <DialogContent class="flex w-full max-w-[95vw] flex-col overflow-hidden p-0 lg:max-w-[1100px]" style="height: 85vh">
-            <DialogHeader class="flex-shrink-0 border-b bg-white p-6">
+    <Sheet v-model:open="isDialogOpen">
+        <SheetContent side="right" class="flex h-full w-full max-w-[760px] flex-col gap-0 overflow-hidden p-0 sm:max-w-[760px]">
+            <DialogHeader class="flex-shrink-0 border-b bg-gradient-to-r from-slate-950 via-slate-900 to-blue-950 p-6 text-white">
                 <DialogTitle class="text-2xl font-bold">Student Profile</DialogTitle>
-                <DialogDescription class="text-lg"> {{ selectedStudent?.first_name }} {{ selectedStudent?.last_name }} </DialogDescription>
+                <DialogDescription class="text-blue-100"> {{ selectedStudent?.first_name }} {{ selectedStudent?.last_name }} </DialogDescription>
             </DialogHeader>
 
-            <Tabs v-model="activeTab" class="flex flex-1 flex-col overflow-hidden">
+            <Tabs v-model="activeTab" class="flex min-h-0 flex-1 flex-col overflow-hidden">
                 <TabsList class="grid w-full flex-shrink-0 grid-cols-2 rounded-none border-b">
                     <TabsTrigger value="student">Student Information</TabsTrigger>
                     <TabsTrigger value="guardians">Guardians</TabsTrigger>
                 </TabsList>
 
-                <div class="flex-1 overflow-y-auto p-6">
+                <div class="min-h-0 flex-1 overflow-y-auto bg-slate-50 p-4 sm:p-6">
                     <TabsContent value="student" class="mt-0 space-y-6">
-                        <div class="flex items-center gap-6 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 p-6">
+                        <div class="flex flex-col items-start gap-5 rounded-2xl border border-blue-100 bg-white p-5 shadow-sm sm:flex-row sm:items-center">
                             <Avatar class="h-24 w-24">
-                                <AvatarImage :src="selectedStudent?.photo_url" />
+                                <AvatarImage :src="selectedStudent?.photo_url ?? '/images/default-avatar.png'" />
                                 <AvatarFallback class="text-2xl font-bold">
                                     {{ selectedStudent?.first_name?.[0] }}{{ selectedStudent?.last_name?.[0] }}
                                 </AvatarFallback>
@@ -686,10 +685,10 @@ const columns: ColumnDef<Student>[] = [
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
-                            <div>
-                                <h4 class="mb-3 font-semibold text-gray-700">Personal Details</h4>
-                                <dl class="space-y-2 text-sm">
+                        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                            <div class="rounded-2xl border bg-white p-5 shadow-sm">
+                                <h4 class="mb-4 font-semibold text-slate-900">Personal Details</h4>
+                                <dl class="divide-y text-sm">
                                     <div class="flex justify-between">
                                         <dt class="text-gray-600">ID</dt>
                                         <dd>#{{ selectedStudent?.id }}</dd>
@@ -716,9 +715,9 @@ const columns: ColumnDef<Student>[] = [
                                     </div>
                                 </dl>
                             </div>
-                            <div>
-                                <h4 class="mb-3 font-semibold text-gray-700">Address</h4>
-                                <p class="text-sm">{{ selectedStudent?.address || 'No address provided' }}</p>
+                            <div class="rounded-2xl border bg-white p-5 shadow-sm">
+                                <h4 class="mb-4 font-semibold text-slate-900">Address</h4>
+                                <p class="rounded-lg bg-slate-50 p-3 text-sm">{{ selectedStudent?.address || 'No address provided' }}</p>
                                 <div class="mt-3 flex flex-wrap gap-2">
                                     <Badge v-if="selectedStudent?.state_name" variant="outline">{{ selectedStudent.state_name }}</Badge>
                                     <Badge v-if="selectedStudent?.district_name" variant="outline">{{ selectedStudent.district_name }}</Badge>
@@ -807,18 +806,18 @@ const columns: ColumnDef<Student>[] = [
                 <Button variant="outline" @click="isDialogOpen = false">Close</Button>
                 <Button @click="handleEdit()"> <Edit class="mr-2 h-4 w-4" /> Edit Student </Button>
             </div>
-        </DialogContent>
-    </Dialog>
+        </SheetContent>
+    </Sheet>
 
     <!-- EDIT STUDENT MODAL -->
     <Dialog :forceMount="true" v-model:open="isEditModalOpen">
-        <DialogContent class="flex max-h-[85vh] w-full max-w-[95vw] flex-col overflow-hidden p-0 lg:max-w-[1400px]">
+        <DialogContent class="flex h-[85vh] max-h-[85vh] w-full max-w-[95vw] flex-col overflow-hidden p-0 lg:max-w-[1400px]">
             <DialogHeader class="flex-shrink-0 border-b bg-white p-6">
                 <DialogTitle class="text-2xl font-bold">Edit Student</DialogTitle>
                 <DialogDescription class="text-lg">Update student information</DialogDescription>
             </DialogHeader>
 
-            <div class="max-h-[calc(85vh-140px)] min-h-0 flex-1 overflow-y-auto p-6">
+            <div class="min-h-0 flex-1 overflow-y-auto p-6">
                 <div v-if="loadingEdit" class="flex h-full flex-col items-center justify-center">
                     <Loader2 class="h-12 w-12 animate-spin text-primary" />
                     <p class="mt-3 text-muted-foreground">Loading student data…</p>

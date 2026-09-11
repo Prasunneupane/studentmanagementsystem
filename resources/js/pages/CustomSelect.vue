@@ -55,6 +55,7 @@
 
             <!-- Dropdown arrow -->
             <svg
+                v-if="!loading"
                 width="15"
                 height="15"
                 viewBox="0 0 15 15"
@@ -69,6 +70,10 @@
                     fill-rule="evenodd"
                     clip-rule="evenodd"
                 ></path>
+            </svg>
+            <svg v-else class="h-4 w-4 shrink-0 animate-spin text-muted-foreground" viewBox="0 0 24 24" fill="none">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
             </svg>
         </div>
 
@@ -236,7 +241,10 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 const props = defineProps({
-    modelValue: [String, Number, Object, Array],
+    modelValue: {
+        type: [String, Number, Object, Array, null],
+        default: null,
+    },
     options: {
         type: Array,
         required: true,
@@ -251,6 +259,10 @@ const props = defineProps({
         default: 'Search...',
     },
     disabled: {
+        type: Boolean,
+        default: false,
+    },
+    loading: {
         type: Boolean,
         default: false,
     },

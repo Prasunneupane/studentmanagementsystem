@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\Events\EventRequest;
 use App\Http\Requests\Events\StoreEventRequest;
 use App\Interface\EventsInterface;
 use App\Models\Events;
