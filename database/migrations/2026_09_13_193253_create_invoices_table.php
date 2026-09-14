@@ -11,14 +11,16 @@ return new class extends Migration
      */
     public function up(): void
     {
+        
          Schema::create('tbl_invoices', function (Blueprint $table) {
             $table->id();
             $table->string('invoice_number')->unique();
-            $table->foreignId('student_id')->constrained('tbl_students')->cascadeOnDelete();
+            $table->foreignId('student_id')->constrained('students')->cascadeOnDelete();
             $table->foreignId('class_id')->nullable()->constrained('tbl_classes')->nullOnDelete();
-            $table->foreignId('section_id')->nullable()->constrained('tbl_sections')->nullOnDelete();
+            $table->foreignId('section_id')->nullable()->constrained('tbl_section')->nullOnDelete();
             $table->date('issue_date');
             $table->date('due_date');
+            $table->time('issue_time')->default(date('H:i:s '));
             $table->string('status')->default('paid');
             $table->decimal('subtotal', 10, 2)->default(0);
             $table->string('discount_type')->nullable();
@@ -40,7 +42,7 @@ return new class extends Migration
             $table->index(['student_id', 'academic_year_id']);
             $table->index(['status', 'due_date']);
             $table->index(['status', 'issue_date']);
-            $table->index('invoice_type');
+            // $table->index('invoice_type');
             $table->index('deleted_at');
         });
     }

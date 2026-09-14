@@ -15,11 +15,16 @@ return new class extends Migration
             $table->id();
             $table->foreignId('invoice_id')->constrained('tbl_invoices')->cascadeOnDelete();
             $table->string('fee_type');
+            $table->integer('fee_id')->nullable();
             $table->string('description')->nullable();
             $table->unsignedInteger('quantity')->default(1);
-             $table->enum('discount_type', ['fixed', 'percentage'])->nullable();
+            $table->decimal('rate', 10, 2);
+            $table->string('discount_percentage', 20)->nullable();
+            $table->decimal('discount_amount', 10, 2)->default(0);
+            $table->decimal('tax_percentage', 5, 2)->default(0);
+            $table->decimal('tax_amount', 10, 2)->default(0);
             $table->decimal('unit_price', 10, 2);
-            $table->decimal('amount', 10, 2);
+            $table->decimal('total', 10, 2);
             $table->timestamps();
         });
     }

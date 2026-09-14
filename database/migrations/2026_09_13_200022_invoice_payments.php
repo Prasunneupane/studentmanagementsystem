@@ -10,7 +10,8 @@ return new class extends Migration
      * Run the migrations.
      */
     public function up(): void
-    {
+    {   
+         
          Schema::create('tbl_invoice_payments', function (Blueprint $table) {
             $table->id();
             $table->foreignId('invoice_id')->constrained('tbl_invoices')->cascadeOnDelete();
@@ -21,9 +22,21 @@ return new class extends Migration
             $table->string('payment_code')->nullable();
             $table->string('reference_no')->nullable();
             $table->string('payment_status')->default('success');
+            // Cheque-specific
+            $table->string('cheque_number')->nullable();
+            $table->date('cheque_date')->nullable();
+            $table->string('bank_name')->nullable();
             $table->text('note')->nullable();
+            $table->boolean('is_active')->default(true);
+            $table->date('payment_date');
             $table->foreignId('received_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
+
+            // indexes for performance optimization
+            $table->index(['invoice_id']);
+            // $table->index(['student_id', 'payment_date']);
+            $table->index(['payment_method', 'payment_date']);
+            $table->index('reference_no');
         });
     }
 
