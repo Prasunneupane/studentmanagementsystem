@@ -20,11 +20,24 @@ import {
     UserRoundCheck,
     UserRoundPlus,
     Users,
+    Receipt,
 } from 'lucide-vue-next';
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 import AppLogo from './AppLogo.vue';
+import { useSidebar } from '@/components/ui/sidebar';
 
 const page = usePage<AppPageProps>();
+const { setOpen } = useSidebar();
+
+watch(
+    () => page.url,
+    (url) => {
+        if (url.split('?')[0] === '/invoice/create') {
+            setOpen(false);
+        }
+    },
+    { immediate: true },
+);
 
 // Get permissions from shared data
 const permissions = computed(() => page.props.auth?.permissions || ({} as Permissions));
@@ -285,6 +298,40 @@ const mainNavItems = computed((): NavItem[] => {
         }
     }
 
+    // Invoice Management
+    if (permissions.value.invoice.canManage) {
+        const invoiceItems: NavItem[] = [];
+
+        if (permissions.value.invoice.canCreate) {
+            invoiceItems.push({
+                title: 'Add Invoice',
+                href: '/invoice/create',
+                icon: Receipt,
+            });
+        }
+
+        if (permissions.value.invoice.canView) {
+            invoiceItems.push({
+                title: 'View Invoice',
+                href: '/invoice',
+                icon: Eye,
+            });
+        }
+
+        if (invoiceItems.length > 0) {
+            const invoiceManagement: NavItem = {
+                title: 'Invoice Management',
+                href: '/',
+                icon: Receipt,
+                items: invoiceItems,
+                isActive: false,
+            };
+            invoiceManagement.isActive = isRouteActive(invoiceManagement);
+            items.push(invoiceManagement);
+        }
+    }
+
+        
     // Master Settings
     if (permissions.value.canManageMasterSettings) {
         const masterSettingsItems: NavItem[] = [];

@@ -2,64 +2,99 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Invoice;
+use App\Http\Requests\Invoice\StoreInvoiceRequest;
+use App\Http\Requests\Invoice\UpdateInvoiceRequest;
+use App\Interface\InvoiceInterface;
+use App\Models\Classes;
+use App\Models\Students;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Redirect;
+use Inertia\Inertia;
 
 class InvoiceController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function __construct(private InvoiceInterface $invoiceService) {}
+
+    public function index(Request $request)
     {
-        //
+        return Inertia::render('invoice/Index', [
+            'invoices' => $this->invoiceService->getAllInvoices($request->only(['status', 'class_id', 'search', 'per_page'])),
+            'classes' => Classes::select('id', 'name as label')->get(),
+        ]);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create()
     {
-        //
+        return Inertia::render('invoice/Create', [
+            'students' => Students::with(['class:id,name', 'section:id,name'])
+                ->select('id', 'first_name', 'last_name', 'class_id', 'section_id')->get()
+                ->map(fn ($s) => [
+                    'value' => (string) $s->id,
+                    'label' => trim("{$s->first_name} {$s->last_name}") . ' - ' . ($s->class?->name ?? 'No class') . ' - ' . ($s->section?->name ?? 'No section'),
+                    'class_id' => $s->class_id,
+                    'section_id' => $s->section_id,
+                ]),
+        ]);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
+    public function store(StoreInvoiceRequest $request)
     {
-        //
+        $invoice = $this->invoiceService->createInvoice($request->validated());
+
+        return Redirect::route('invoice.show', $invoice['id'])->with('success', 'Invoice created successfully');
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(Invoice $invoice)
+    public function show(string $id)
     {
-        //
+        $invoice = $this->invoiceService->getInvoiceById((int) $id);
+        abort_unless($invoice !== null, 404);
+
+        return Inertia::render('invoice/Show', ['invoice' => $invoice]);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Invoice $invoice)
+    public function edit(string $id)
     {
-        //
+        $invoice = $this->invoiceService->getInvoiceById((int) $id);
+        abort_unless($invoice !== null, 404);
+
+        return Inertia::render('invoice/Edit', ['invoice' => $invoice]);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, Invoice $invoice)
+    public function update(UpdateInvoiceRequest $request, string $id)
     {
-        //
+        $invoiceId = (int) $id;
+        $this->invoiceService->updateInvoice($invoiceId, $request->validated());
+
+        return Redirect::route('invoice.show', $invoiceId)->with('success', 'Invoice updated successfully');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Invoice $invoice)
+    public function destroy(string $id)
     {
-        //
+        $this->invoiceService->deleteInvoice((int) $id);
+
+        return Redirect::route('invoice.index')->with('success', 'Invoice deleted successfully');
+    }
+
+    public function recordPayment(Request $request, string $id)
+    {
+        $data = $request->validate([
+            'amount' => 'required|numeric|min:0.01',
+            'paid_on' => 'nullable|date',
+            'payment_method' => 'required|in:cash,bank_transfer,card,online,cheque',
+            'reference_no' => 'nullable|string',
+            'note' => 'nullable|string',
+        ]);
+
+        $this->invoiceService->recordPayment((int) $id, $data);
+
+        return Redirect::back()->with('success', 'Payment recorded successfully');
+    }
+
+    public function print(string $id)
+    {
+        $invoice = $this->invoiceService->getInvoiceById((int) $id);
+        abort_unless($invoice !== null, 404);
+
+        return Inertia::render('invoice/Print', ['invoice' => $invoice]);
     }
 }

@@ -14,6 +14,7 @@ import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import { ChevronRight } from 'lucide-vue-next';
 import { reactive, watch } from 'vue';
+import { useSidebar } from '@/components/ui/sidebar';
 
 const props = defineProps<{
     items: NavItem[];
@@ -21,6 +22,7 @@ const props = defineProps<{
 }>();
 
 const page = usePage();
+const { state, setOpen } = useSidebar();
 
 // Check if exact URL matches
 const isExactActive = (href?: string) => {
@@ -42,6 +44,12 @@ const hasActiveChild = (items?: NavItem[]): boolean => {
 const isParentActive = (item: NavItem) => {
     if (isExactActive(item.href)) return true;
     return hasActiveChild(item.items);
+};
+
+const openParent = () => {
+    if (state.value === 'collapsed') {
+        setOpen(true);
+    }
 };
 
 // Process items recursively to add isOpen state
@@ -89,7 +97,7 @@ watch(
 
                 <!-- Collapsible menu item with children -->
                 <Collapsible v-else v-model:open="item.isOpen" class="group/collapsible">
-                    <CollapsibleTrigger as-child>
+                    <CollapsibleTrigger as-child @click="openParent">
                         <SidebarMenuButton :tooltip="item.title" :is-active="isParentActive(item)">
                             <component :is="item.icon" />
                             <span>{{ item.title }}</span>

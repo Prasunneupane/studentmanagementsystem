@@ -20,4 +20,15 @@ enum Invoice:string
             self::CANCELLED => 'Cancelled',
         };
     }
+
+    public function color(): string
+    {
+        return match ($this) {
+            self::UNPAID => 'red',
+            self::PARTIAL => 'orange',
+            self::PAID => 'green',
+            self::OVERDUE => 'red',
+            self::CANCELLED => 'gray',
+        };
+    }
 }

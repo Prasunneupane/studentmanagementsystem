@@ -364,5 +364,6 @@ Route::middleware(['auth'])->group(function () {
     Route::get('get-sections-by-class_id', [ClassSectionController::class, 'get_sections_by_class_id'])->name('get_sections_by_class_id');
 });
 
+require __DIR__ . '/invoice.php';
 require __DIR__ . '/settings.php';
 require __DIR__ . '/auth.php';

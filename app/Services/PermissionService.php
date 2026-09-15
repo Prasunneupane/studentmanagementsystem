@@ -167,6 +167,10 @@ class PermissionService
             'exams'                   => $crud('exams'),
             'marks'                   => $crud('marks'),
             'events'                  => $crud('events'),
+            'invoice'                 => array_merge($crud('invoice'), [
+                'canRecordPayment' => $can('record_invoice_payment'),
+                'canPrintInvoice'  => $can('print_invoice'),
+            ]),
             'roles'                   => array_merge($crud('roles'), [
                 'canAssignPermissions' => $can('assign_permissions'),
             ]),
@@ -175,6 +179,7 @@ class PermissionService
                 'canView' => $can('view_settings'),
                 'canEdit' => $can('edit_settings'),
             ],
+
             'canManageMasterSettings' => $isSuperAdmin || $this->hasAny($user, [
                 'view_roles', 'create_roles', 'edit_roles', 'delete_roles',
                 'view_permissions', 'create_permissions', 'edit_permissions', 'delete_permissions',

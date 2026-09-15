@@ -15,6 +15,7 @@ use App\Interface\RoleInterface;
 use App\Interface\SubjectInterface;
 use App\Interface\TeacherInterfacce;
 use App\Interface\UserInterface;
+use App\Interface\InvoiceInterface;
 use App\Models\Permission;
 use App\Models\Roles;
 use App\Observers\PermissionObserver;
@@ -32,6 +33,7 @@ use App\Services\CommonServices;
 use App\Services\DashboardService;
 use App\Services\EventsService;
 use App\Services\ExamScheduleService;
+use App\Services\InvoiceService;
 use App\Services\StudentMarksService;
 use App\Services\GuardianService;
 use App\Services\TermsServices;
@@ -67,6 +69,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(StudentMarksInterface::class, StudentMarksService::class);
         $this->app->bind(DashboardInterface::class, DashboardService::class);
         $this->app->bind(EventsInterface::class, EventsService::class);
+        $this->app->bind(InvoiceInterface::class,InvoiceService::class);
     }
 
     /**

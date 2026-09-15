@@ -28,6 +28,7 @@ export interface Permissions {
     roles: CrudPermissions & { canAssignPermissions: boolean };
     permissions: CrudPermissions;
     events: CrudPermissions;
+    invoice: CrudPermissions;
     settings: {
         canView: boolean;
         canEdit: boolean;
