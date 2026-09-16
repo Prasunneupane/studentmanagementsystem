@@ -18,6 +18,7 @@ return new class extends Migration
             $table->integer('fee_id')->nullable();
             $table->string('description')->nullable();
             $table->unsignedInteger('quantity')->default(1);
+            $table->string('discount_type')->nullable();
             $table->decimal('discount_percentage', 20)->default(0);
             $table->decimal('discount_amount', 10, 2)->default(0);
             $table->decimal('tax_percentage', 5, 2)->default(0);

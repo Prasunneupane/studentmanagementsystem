@@ -15,6 +15,7 @@ class UpdateInvoiceRequest extends FormRequest
     {
         return [
             'student_id' => ['required', 'exists:tbl_students,id'],
+            'academic_year_id' => ['nullable', 'exists:tbl_academic_years,id'],
             'class_id' => ['nullable', 'exists:tbl_classes,id'],
             'section_id' => ['nullable', 'exists:tbl_sections,id'],
             'issue_date' => ['required', 'date'],
@@ -28,6 +29,8 @@ class UpdateInvoiceRequest extends FormRequest
             'items.*.description' => ['nullable', 'string'],
             'items.*.quantity' => ['required', 'integer', 'min:1'],
             'items.*.unit_price' => ['required', 'numeric', 'min:0'],
+            'items.*.discount_type' => ['nullable', 'in:fixed,percentage'],
+            'items.*.discount_value' => ['nullable', 'numeric', 'min:0'],
         ];
     }
 }

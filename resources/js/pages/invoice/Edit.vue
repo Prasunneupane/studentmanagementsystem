@@ -37,6 +37,8 @@ interface LineItem {
     description: string;
     quantity: number;
     unit_price: number;
+    discount_type: 'fixed' | 'percentage';
+    discount_value: number;
 }
 
 const form = ref({
@@ -52,6 +54,8 @@ const form = ref({
         description: item.description || '',
         quantity: item.quantity,
         unit_price: Number(item.unit_price),
+        discount_type: item.discount_type || 'fixed',
+        discount_value: Number(item.discount_value) || 0,
     })) as LineItem[],
 });
 
@@ -66,21 +70,34 @@ const dateValue = (value: string) => {
 };
 const formatDate = (date: Date | null | undefined) => (date ? date.toISOString().split('T')[0] : '');
 
-const addItem = () => form.value.items.push({ fee_type: '', description: '', quantity: 1, unit_price: 0 });
+const addItem = () => form.value.items.push({ fee_type: '', description: '', quantity: 1, unit_price: 0, discount_type: 'fixed', discount_value: 0 });
 const removeItem = (index: number) => {
     if (form.value.items.length > 1) form.value.items.splice(index, 1);
 };
 
-const subtotal = computed(() => form.value.items.reduce((sum, item) => sum + (item.quantity || 0) * (item.unit_price || 0), 0));
+const itemGross = (item: LineItem) => (item.quantity || 0) * (item.unit_price || 0);
+const itemDiscount = (item: LineItem) => {
+    if ((form.value.discountValue || 0) > 0) return 0;
+    const gross = itemGross(item);
+    const value = Number(item.discount_value) || 0;
+    return Math.min(gross, item.discount_type === 'percentage' ? gross * value / 100 : value);
+};
+const subtotal = computed(() => form.value.items.reduce((sum, item) => sum + itemGross(item), 0));
+const itemDiscountTotal = computed(() => form.value.items.reduce((sum, item) => sum + itemDiscount(item), 0));
+const itemNetSubtotal = computed(() => Math.max(subtotal.value - itemDiscountTotal.value, 0));
 const discountAmount = computed(() => {
-    if (form.value.discountType === 'percentage') return subtotal.value * ((form.value.discountValue || 0) / 100);
-    return form.value.discountValue || 0;
+    if (form.value.discountType === 'percentage') return Math.min(itemNetSubtotal.value, itemNetSubtotal.value * ((form.value.discountValue || 0) / 100));
+    return Math.min(itemNetSubtotal.value, form.value.discountValue || 0);
 });
-const taxableAmount = computed(() => Math.max(subtotal.value - discountAmount.value, 0));
+const taxableAmount = computed(() => Math.max(itemNetSubtotal.value - discountAmount.value, 0));
 const taxAmount = computed(() => taxableAmount.value * ((form.value.taxPercentage || 0) / 100));
 const totalAmount = computed(() => taxableAmount.value + taxAmount.value);
 
 const money = (value: number) => `Rs. ${value.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const clearItemDiscounts = () => {
+    if ((form.value.discountValue || 0) <= 0) return;
+    form.value.items.forEach((item) => { item.discount_value = 0; });
+};
 
 const validate = () => {
     errors.value = {};
@@ -175,16 +192,26 @@ const submit = async () => {
                                                 <Label class="text-xs">Description</Label>
                                                 <Input v-model="item.description" placeholder="Optional note" />
                                             </div>
-                                            <div class="sm:col-span-2">
+                                            <div class="sm:col-span-1">
                                                 <Label class="text-xs">Qty</Label>
-                                                <Input v-model.number="item.quantity" type="number" min="1" />
+                                                <Input v-model.number="item.quantity" class="w-full" type="number" min="1" />
                                             </div>
                                             <div class="sm:col-span-2">
                                                 <Label class="text-xs">Unit price *</Label>
                                                 <Input v-model.number="item.unit_price" type="number" min="0" step="0.01" :class="{ 'border-red-500': errors[`price_${index}`] }" />
                                             </div>
-                                            <div class="flex items-end justify-between gap-2 sm:col-span-1">
-                                                <span class="text-sm font-medium text-slate-700">{{ money(item.quantity * item.unit_price) }}</span>
+                                            <div class="sm:col-span-3">
+                                                <Label class="text-xs">Item discount</Label>
+                                                <div class="flex gap-1">
+                                                    <select v-model="item.discount_type" class="h-10 rounded-md border border-input bg-background px-2 text-xs">
+                                                        <option value="fixed">Fixed</option>
+                                                        <option value="percentage">%</option>
+                                                    </select>
+                                                    <Input v-model.number="item.discount_value" type="number" min="0" step="0.01" :disabled="(form.discountValue || 0) > 0" />
+                                                </div>
+                                            </div>
+                                            <div class="flex min-w-0 items-end justify-between gap-1 sm:col-span-2">
+                                                <span class="text-sm font-medium text-slate-700">{{ money(itemGross(item) - itemDiscount(item)) }}</span>
                                                 <Button type="button" variant="ghost" size="icon" class="text-red-600" :disabled="form.items.length === 1" @click="removeItem(index)"><Trash2 class="h-4 w-4" /></Button>
                                             </div>
                                         </div>
@@ -203,33 +230,34 @@ const submit = async () => {
                     </Card>
                 </div>
 
-                <div class="space-y-5">
+                <div class="space-y-1.5 lg:sticky lg:top-4 lg:self-start">
                     <Card class="rounded-2xl border-0 shadow-sm">
                         <CardHeader class="border-b"><CardTitle>Discount & tax</CardTitle></CardHeader>
-                        <CardContent class="space-y-4 p-5">
+                        <CardContent class="space-y-2 p-4">
                             <div>
                                 <Label class="text-xs">Discount type</Label>
                                 <div class="mt-1 flex gap-2">
-                                    <Button type="button" size="sm" :variant="form.discountType === 'fixed' ? 'default' : 'outline'" @click="form.discountType = 'fixed'">Fixed</Button>
-                                    <Button type="button" size="sm" :variant="form.discountType === 'percentage' ? 'default' : 'outline'" @click="form.discountType = 'percentage'">Percentage</Button>
+                                    <Button type="button" size="sm" :variant="form.discountType === 'fixed' ? 'default' : 'outline'" @click="form.discountType = 'fixed'; clearItemDiscounts()">Fixed</Button>
+                                    <Button type="button" size="sm" :variant="form.discountType === 'percentage' ? 'default' : 'outline'" @click="form.discountType = 'percentage'; clearItemDiscounts()">Percentage</Button>
                                 </div>
                             </div>
-                            <div><Label class="text-xs">Discount value</Label><Input v-model.number="form.discountValue" type="number" min="0" step="0.01" /></div>
+                            <div><Label class="text-xs">Discount value</Label><Input v-model.number="form.discountValue" type="number" min="0" step="0.01" @input="clearItemDiscounts" /></div>
                             <div><Label class="text-xs">Tax (%)</Label><Input v-model.number="form.taxPercentage" type="number" min="0" max="100" step="0.01" /></div>
                         </CardContent>
                     </Card>
 
                     <Card class="overflow-hidden rounded-2xl border-0 shadow-sm">
                         <CardHeader class="border-b bg-slate-950 text-white"><CardTitle>Summary</CardTitle></CardHeader>
-                        <CardContent class="space-y-3 p-5">
+                        <CardContent class="space-y-2 p-4">
                             <div class="flex justify-between text-sm text-slate-600"><span>Subtotal</span><span class="font-medium text-slate-900">{{ money(subtotal) }}</span></div>
-                            <div class="flex justify-between text-sm text-slate-600"><span>Discount</span><span class="font-medium text-red-600">- {{ money(discountAmount) }}</span></div>
+                            <div class="flex justify-between text-sm text-slate-600"><span>Item discount</span><span class="font-medium text-red-600">- {{ money(itemDiscountTotal) }}</span></div>
+                            <div class="flex justify-between text-sm text-slate-600"><span>Bulk discount</span><span class="font-medium text-red-600">- {{ money(discountAmount) }}</span></div>
                             <div class="flex justify-between text-sm text-slate-600"><span>Tax</span><span class="font-medium text-slate-900">{{ money(taxAmount) }}</span></div>
-                            <div class="flex items-center justify-between border-t pt-3">
+                            <div class="flex items-center justify-between border-t pt-2.5">
                                 <span class="text-base font-semibold text-slate-950">Total</span>
                                 <Badge class="bg-blue-600 px-3 py-1 text-base">{{ money(totalAmount) }}</Badge>
                             </div>
-                            <div class="flex justify-between border-t pt-3 text-sm text-slate-600"><span>Already paid</span><span class="font-medium text-emerald-600">{{ money(invoice.paid_amount) }}</span></div>
+                            <div class="flex justify-between border-t pt-2.5 text-sm text-slate-600"><span>Already paid</span><span class="font-medium text-emerald-600">{{ money(invoice.paid_amount) }}</span></div>
                         </CardContent>
                     </Card>
 

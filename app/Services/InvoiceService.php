@@ -8,6 +8,8 @@ use App\Models\InvoiceItem;
 use App\Models\InvoicePayment;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Carbon;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Str;
 
 class InvoiceService implements InvoiceInterface
@@ -64,11 +66,19 @@ class InvoiceService implements InvoiceInterface
     public function createInvoice(array $data): array
     {
         return DB::transaction(function () use ($data) {
-            [$subtotal, $discountAmount, $taxAmount, $total] = $this->calculateTotals($data['items'], $data);
+            $academicYearId = $data['academic_year_id'] ?? DB::table('tbl_academic_years')->where('is_active', 1)->limit(1)->value('id');
+            if (! $academicYearId) {
+                throw ValidationException::withMessages([
+                    'academic_year_id' => 'An active academic year is required before creating an invoice.',
+                ]);
+            }
+
+            [$subtotal, $discountAmount, $taxAmount, $total, $calculatedItems] = $this->calculateTotals($data['items'], $data);
 
             $invoice = Invoice::create([
                 'invoice_number' => $this->generateInvoiceNumber(),
                 'student_id' => $data['student_id'],
+                'academic_year_id' => $academicYearId,
                 'class_id' => $data['class_id'] ?? null,
                 'section_id' => $data['section_id'] ?? null,
                 'issue_date' => $data['issue_date'],
@@ -86,13 +96,16 @@ class InvoiceService implements InvoiceInterface
                 'created_by' => Auth::id(),
             ]);
 
-            foreach ($data['items'] as $item) {
+            foreach ($calculatedItems as $item) {
                 $invoice->items()->create([
                     'fee_type' => $item['fee_type'],
                     'description' => $item['description'] ?? null,
-                    'quantity' => $item['quantity'] ?? 1,
+                    'quantity' => $item['quantity'],
+                    'discount_type' => $item['discount_type'],
+                    'discount_percentage' => $item['discount_percentage'],
+                    'discount_amount' => $item['discount_amount'],
                     'unit_price' => $item['unit_price'],
-                    'amount' => ($item['quantity'] ?? 1) * $item['unit_price'],
+                    'total' => $item['total'],
                 ]);
             }
 
@@ -104,10 +117,11 @@ class InvoiceService implements InvoiceInterface
     {
         return DB::transaction(function () use ($id, $data) {
             $invoice = Invoice::findOrFail($id);
-            [$subtotal, $discountAmount, $taxAmount, $total] = $this->calculateTotals($data['items'], $data);
+            [$subtotal, $discountAmount, $taxAmount, $total, $calculatedItems] = $this->calculateTotals($data['items'], $data);
 
             $invoice->update([
                 'student_id' => $data['student_id'],
+                'academic_year_id' => $data['academic_year_id'] ?? $invoice->academic_year_id,
                 'class_id' => $data['class_id'] ?? null,
                 'section_id' => $data['section_id'] ?? null,
                 'issue_date' => $data['issue_date'],
@@ -123,13 +137,16 @@ class InvoiceService implements InvoiceInterface
             ]);
 
             $invoice->items()->delete();
-            foreach ($data['items'] as $item) {
+            foreach ($calculatedItems as $item) {
                 $invoice->items()->create([
                     'fee_type' => $item['fee_type'],
                     'description' => $item['description'] ?? null,
-                    'quantity' => $item['quantity'] ?? 1,
+                    'quantity' => $item['quantity'],
+                    'discount_type' => $item['discount_type'],
+                    'discount_percentage' => $item['discount_percentage'],
+                    'discount_amount' => $item['discount_amount'],
                     'unit_price' => $item['unit_price'],
-                    'amount' => ($item['quantity'] ?? 1) * $item['unit_price'],
+                    'total' => $item['total'],
                 ]);
             }
 
@@ -168,20 +185,47 @@ class InvoiceService implements InvoiceInterface
 
     private function calculateTotals(array $items, array $data): array
     {
-        $subtotal = collect($items)->sum(fn ($item) => ($item['quantity'] ?? 1) * $item['unit_price']);
+        $bulkDiscountValue = (float) ($data['discount_value'] ?? 0);
+        $bulkDiscountActive = $bulkDiscountValue > 0;
+        $calculatedItems = collect($items)->map(function (array $item) use ($bulkDiscountActive): array {
+            $quantity = (int) ($item['quantity'] ?? 1);
+            $unitPrice = (float) $item['unit_price'];
+            $gross = $quantity * $unitPrice;
+            $discountType = $bulkDiscountActive ? null : ($item['discount_type'] ?? 'fixed');
+            $discountValue = $bulkDiscountActive ? 0 : (float) ($item['discount_value'] ?? 0);
+            $discountAmount = $discountType === 'percentage'
+                ? min($gross, $gross * $discountValue / 100)
+                : min($gross, $discountValue);
 
-        $discountAmount = 0;
+            return [
+                ...$item,
+                'quantity' => $quantity,
+                'unit_price' => $unitPrice,
+                'discount_type' => $discountType,
+                'discount_percentage' => $discountType === 'percentage' ? $discountValue : 0,
+                'discount_amount' => round($discountAmount, 2),
+                'total' => round(max($gross - $discountAmount, 0), 2),
+            ];
+        });
+
+        $subtotal = $calculatedItems->sum(fn (array $item) => $item['quantity'] * $item['unit_price']);
+        $itemDiscountAmount = $calculatedItems->sum('discount_amount');
+        $afterItemDiscount = max($subtotal - $itemDiscountAmount, 0);
+
+        $bulkDiscountAmount = 0;
         if (($data['discount_type'] ?? null) === 'percentage') {
-            $discountAmount = $subtotal * (($data['discount_value'] ?? 0) / 100);
+            $bulkDiscountAmount = $afterItemDiscount * ($bulkDiscountValue / 100);
         } elseif (($data['discount_type'] ?? null) === 'fixed') {
-            $discountAmount = (float) ($data['discount_value'] ?? 0);
+            $bulkDiscountAmount = $bulkDiscountValue;
         }
+        $bulkDiscountAmount = min($afterItemDiscount, $bulkDiscountAmount);
+        $discountAmount = $itemDiscountAmount + $bulkDiscountAmount;
 
-        $taxable = $subtotal - $discountAmount;
+        $taxable = max($afterItemDiscount - $bulkDiscountAmount, 0);
         $taxAmount = $taxable * (($data['tax_percentage'] ?? 0) / 100);
         $total = $taxable + $taxAmount;
 
-        return [round($subtotal, 2), round($discountAmount, 2), round($taxAmount, 2), round($total, 2)];
+        return [round($subtotal, 2), round($discountAmount, 2), round($taxAmount, 2), round($total, 2), $calculatedItems->all()];
     }
 
     private function refreshStatus(Invoice $invoice): void
@@ -191,7 +235,7 @@ class InvoiceService implements InvoiceInterface
             $status = 'paid';
         } elseif ($invoice->paid_amount > 0) {
             $status = 'partial';
-        } elseif ($invoice->due_date->isPast()) {
+        } elseif (Carbon::parse($invoice->due_date)->isPast()) {
             $status = 'overdue';
         }
         $invoice->update(['status' => $status]);

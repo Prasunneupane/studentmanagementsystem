@@ -39,24 +39,27 @@ interface LineItem {
     description: string;
     quantity: number;
     unit_price: number;
+    discount_type: 'fixed' | 'percentage';
+    discount_value: number;
     showDescription: boolean;
 }
 
 const feeTypeSuggestions = ['Tuition Fee', 'Admission Fee', 'Exam Fee', 'Transport Fee', 'Library Fee', 'Lab Fee', 'Sports Fee', 'Miscellaneous'];
 
 const form = ref({
-    studentOption: null as Option | null,
+    studentId: null as string | null,
     issueDate: new Date().toISOString().split('T')[0],
     dueDate: '',
     discountType: 'fixed' as 'fixed' | 'percentage',
     discountValue: 0,
     taxPercentage: 0,
     notes: '',
-    items: [{ fee_type: '', description: '', quantity: 1, unit_price: 0, showDescription: false }] as LineItem[],
+    items: [{ fee_type: '', description: '', quantity: 1, unit_price: 0, discount_type: 'fixed', discount_value: 0, showDescription: false }] as LineItem[],
 });
 
 const errors = ref<Record<string, string>>({});
 const saving = ref(false);
+const selectedStudent = computed(() => props.students.find((student) => student.value === form.value.studentId));
 
 const dateValue = (value: string) => {
     if (!value) return null;
@@ -66,7 +69,7 @@ const dateValue = (value: string) => {
 
 const formatDate = (date: Date | null | undefined) => (date ? date.toISOString().split('T')[0] : '');
 
-const addItem = () => form.value.items.push({ fee_type: '', description: '', quantity: 1, unit_price: 0, showDescription: false });
+const addItem = () => form.value.items.push({ fee_type: '', description: '', quantity: 1, unit_price: 0, discount_type: 'fixed', discount_value: 0, showDescription: false });
 const removeItem = (index: number) => {
     if (form.value.items.length > 1) form.value.items.splice(index, 1);
 };
@@ -83,22 +86,36 @@ const toggleDescription = (item: LineItem) => {
     item.showDescription = !item.showDescription;
 };
 
-const subtotal = computed(() => form.value.items.reduce((sum, item) => sum + (item.quantity || 0) * (item.unit_price || 0), 0));
+const itemGross = (item: LineItem) => (item.quantity || 0) * (item.unit_price || 0);
+const itemDiscount = (item: LineItem) => {
+    if ((form.value.discountValue || 0) > 0) return 0;
+    const gross = itemGross(item);
+    const value = Number(item.discount_value) || 0;
+    return Math.min(gross, item.discount_type === 'percentage' ? gross * value / 100 : value);
+};
+const subtotal = computed(() => form.value.items.reduce((sum, item) => sum + itemGross(item), 0));
+const itemDiscountTotal = computed(() => form.value.items.reduce((sum, item) => sum + itemDiscount(item), 0));
+const itemNetSubtotal = computed(() => Math.max(subtotal.value - itemDiscountTotal.value, 0));
 
 const discountAmount = computed(() => {
-    if (form.value.discountType === 'percentage') return subtotal.value * ((form.value.discountValue || 0) / 100);
-    return form.value.discountValue || 0;
+    if (form.value.discountType === 'percentage') return Math.min(itemNetSubtotal.value, itemNetSubtotal.value * ((form.value.discountValue || 0) / 100));
+    return Math.min(itemNetSubtotal.value, form.value.discountValue || 0);
 });
 
-const taxableAmount = computed(() => Math.max(subtotal.value - discountAmount.value, 0));
+const taxableAmount = computed(() => Math.max(itemNetSubtotal.value - discountAmount.value, 0));
 const taxAmount = computed(() => taxableAmount.value * ((form.value.taxPercentage || 0) / 100));
 const totalAmount = computed(() => taxableAmount.value + taxAmount.value);
 
 const money = (value: number) => `Rs. ${value.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
+const clearItemDiscounts = () => {
+    if ((form.value.discountValue || 0) <= 0) return;
+    form.value.items.forEach((item) => { item.discount_value = 0; });
+};
+
 const validate = () => {
     errors.value = {};
-    if (!form.value.studentOption) errors.value.student = 'Select a student';
+    if (!form.value.studentId) errors.value.student = 'Select a student';
     if (!form.value.dueDate) errors.value.dueDate = 'Due date is required';
     form.value.items.forEach((item, index) => {
         if (!item.fee_type.trim()) errors.value[`item_${index}`] = 'Fee type is required';
@@ -117,9 +134,9 @@ const submit = async () => {
     saving.value = true;
     try {
         await createInvoice({
-            student_id: form.value.studentOption?.value,
-            class_id: form.value.studentOption?.class_id,
-            section_id: form.value.studentOption?.section_id,
+            student_id: form.value.studentId,
+            class_id: selectedStudent.value?.class_id ?? null,
+            section_id: selectedStudent.value?.section_id ?? null,
             issue_date: form.value.issueDate,
             due_date: form.value.dueDate,
             discount_type: form.value.discountType,
@@ -129,8 +146,10 @@ const submit = async () => {
             items: form.value.items.map(({ showDescription, ...item }) => item),
         });
         toast.success('Invoice created successfully');
-    } catch {
-        toast.error('Failed to create invoice');
+    } catch (error: unknown) {
+        const responseErrors = error && typeof error === 'object' ? error as Record<string, string> : {};
+        errors.value = responseErrors;
+        toast.error(Object.values(responseErrors)[0] || 'Failed to create invoice');
     } finally {
         saving.value = false;
     }
@@ -164,17 +183,18 @@ const handleFormKeydown = (event: KeyboardEvent) => {
             <form @submit.prevent="submit" @keydown="handleFormKeydown" class="grid gap-5 lg:grid-cols-3">
                 <div class="min-w-0 lg:col-span-2">
                     <Card class="overflow-hidden rounded-xl border shadow-sm">
-                        <CardHeader class="border-b py-3"><CardTitle class="text-base">Invoice details</CardTitle></CardHeader>
+                        <CardHeader class="border-b"><CardTitle class="">Invoice Details</CardTitle></CardHeader>
                         <CardContent class="space-y-4 p-4">
                             <div class="grid gap-4 md:grid-cols-2">
-                                <div>
-                                    <Label>Student *</Label>
-                                    <CustomSelect v-model="form.studentOption" :options="props.students" placeholder="Search student..." />
+                                <div >
+                                    <Label class="p-1">Student *</Label>
+
+                                    <CustomSelect v-model="form.studentId" :options="props.students" placeholder="Search student..." />
                                     <p v-if="errors.student" class="text-sm text-red-600">{{ errors.student }}</p>
                                 </div>
-                                <div><Label>Issue date *</Label><DatePicker :model-value="dateValue(form.issueDate)" @update:model-value="form.issueDate = formatDate($event)" /></div>
+                                <div><Label class="p-1">Issue date *</Label><DatePicker :model-value="dateValue(form.issueDate)" @update:model-value="form.issueDate = formatDate($event)" /></div>
                                 <div>
-                                    <Label>Due date *</Label>
+                                    <Label class="p-1">Due date *</Label>
                                     <DatePicker :model-value="dateValue(form.dueDate)" @update:model-value="form.dueDate = formatDate($event)" />
                                     <p v-if="errors.dueDate" class="text-sm text-red-600">{{ errors.dueDate }}</p>
                                 </div>
@@ -189,20 +209,30 @@ const handleFormKeydown = (event: KeyboardEvent) => {
                                 <div class="invoice-items-scroll max-h-[min(48vh,30rem)] space-y-3 overflow-y-scroll pr-2">
                                     <div v-for="(item, index) in form.items" :key="index" class="rounded-xl border bg-white p-4">
                                         <div class="grid gap-3 sm:grid-cols-12">
-                                            <div class="sm:col-span-4">
-                                                <Label class="text-xs">Fee type *</Label>
+                                            <div class="sm:col-span-3">
+                                                <Label class="text-xs p-1">Fee type *</Label>
                                                 <Input v-model="item.fee_type" list="fee-suggestions" placeholder="Tuition Fee" :class="{ 'border-red-500': errors[`item_${index}`] }" />
                                             </div>
-                                            <div class="sm:col-span-5">
-                                                <Label class="text-xs">Qty</Label>
-                                                <Input v-model.number="item.quantity" type="number" min="1" />
+                                            <div class="sm:col-span-1">
+                                                <Label class="text-xs p-1">Qty</Label>
+                                                <Input v-model.number="item.quantity" class="w-full" type="number" min="1" />
                                             </div>
                                             <div class="sm:col-span-2">
-                                                <Label class="text-xs">Unit price *</Label>
+                                                <Label class="text-xs p-1">Unit price *</Label>
                                                 <Input v-model.number="item.unit_price" type="number" min="0" step="0.01" :class="{ 'border-red-500': errors[`price_${index}`] }" @keydown.enter="addItemFromUnitPrice($event, index)" @keydown.tab="addItemFromUnitPrice($event, index)" />
                                             </div>
-                                            <div class="flex items-end justify-between gap-2 sm:col-span-1">
-                                                <span class="text-sm font-medium text-slate-700">{{ money(item.quantity * item.unit_price) }}</span>
+                                            <div class="sm:col-span-3">
+                                                <Label class="text-xs p-1">Item discount</Label>
+                                                <div class="flex gap-1">
+                                                    <select v-model="item.discount_type" class="h-10 rounded-md border border-input bg-background px-2 text-xs">
+                                                        <option value="fixed">Fixed</option>
+                                                        <option value="percentage">%</option>
+                                                    </select>
+                                                    <Input v-model.number="item.discount_value" type="number" min="0" step="0.01" :disabled="(form.discountValue || 0) > 0" />
+                                                </div>
+                                            </div>
+                                            <div class="flex min-w-0 items-end justify-between gap-1 sm:col-span-3">
+                                                <span class="text-sm font-medium text-slate-700">{{ money(itemGross(item) - itemDiscount(item)) }}</span>
                                                 <Button type="button" variant="ghost" size="icon" class="text-red-600" :disabled="form.items.length === 1" @click="removeItem(index)"><Trash2 class="h-4 w-4" /></Button>
                                             </div>
                                         </div>
@@ -220,7 +250,7 @@ const handleFormKeydown = (event: KeyboardEvent) => {
                             </div>
 
                             <div class="border-t pt-4">
-                                <Label>Notes</Label>
+                                <Label class="p-1">Notes</Label>
                                 <Textarea v-model="form.notes" placeholder="Payment instructions, remarks..." rows="3" />
                             </div>
                         </CardContent>
@@ -229,25 +259,26 @@ const handleFormKeydown = (event: KeyboardEvent) => {
 
                 <div class="space-y-1.5 lg:sticky lg:top-4 lg:self-start">
                     <Card class="rounded-xl border shadow-sm">
-                        <CardHeader class="border-b px-4 py-3"><CardTitle class="text-base">Discount & tax</CardTitle></CardHeader>
-                        <CardContent class="space-y-2 p-4">
+                        <CardHeader class="border-b "><CardTitle class="">Discount & tax</CardTitle></CardHeader>
+                        <CardContent class="space-y-3">
                             <div>
-                                <Label class="text-xs">Discount type</Label>
+                                <Label class="text-xs p-1">Discount type</Label>
                                 <div class="mt-1 flex gap-2">
-                                    <Button type="button" size="sm" :variant="form.discountType === 'fixed' ? 'default' : 'outline'" @click="form.discountType = 'fixed'">Fixed</Button>
-                                    <Button type="button" size="sm" :variant="form.discountType === 'percentage' ? 'default' : 'outline'" @click="form.discountType = 'percentage'">Percentage</Button>
+                                    <Button type="button" size="sm" :variant="form.discountType === 'fixed' ? 'default' : 'outline'" @click="form.discountType = 'fixed'; clearItemDiscounts()">Fixed</Button>
+                                    <Button type="button" size="sm" :variant="form.discountType === 'percentage' ? 'default' : 'outline'" @click="form.discountType = 'percentage'; clearItemDiscounts()">Percentage</Button>
                                 </div>
                             </div>
-                            <div><Label class="text-xs">Discount value</Label><Input v-model.number="form.discountValue" type="number" min="0" step="0.01" /></div>
-                            <div><Label class="text-xs">Tax (%)</Label><Input v-model.number="form.taxPercentage" type="number" min="0" max="100" step="0.01" /></div>
+                            <div><Label class="text-xs p-1">Discount value</Label><Input v-model.number="form.discountValue" type="number" min="0" step="0.01" @input="clearItemDiscounts" /></div>
+                            <div><Label class="text-xs p-1">Tax (%)</Label><Input v-model.number="form.taxPercentage" type="number" min="0" max="100" step="0.01" /></div>
                         </CardContent>
                     </Card>
 
                     <Card class="overflow-hidden rounded-xl border shadow-sm">
-                        <CardHeader class="border-b px-4 py-3"><CardTitle class="text-base">Summary</CardTitle></CardHeader>
-                        <CardContent class="space-y-2 p-4">
+                        <CardHeader class="border-b px-3 py-2"><CardTitle class="text-sm">Summary</CardTitle></CardHeader>
+                        <CardContent class="space-y-1.5 px-3 py-2">
                             <div class="flex justify-between text-sm text-slate-600"><span>Subtotal</span><span class="font-medium text-slate-900">{{ money(subtotal) }}</span></div>
-                            <div class="flex justify-between text-sm text-slate-600"><span>Discount</span><span class="font-medium text-red-600">- {{ money(discountAmount) }}</span></div>
+                            <div class="flex justify-between text-sm text-slate-600"><span>Item discount</span><span class="font-medium text-red-600">- {{ money(itemDiscountTotal) }}</span></div>
+                            <div class="flex justify-between text-sm text-slate-600"><span>Bulk discount</span><span class="font-medium text-red-600">- {{ money(discountAmount) }}</span></div>
                             <div class="flex justify-between text-sm text-slate-600"><span>Tax</span><span class="font-medium text-slate-900">{{ money(taxAmount) }}</span></div>
                             <div class="flex items-center justify-between border-t pt-2.5">
                                 <span class="text-base font-semibold text-slate-950">Total</span>

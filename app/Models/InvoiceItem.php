@@ -13,15 +13,19 @@ class InvoiceItem extends Model
         'fee_type',
         'description', 
         'quantity', 
-        'rate',
-        'unit_price', 
-        'amount'
+        'discount_type',
+        'discount_percentage',
+        'discount_amount',
+        'unit_price',
+        'total',
     ];
 
     protected $casts = [
         'quantity' => 'integer',
+        'discount_percentage' => 'decimal:2',
+        'discount_amount' => 'decimal:2',
         'unit_price' => 'decimal:2',
-        'amount' => 'decimal:2',
+        'total' => 'decimal:2',
     ];
 
     public function invoice()

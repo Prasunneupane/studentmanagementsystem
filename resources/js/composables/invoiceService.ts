@@ -8,6 +8,11 @@ export interface InvoiceItem {
     description?: string;
     quantity: number;
     unit_price: number;
+    discount_type?: 'fixed' | 'percentage' | null;
+    discount_value?: number;
+    discount_percentage?: number;
+    discount_amount?: number;
+    total?: number;
     amount?: number;
 }
 

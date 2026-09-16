@@ -77,7 +77,7 @@ const printInvoice = () => window.print();
                     <td class="muted">{{ item.description || '-' }}</td>
                     <td class="text-right">{{ item.quantity }}</td>
                     <td class="text-right">{{ money(item.unit_price) }}</td>
-                    <td class="text-right">{{ money(item.amount ?? item.quantity * item.unit_price) }}</td>
+                    <td class="text-right">{{ money(item.total ?? item.amount ?? item.quantity * item.unit_price) }}</td>
                 </tr>
             </tbody>
         </table>

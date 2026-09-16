@@ -13,7 +13,7 @@ class Invoice extends Model
     protected $table = 'tbl_invoices';
 
     protected $fillable = [
-        'invoice_number', 'student_id', 'class_id', 'section_id',
+        'invoice_number', 'student_id', 'class_id', 'section_id', 'academic_year_id',
         'issue_date', 'due_date', 'status', 'subtotal',
         'discount_type', 'discount_value', 'discount_amount',
         'tax_percentage', 'tax_amount', 'total_amount',

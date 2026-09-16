@@ -199,7 +199,7 @@ const removeInvoice = async () => {
                                             <td class="px-4 py-2 text-slate-500">{{ item.description || '-' }}</td>
                                             <td class="px-4 py-2 text-right">{{ item.quantity }}</td>
                                             <td class="px-4 py-2 text-right">{{ money(item.unit_price) }}</td>
-                                            <td class="px-4 py-2 text-right font-medium">{{ money(item.amount ?? item.quantity * item.unit_price) }}</td>
+                                            <td class="px-4 py-2 text-right font-medium">{{ money(item.total ?? item.amount ?? item.quantity * item.unit_price) }}</td>
                                         </tr>
                                     </tbody>
                                 </table>

@@ -66,9 +66,9 @@ function submit() {
 
                 <CardHeader class="flex flex-row items-center justify-between">
                     <div>
-                        <CardTitle>Edit Event</CardTitle>
+                        <CardTitle>Create Event</CardTitle>
                         <CardDescription>
-                            Update Events details and images below. Make sure to fill in all required fields.
+                            Create a new event by filling in the details below.
                         </CardDescription>
                     </div>
                     <Button as-child>
