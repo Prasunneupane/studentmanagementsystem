@@ -6,6 +6,7 @@ use App\Interface\InvoiceInterface;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\InvoicePayment;
+use App\Models\Students;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Carbon;
@@ -239,5 +240,17 @@ class InvoiceService implements InvoiceInterface
             $status = 'overdue';
         }
         $invoice->update(['status' => $status]);
+    }
+
+    public function getStudentWithClassSection(): array
+    {
+         return Students::with(['class:id,name', 'section:id,name'])
+                ->select('id', 'first_name', 'last_name', 'class_id', 'section_id')->get()
+                ->map(fn ($s) => [
+                    'value' => (string) $s->id,
+                    'label' => trim("{$s->first_name} {$s->last_name}") . ' - ' . ($s->class?->name ?? 'No class') . ' - ' . ($s->section?->name ?? ' '),
+                    'class_id' => $s->class_id,
+                    'section_id' => $s->section_id,
+                ])->toArray();
     }
 }

@@ -2,6 +2,8 @@
 
 namespace App\Interface;
 
+use Arr;
+
 interface InvoiceInterface
 {
     public function getAllInvoices(array $filters = []): array;
@@ -19,4 +21,5 @@ interface InvoiceInterface
     public function getInvoicesByStudent(int $studentId): array;
 
     public function generateInvoiceNumber(): string;
+    public function getStudentWithClassSection():array;
 }

@@ -25,15 +25,9 @@ class InvoiceController extends Controller
 
     public function create()
     {
+        $studentWithClassSection = $this->invoiceService->getStudentWithClassSection();
         return Inertia::render('invoice/Create', [
-            'students' => Students::with(['class:id,name', 'section:id,name'])
-                ->select('id', 'first_name', 'last_name', 'class_id', 'section_id')->get()
-                ->map(fn ($s) => [
-                    'value' => (string) $s->id,
-                    'label' => trim("{$s->first_name} {$s->last_name}") . ' - ' . ($s->class?->name ?? 'No class') . ' - ' . ($s->section?->name ?? 'No section'),
-                    'class_id' => $s->class_id,
-                    'section_id' => $s->section_id,
-                ]),
+           'students' => $studentWithClassSection,
         ]);
     }
 
