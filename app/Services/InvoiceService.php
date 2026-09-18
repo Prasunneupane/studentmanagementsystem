@@ -66,7 +66,7 @@ class InvoiceService implements InvoiceInterface
 
     public function createInvoice(array $data): array
     {
-        return DB::transaction(function () use ($data) {
+         return DB::transaction(function () use ($data) {
             $academicYearId = $data['academic_year_id'] ?? DB::table('tbl_academic_years')->where('is_active', 1)->limit(1)->value('id');
             if (! $academicYearId) {
                 throw ValidationException::withMessages([
@@ -254,3 +254,5 @@ class InvoiceService implements InvoiceInterface
                 ])->toArray();
     }
 }
+
+// 1954538624
