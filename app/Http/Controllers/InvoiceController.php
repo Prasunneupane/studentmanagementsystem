@@ -26,8 +26,10 @@ class InvoiceController extends Controller
     public function create()
     {
         $studentWithClassSection = $this->invoiceService->getStudentWithClassSection();
+        $paymentMethods = $this->invoiceService->getPaymentMethods();
         return Inertia::render('invoice/Create', [
            'students' => $studentWithClassSection,
+           'paymentMethods' => $paymentMethods,
         ]);
     }
 

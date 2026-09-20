@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Enums\PaymentGateway;
+use App\Enums\PaymentMethod;
 use App\Interface\InvoiceInterface;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
@@ -237,7 +239,7 @@ class InvoiceService implements InvoiceInterface
         } elseif ($invoice->paid_amount > 0) {
             $status = 'partial';
         } elseif (Carbon::parse($invoice->due_date)->isPast()) {
-            $status = 'overdue';
+        $status = 'overdue';
         }
         $invoice->update(['status' => $status]);
     }
@@ -252,6 +254,24 @@ class InvoiceService implements InvoiceInterface
                     'class_id' => $s->class_id,
                     'section_id' => $s->section_id,
                 ])->toArray();
+    }
+
+    public function getPaymentMethods(): array
+    {
+        return array_map(fn ($method) => [
+            'value' => $method->value,
+            'label' => $method->label(),
+            'icon' => $method->icon(),
+        ], PaymentMethod::cases());
+    }
+
+    public function getPaymentGateways(): array
+    {
+        return array_map(fn ($gateway) => [
+            'value' => $gateway->value,
+            'label' => $gateway->label(),
+            'icon' => $gateway->icon(),
+        ], PaymentGateway::cases());
     }
 }
 
