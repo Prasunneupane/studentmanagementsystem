@@ -55,7 +55,8 @@ class InvoiceService implements InvoiceInterface
 
     public function generateInvoiceNumber(): string
     {
-        $year = now()->format('Y');
+        $year = now()->year;
+        
         $last = Invoice::withTrashed()
             ->where('invoice_number', 'like', "INV-{$year}-%")
             ->orderByDesc('id')
@@ -94,7 +95,7 @@ class InvoiceService implements InvoiceInterface
                 'tax_percentage' => $data['tax_percentage'] ?? 0,
                 'tax_amount' => $taxAmount,
                 'total_amount' => $total,
-                'paid_amount' => 0,
+                'paid_amount' => $data['paid_amount'] ?? 0,
                 'notes' => $data['notes'] ?? null,
                 'created_by' => Auth::id(),
             ]);
@@ -109,6 +110,17 @@ class InvoiceService implements InvoiceInterface
                     'discount_amount' => $item['discount_amount'],
                     'unit_price' => $item['unit_price'],
                     'total' => $item['total'],
+                ]);
+            }
+            if($data['paid_amount'] ?? 0 > 0 && !empty($data['payment'])) {
+                InvoicePayment::create([
+                    'invoice_id' => $invoice->id,
+                    'amount' => $data['paid_amount'],
+                    'paid_on' => $data['paid_on'] ?? now(),
+                    'payment_method' => $data['payment_method'] ?? 'CASH',
+                    'reference_no' => $data['reference_no'] ?? null,
+                    'note' => $data['note'] ?? null,
+                    'received_by' => Auth::id(),
                 ]);
             }
 
@@ -173,7 +185,7 @@ class InvoiceService implements InvoiceInterface
                 'invoice_id' => $invoice->id,
                 'amount' => $data['amount'],
                 'paid_on' => $data['paid_on'] ?? now(),
-                'payment_method' => $data['payment_method'] ?? 'cash',
+                'payment_method' => $data['payment_method'] ?? 'CASH',
                 'reference_no' => $data['reference_no'] ?? null,
                 'note' => $data['note'] ?? null,
                 'received_by' => Auth::id(),

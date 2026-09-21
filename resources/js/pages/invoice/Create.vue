@@ -3,7 +3,7 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import DatePicker from '@/components/ui/datepicker/DatePicker.vue';
+// import DatePicker from '@/components/ui/datepicker/DatePicker.vue';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,6 +14,7 @@ import { useInvoices } from '@/composables/useInvoice.js';
 import { useToast } from '@/composables/useToast';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, router } from '@inertiajs/vue3';
+import DatePicker from '@/components/ui/customdatepicker/CustomDatePicker.vue';
 import {
     ArrowLeft,
     CreditCard,
@@ -424,11 +425,11 @@ const handleFormKeydown = (event: KeyboardEvent) => {
                                 </div>
                                 <div>
                                     <Label class="text-[11px] font-medium text-slate-500">Issue date *</Label>
-                                    <DatePicker :model-value="dateValue(form.issueDate)" @update:model-value="form.issueDate = formatDate($event)" />
+                                    <DatePicker v-model="form.issueDate" />
                                 </div>
                                 <div>
                                     <Label class="text-[11px] font-medium text-slate-500">Due date *</Label>
-                                    <DatePicker :model-value="dateValue(form.dueDate)" @update:model-value="form.dueDate = formatDate($event)" />
+                                    <DatePicker v-model="form.dueDate" />
                                     <p v-if="errors.dueDate" class="mt-0.5 text-[11px] text-red-600">{{ errors.dueDate }}</p>
                                 </div>
                             </div>

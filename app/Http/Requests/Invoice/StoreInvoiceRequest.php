@@ -13,6 +13,8 @@ class StoreInvoiceRequest extends FormRequest
 
     public function rules(): array
     {
+
+        // dd($this->all());
         return [
             'student_id' => ['required', 'exists:students,id'],
             // 'academic_year_id' => ['nullable', 'exists:tbl_academic_years,id'],
