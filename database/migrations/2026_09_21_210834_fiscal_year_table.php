@@ -27,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('fiscal_year');
+        Schema::dropIfExists('tbl_fiscal_year');
     }
 };
