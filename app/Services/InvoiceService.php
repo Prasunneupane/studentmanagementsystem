@@ -17,6 +17,9 @@ use Illuminate\Support\Str;
 
 class InvoiceService implements InvoiceInterface
 {
+    public function __construct(private FiscalYearService $fiscalYearService)
+    {
+    }
     public function getAllInvoices(array $filters = []): array
     {
         $query = Invoice::with(['student:id,first_name,last_name,photo,class_id', 'schoolClass:id,name', 'section:id,name']);
@@ -56,20 +59,18 @@ class InvoiceService implements InvoiceInterface
     public function generateInvoiceNumber(): string
     {
         $year = now()->year;
-        
+        $fiscalYear = $this->fiscalYearService->getActive();
         $last = Invoice::withTrashed()
-            ->where('invoice_number', 'like', "INV-{$year}-%")
-            ->orderByDesc('id')
-            ->first();
+           ->count();
 
-        $sequence = $last ? ((int) Str::afterLast($last->invoice_number, '-') + 1) : 1;
+        $sequence = $last ? ((int) $last + 1) : 1;
 
-        return sprintf('INV-%s-%06d', $year, $sequence);
+        return sprintf('INV-%s%06d',strtoupper($fiscalYear->bill_year_code),$sequence);
     }
 
     public function createInvoice(array $data): array
     {
-         return DB::transaction(function () use ($data) {
+         //return DB::transaction(function () use ($data) {
             $academicYearId = $data['academic_year_id'] ?? DB::table('tbl_academic_years')->where('is_active', 1)->limit(1)->value('id');
             if (! $academicYearId) {
                 throw ValidationException::withMessages([
@@ -78,7 +79,28 @@ class InvoiceService implements InvoiceInterface
             }
 
             [$subtotal, $discountAmount, $taxAmount, $total, $calculatedItems] = $this->calculateTotals($data['items'], $data);
-
+            dd(
+                [
+                'invoice_number' => $this->generateInvoiceNumber(),
+                'student_id' => $data['student_id'],
+                'academic_year_id' => $academicYearId,
+                'class_id' => $data['class_id'] ?? null,
+                'section_id' => $data['section_id'] ?? null,
+                'issue_date' => $data['issue_date'],
+                'due_date' => $data['due_date'],
+                'status' => 'unpaid',
+                'subtotal' => $subtotal,
+                'discount_type' => $data['discount_type'] ?? null,
+                'discount_value' => $data['discount_value'] ?? 0,
+                'discount_amount' => $discountAmount,
+                'tax_percentage' => $data['tax_percentage'] ?? 0,
+                'tax_amount' => $taxAmount,
+                'total_amount' => $total,
+                'paid_amount' => $data['paid_amount'] ?? 0,
+                'notes' => $data['notes'] ?? null,
+                'created_by' => Auth::id(),
+            ]
+            );
             $invoice = Invoice::create([
                 'invoice_number' => $this->generateInvoiceNumber(),
                 'student_id' => $data['student_id'],
@@ -125,7 +147,7 @@ class InvoiceService implements InvoiceInterface
             }
 
             return $invoice->load(['student', 'schoolClass', 'section', 'items'])->toArray();
-        });
+        //});
     }
 
     public function updateInvoice(int $id, array $data): array
