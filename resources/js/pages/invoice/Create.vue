@@ -29,9 +29,18 @@ import {
     Wallet,
     X,
 } from 'lucide-vue-next';
+import NepaliDatePicker from '@/components/ui/nepalicalendar/NepaliDatePicker.vue';
+import type { DateSelection } from '@/composables/bikramSambat';
 import { computed, nextTick, ref } from 'vue';
 import CustomSelect from '../CustomSelect.vue';
 import 'vue-sonner/style.css';
+
+function onSelect(sel: DateSelection) {
+  console.log(sel.bs);   // "2082-01-15"  — Nepali calendar, what the customer sees
+  console.log(sel.ad);   // "2025-04-28"  — English calendar, what you save to the DB
+  console.log(sel.bsFormatted.ne); // "सोमबार, बैशाख १५, २०८२"
+  console.log(sel.adFormatted.en); // "Monday, 28 April 2025"
+}
 
 interface Option {
     value: string;
@@ -425,7 +434,7 @@ const handleFormKeydown = (event: KeyboardEvent) => {
                                 </div>
                                 <div>
                                     <Label class="text-[11px] font-medium text-slate-500">Issue date *</Label>
-                                    <DatePicker v-model="form.issueDate" />
+                                    <DatePicker v-model="form.issueDate"  />
                                 </div>
                                 <div>
                                     <Label class="text-[11px] font-medium text-slate-500">Due date *</Label>

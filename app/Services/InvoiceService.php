@@ -101,30 +101,33 @@ class InvoiceService implements InvoiceInterface
                 'created_by' => Auth::id(),
             ]
             );
-            $invoice = Invoice::create([
-                'invoice_number' => $this->generateInvoiceNumber(),
-                'student_id' => $data['student_id'],
-                'academic_year_id' => $academicYearId,
-                'class_id' => $data['class_id'] ?? null,
-                'section_id' => $data['section_id'] ?? null,
-                'issue_date' => $data['issue_date'],
-                'due_date' => $data['due_date'],
-                'status' => 'unpaid',
-                'subtotal' => $subtotal,
-                'discount_type' => $data['discount_type'] ?? null,
-                'discount_value' => $data['discount_value'] ?? 0,
-                'discount_amount' => $discountAmount,
-                'tax_percentage' => $data['tax_percentage'] ?? 0,
-                'tax_amount' => $taxAmount,
-                'total_amount' => $total,
-                'paid_amount' => $data['paid_amount'] ?? 0,
-                'notes' => $data['notes'] ?? null,
-                'created_by' => Auth::id(),
-            ]);
+            // $invoice = Invoice::create([
+            //     'invoice_number' => $this->generateInvoiceNumber(),
+            //     'student_id' => $data['student_id'],
+            //     'academic_year_id' => $academicYearId,
+            //     'class_id' => $data['class_id'] ?? null,
+            //     'section_id' => $data['section_id'] ?? null,
+            //     'issue_date' => $data['issue_date'],
+            //     'due_date' => $data['due_date'],
+            //     'status' => 'unpaid',
+            //     'subtotal' => $subtotal,
+            //     'discount_type' => $data['discount_type'] ?? null,
+            //     'discount_value' => $data['discount_value'] ?? 0,
+            //     'discount_amount' => $discountAmount,
+            //     'tax_percentage' => $data['tax_percentage'] ?? 0,
+            //     'tax_amount' => $taxAmount,
+            //     'total_amount' => $total,
+            //     'paid_amount' => $data['paid_amount'] ?? 0,
+            //     'notes' => $data['notes'] ?? null,
+            //     'created_by' => Auth::id(),
+            // ]);
 
             foreach ($calculatedItems as $item) {
-                $invoice->items()->create([
+                // $invoice->items()->create(
+                [
+                    'invoice_id' => 1, //$invoice->id,
                     'fee_type' => $item['fee_type'],
+                    'fee_id' => $item['fee_id'] ?? 1,
                     'description' => $item['description'] ?? null,
                     'quantity' => $item['quantity'],
                     'discount_type' => $item['discount_type'],
@@ -132,7 +135,8 @@ class InvoiceService implements InvoiceInterface
                     'discount_amount' => $item['discount_amount'],
                     'unit_price' => $item['unit_price'],
                     'total' => $item['total'],
-                ]);
+                ];
+                // );
             }
             if($data['paid_amount'] ?? 0 > 0 && !empty($data['payment'])) {
                 InvoicePayment::create([

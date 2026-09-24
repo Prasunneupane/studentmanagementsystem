@@ -34,6 +34,7 @@ use App\Services\DashboardService;
 use App\Services\EventsService;
 use App\Services\ExamScheduleService;
 use App\Services\InvoiceService;
+use App\Services\NepaliDateService;
 use App\Services\StudentMarksService;
 use App\Services\GuardianService;
 use App\Services\TermsServices;
@@ -70,6 +71,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(DashboardInterface::class, DashboardService::class);
         $this->app->bind(EventsInterface::class, EventsService::class);
         $this->app->bind(InvoiceInterface::class,InvoiceService::class);
+        $this->app->singleton(NepaliDateService::class);
     }
 
     /**

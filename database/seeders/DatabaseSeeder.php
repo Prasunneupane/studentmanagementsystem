@@ -26,11 +26,12 @@ class DatabaseSeeder extends Seeder
         // $this->call(DistrictSeeder::class);
         // $this->call(MunicipalitySeeder::class);
         // $this->call(DefaultSettingSeeder::class);
-        $this->call(ClassSectionSeeder::class);
+        // $this->call(ClassSectionSeeder::class);
         // $this->call(SubjectSeeder::class);
         // $this->call(TeacherSeeder::class);
         // $this->call(ClassSubjectTeacher::class);
         // $this->call(StudentSeeder::class);   
         // $this->call(StudentClassAssignmentSeeder::class);
+         $this->call(NepaliCalendarSeeder::class);
     }
 }
