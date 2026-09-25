@@ -33,6 +33,9 @@ class StoreInvoiceRequest extends FormRequest
             'items.*.unit_price' => ['required', 'numeric', 'min:0'],
             'items.*.discount_type' => ['nullable', 'in:fixed,percentage'],
             'items.*.discount_value' => ['nullable', 'numeric', 'min:0'],
+            'items.*.taxable'=>['nullable','boolean'],
+            'items.*.tax_percentage'=>['nullable','integer'],
+        
         ];
     }
 }

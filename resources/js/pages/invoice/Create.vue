@@ -31,7 +31,7 @@ import {
 } from 'lucide-vue-next';
 import NepaliDatePicker from '@/components/ui/nepalicalendar/NepaliDatePicker.vue';
 import type { DateSelection } from '@/composables/bikramSambat';
-import { computed, nextTick, ref } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import CustomSelect from '../CustomSelect.vue';
 import 'vue-sonner/style.css';
 
@@ -88,10 +88,13 @@ interface LineItem {
     unit_price: number;
     discount_type: 'fixed' | 'percentage';
     discount_value: number;
+    taxable: boolean;
+    tax_percentage: number | null;
     showDescription: boolean;
 }
 
 const feeTypeSuggestions = ['Tuition Fee', 'Admission Fee', 'Exam Fee', 'Transport Fee', 'Library Fee', 'Lab Fee', 'Sports Fee', 'Miscellaneous'];
+const ITEM_TAX_RATE = 13;
 
 const newItem = (): LineItem => ({
     fee_type: '',
@@ -100,6 +103,8 @@ const newItem = (): LineItem => ({
     unit_price: 0,
     discount_type: 'fixed',
     discount_value: 0,
+    taxable: false,
+    tax_percentage: null,
     showDescription: false,
 });
 
@@ -138,7 +143,7 @@ const form = ref({
     dueDate: '',
     discountType: 'fixed' as 'fixed' | 'percentage',
     discountValue: 0,
-    taxPercentage: 0,
+    taxPercentage: null as number | null,
     notes: '',
     payments: [] as PaymentEntry[],
     items: [newItem()] as LineItem[], // first row already loaded and ready to fill
@@ -281,7 +286,26 @@ const discountAmount = computed(() => {
 });
 
 const taxableAmount = computed(() => Math.max(itemNetSubtotal.value - discountAmount.value, 0));
-const taxAmount = computed(() => taxableAmount.value * ((form.value.taxPercentage || 0) / 100));
+const bulkTaxActive = computed(() => (form.value.taxPercentage ?? 0) > 0);
+
+const itemTaxRate = (item: LineItem) => {
+    if ((form.value.taxPercentage ?? 0) > 0) return Number(form.value.taxPercentage ?? 0);
+    if (!item.taxable) return 0;
+    return Number(item.tax_percentage ?? ITEM_TAX_RATE);
+};
+
+const itemTaxAmount = (item: LineItem) => {
+    const taxableBase = Math.max(itemGross(item) - itemDiscount(item), 0);
+    const rate = itemTaxRate(item);
+    if (rate <= 0) return 0;
+    return taxableBase * (rate / 100);
+};
+
+const itemTaxTotal = computed(() => form.value.items.reduce((sum, item) => sum + itemTaxAmount(item), 0));
+const taxAmount = computed(() => {
+    if (bulkTaxActive.value) return taxableAmount.value * ((form.value.taxPercentage ?? 0) / 100);
+    return itemTaxTotal.value;
+});
 const totalAmount = computed(() => taxableAmount.value + taxAmount.value);
 
 const totalEntered = computed(() => form.value.payments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0));
@@ -311,6 +335,42 @@ const clearItemDiscounts = () => {
     form.value.items.forEach((item) => {
         item.discount_value = 0;
     });
+};
+
+const clearItemTaxes = (preserveChecked = false) => {
+    form.value.items.forEach((item) => {
+        if (preserveChecked) {
+            item.taxable = true;
+            item.tax_percentage = Number(form.value.taxPercentage ?? ITEM_TAX_RATE);
+            return;
+        }
+        item.taxable = false;
+        item.tax_percentage = null;
+    });
+};
+
+watch(
+    () => form.value.taxPercentage,
+    (value) => {
+        if ((value ?? 0) > 0) {
+            clearItemTaxes(true);
+        } else {
+            form.value.items.forEach((item) => {
+                item.taxable = false;
+                item.tax_percentage = null;
+            });
+        }
+    },
+);
+
+const setItemTaxable = (item: LineItem, checked: boolean) => {
+    item.taxable = checked;
+    if (checked) {
+        form.value.taxPercentage = null;
+        item.tax_percentage = ITEM_TAX_RATE;
+        return;
+    }
+    item.tax_percentage = null;
 };
 
 /* ------------------------------------------------------------------ */
@@ -368,9 +428,13 @@ const submit = async () => {
             due_date: form.value.dueDate,
             discount_type: form.value.discountType,
             discount_value: form.value.discountValue,
-            tax_percentage: form.value.taxPercentage,
+            tax_percentage: form.value.taxPercentage ?? 0,
             notes: form.value.notes,
-            items: form.value.items.map(({ showDescription, ...item }) => item),
+            items: form.value.items.map(({ showDescription, ...item }) => ({
+                ...item,
+                tax_percentage: bulkTaxActive.value ? Number(form.value.taxPercentage ?? 0) : (item.taxable ? Number(item.tax_percentage ?? ITEM_TAX_RATE) : 0),
+                taxable: bulkTaxActive.value ? true : item.taxable,
+            })),
             payments: form.value.payments
                 .filter((p) => p.amount > 0)
                 .map((p, index, arr) => ({
@@ -454,19 +518,20 @@ const handleFormKeydown = (event: KeyboardEvent) => {
                                     </Button>
                                 </div>
 
-                                <div class="hidden gap-2 border-b bg-slate-50/90 px-3 py-1.5 text-[10px] font-semibold tracking-wider text-slate-500 uppercase md:grid md:grid-cols-[1.75rem_minmax(0,1fr)_3rem_6rem_8.5rem_6.5rem_3.5rem]">
+                                <div class="hidden gap-2 border-b bg-slate-50/90 px-3 py-1.5 text-[10px] font-semibold tracking-wider text-slate-500 uppercase md:grid md:grid-cols-[1.75rem_minmax(0,1.2fr)_3rem_5.75rem_7rem_5.5rem_5.5rem_3.5rem]">
                                     <div>#</div>
                                     <div>Fee type</div>
                                     <div class="text-right">Qty</div>
                                     <div class="text-right">Rate</div>
                                     <div>Discount</div>
+                                    <div class="ml-8">Tax</div>
                                     <div class="text-right">Amount</div>
                                     <div></div>
                                 </div>
 
                                 <div class="invoice-items-scroll max-h-[min(46vh,26rem)] divide-y overflow-y-auto">
                                     <div v-for="(item, index) in form.items" :key="index" class="px-3 py-2 transition-colors hover:bg-slate-50/60">
-                                        <div class="grid grid-cols-1 items-center gap-2 md:grid-cols-[1.75rem_minmax(0,1fr)_3rem_6rem_8.5rem_6.5rem_3.5rem] md:gap-2">
+                                        <div class="grid grid-cols-1 items-center gap-2 md:grid-cols-[1.75rem_minmax(0,1.2fr)_3rem_5.75rem_7rem_5.5rem_5.5rem_3.5rem] md:gap-2">
                                             <div class="hidden items-center justify-center text-xs font-medium text-slate-400 md:flex">{{ index + 1 }}</div>
 
                                             <div class="min-w-0">
@@ -511,9 +576,17 @@ const handleFormKeydown = (event: KeyboardEvent) => {
                                                 </div>
                                             </div>
 
+                                            <div class="flex items-center justify-center">
+                                                <Label class="mb-0.5 block text-[10px] text-slate-500 md:hidden">Tax</Label>
+                                                <label class="flex items-center gap-1 rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 leading-none">
+                                                    <input v-model="item.taxable" type="checkbox" class="h-3.5 w-3.5 accent-blue-600" @change="setItemTaxable(item, item.taxable)" />
+                                                    <span class="text-[9px] font-medium text-slate-600">Tax</span>
+                                                </label>
+                                            </div>
+
                                             <div class="flex items-center justify-between md:block">
                                                 <Label class="text-[10px] text-slate-500 md:hidden">Amount</Label>
-                                                <div class="text-right text-sm font-semibold text-slate-900 tabular-nums">{{ money(itemGross(item) - itemDiscount(item)) }}</div>
+                                                <div class="text-right text-sm font-semibold text-slate-900 tabular-nums">{{ (itemGross(item) - itemDiscount(item)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}</div>
                                             </div>
 
                                             <div class="flex items-center justify-end gap-0.5 md:justify-center">
@@ -568,8 +641,17 @@ const handleFormKeydown = (event: KeyboardEvent) => {
                                         <Input v-model.number="form.discountValue" type="number" min="0" step="0.01" class="h-8 text-sm" @input="clearItemDiscounts" />
                                     </div>
                                     <div>
-                                        <Label class="text-[11px] font-medium text-slate-500">Tax (%)</Label>
-                                        <Input v-model.number="form.taxPercentage" type="number" min="0" max="100" step="0.01" class="h-8 text-sm" />
+                                        <Label class="text-[11px] font-medium text-slate-500">Bulk tax (%)</Label>
+                                        <Input
+                                            :model-value="form.taxPercentage ?? ''"
+                                            type="number"
+                                            min="0"
+                                            max="100"
+                                            step="0.01"
+                                            class="h-8 text-sm"
+                                            placeholder="Bulk tax"
+                                            @update:model-value="(value: string | number | undefined) => { form.taxPercentage = value === '' || value === undefined ? null : Number(value); }"
+                                        />
                                     </div>
                                 </div>
                                 <p v-if="bulkDiscountActive" class="mt-1.5 text-[10px] leading-snug text-amber-600">
@@ -736,7 +818,7 @@ const handleFormKeydown = (event: KeyboardEvent) => {
                     </div>
                     <div>
                         <Label class="text-xs">Cheque date *</Label>
-                        <DatePicker :model-value="dateValue(chequeDraft.date)" @update:model-value="chequeDraft.date = formatDate($event)" />
+                        <DatePicker :model-value="chequeDraft.date || undefined" @update:model-value="chequeDraft.date = $event" />
                     </div>
                 </div>
                 <DialogFooter>

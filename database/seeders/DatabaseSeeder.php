@@ -32,6 +32,6 @@ class DatabaseSeeder extends Seeder
         // $this->call(ClassSubjectTeacher::class);
         // $this->call(StudentSeeder::class);   
         // $this->call(StudentClassAssignmentSeeder::class);
-         $this->call(NepaliCalendarSeeder::class);
+        //  $this->call(NepaliCalendarSeeder::class);
     }
 }

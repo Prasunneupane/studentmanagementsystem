@@ -1,8 +1,9 @@
 <?php
 
-namespace App\Facade;
+namespace App\Facades;
 
 use App\Services\NepaliDateService;
+use Illuminate\Support\Facades\Facade;
 /**
  * @method static array bsToAd(int $y, int $m, int $d)
  * @method static array adToBs(int $y, int $m, int $d)
@@ -12,7 +13,7 @@ use App\Services\NepaliDateService;
  * @method static string toNepaliDigits(string $value)
  * @see \App\Services\NepaliDateService
  */
-class NepaliDate
+class NepaliDate extends Facade
 {
     protected static function getFacadeAccessor(): string
     {

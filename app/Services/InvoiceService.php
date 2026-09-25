@@ -4,11 +4,13 @@ namespace App\Services;
 
 use App\Enums\PaymentGateway;
 use App\Enums\PaymentMethod;
+use App\Facades\NepaliDate;
 use App\Interface\InvoiceInterface;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\InvoicePayment;
 use App\Models\Students;
+use Cache;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Carbon;
@@ -36,7 +38,7 @@ class InvoiceService implements InvoiceInterface
             $search = $filters['search'];
             $query->where(function ($q) use ($search) {
                 $q->where('invoice_number', 'like', "%{$search}%")
-                    ->orWhereHas('student', fn ($sq) => $sq->where('first_name', 'like', "%{$search}%")
+                    ->orWhereHas('student', fn($sq) => $sq->where('first_name', 'like', "%{$search}%")
                         ->orWhere('last_name', 'like', "%{$search}%"));
             });
         }
@@ -61,35 +63,36 @@ class InvoiceService implements InvoiceInterface
         $year = now()->year;
         $fiscalYear = $this->fiscalYearService->getActive();
         $last = Invoice::withTrashed()
-           ->count();
+            ->count();
 
         $sequence = $last ? ((int) $last + 1) : 1;
 
-        return sprintf('INV-%s%06d',strtoupper($fiscalYear->bill_year_code),$sequence);
+        return sprintf('INV-%s%06d', strtoupper($fiscalYear->bill_year_code), $sequence);
     }
 
     public function createInvoice(array $data): array
     {
-         //return DB::transaction(function () use ($data) {
-            $academicYearId = $data['academic_year_id'] ?? DB::table('tbl_academic_years')->where('is_active', 1)->limit(1)->value('id');
-            if (! $academicYearId) {
-                throw ValidationException::withMessages([
-                    'academic_year_id' => 'An active academic year is required before creating an invoice.',
-                ]);
-            }
-
-            [$subtotal, $discountAmount, $taxAmount, $total, $calculatedItems] = $this->calculateTotals($data['items'], $data);
-            dd(
-                [
+        //return DB::transaction(function () use ($data) {
+        $academicYearId = $data['academic_year_id'] ?? DB::table('tbl_academic_years')->where('is_active', 1)->limit(1)->value('id');
+        if (!$academicYearId) {
+            throw ValidationException::withMessages([
+                'academic_year_id' => 'An active academic year is required before creating an invoice.',
+            ]);
+        }
+        // dd($data['items']);
+        [$subtotal, $discountAmount, $taxAmount, $total, $calculatedItems] = $this->calculateTotals($data['items'], $data);
+        dump(
+            [
                 'invoice_number' => $this->generateInvoiceNumber(),
                 'student_id' => $data['student_id'],
-                'academic_year_id' => $academicYearId,
+
                 'class_id' => $data['class_id'] ?? null,
                 'section_id' => $data['section_id'] ?? null,
                 'issue_date' => $data['issue_date'],
                 'due_date' => $data['due_date'],
                 'status' => 'unpaid',
                 'subtotal' => $subtotal,
+                'invoice_nepali_date' => NepaliDate::today(),
                 'discount_type' => $data['discount_type'] ?? null,
                 'discount_value' => $data['discount_value'] ?? 0,
                 'discount_amount' => $discountAmount,
@@ -98,59 +101,69 @@ class InvoiceService implements InvoiceInterface
                 'total_amount' => $total,
                 'paid_amount' => $data['paid_amount'] ?? 0,
                 'notes' => $data['notes'] ?? null,
+                'academic_year_id' => $academicYearId,
+                'fiscal_year_id' => Cache::get('active_fiscal_year')->id,
                 'created_by' => Auth::id(),
+
             ]
-            );
-            // $invoice = Invoice::create([
-            //     'invoice_number' => $this->generateInvoiceNumber(),
-            //     'student_id' => $data['student_id'],
-            //     'academic_year_id' => $academicYearId,
-            //     'class_id' => $data['class_id'] ?? null,
-            //     'section_id' => $data['section_id'] ?? null,
-            //     'issue_date' => $data['issue_date'],
-            //     'due_date' => $data['due_date'],
-            //     'status' => 'unpaid',
-            //     'subtotal' => $subtotal,
-            //     'discount_type' => $data['discount_type'] ?? null,
-            //     'discount_value' => $data['discount_value'] ?? 0,
-            //     'discount_amount' => $discountAmount,
-            //     'tax_percentage' => $data['tax_percentage'] ?? 0,
-            //     'tax_amount' => $taxAmount,
-            //     'total_amount' => $total,
-            //     'paid_amount' => $data['paid_amount'] ?? 0,
-            //     'notes' => $data['notes'] ?? null,
-            //     'created_by' => Auth::id(),
-            // ]);
+        );
+        // $invoice = Invoice::create([
+        //     'invoice_number' => $this->generateInvoiceNumber(),
+        //     'student_id' => $data['student_id'],
+        //     'academic_year_id' => $academicYearId,
+        //     'class_id' => $data['class_id'] ?? null,
+        //     'section_id' => $data['section_id'] ?? null,
+        //     'issue_date' => $data['issue_date'],
+        //     'due_date' => $data['due_date'],
+        //     'status' => 'unpaid',
+        //     'subtotal' => $subtotal,
+        //     'discount_type' => $data['discount_type'] ?? null,
+        //     'discount_value' => $data['discount_value'] ?? 0,
+        //     'discount_amount' => $discountAmount,
+        //     'tax_percentage' => $data['tax_percentage'] ?? 0,
+        //     'tax_amount' => $taxAmount,
+        //     'total_amount' => $total,
+        //     'paid_amount' => $data['paid_amount'] ?? 0,
+        //     'notes' => $data['notes'] ?? null,
+        //     'created_by' => Auth::id(),
+        // ]);
+        $items = [];
+        // dd($calculatedItems);
+        foreach ($calculatedItems as $item) {
+            // $invoice->items()->create(
 
-            foreach ($calculatedItems as $item) {
-                // $invoice->items()->create(
-                [
-                    'invoice_id' => 1, //$invoice->id,
-                    'fee_type' => $item['fee_type'],
-                    'fee_id' => $item['fee_id'] ?? 1,
-                    'description' => $item['description'] ?? null,
-                    'quantity' => $item['quantity'],
-                    'discount_type' => $item['discount_type'],
-                    'discount_percentage' => $item['discount_percentage'],
-                    'discount_amount' => $item['discount_amount'],
-                    'unit_price' => $item['unit_price'],
-                    'total' => $item['total'],
-                ];
-                // );
-            }
-            if($data['paid_amount'] ?? 0 > 0 && !empty($data['payment'])) {
-                InvoicePayment::create([
-                    'invoice_id' => $invoice->id,
-                    'amount' => $data['paid_amount'],
-                    'paid_on' => $data['paid_on'] ?? now(),
-                    'payment_method' => $data['payment_method'] ?? 'CASH',
-                    'reference_no' => $data['reference_no'] ?? null,
-                    'note' => $data['note'] ?? null,
-                    'received_by' => Auth::id(),
-                ]);
-            }
+            $items[] = [
+                'invoice_id' => 1, //$invoice->id,
+                'fee_type' => $item['fee_type'],
+                'fee_id' => $item['fee_id'] ?? 1,
+                'description' => $item['description'] ?? null,
+                'quantity' => $item['quantity'] ?? 1,
+                'discount_type' => $item['discount_type'],
+                'discount_percentage' => $item['discount_percentage'],
+                'discount_amount' => $item['discount_amount'],
+                'tax_percentage' => $item['taxable'] ? $item['tax_percentage'] : 0,
+                'tax_amount' => $item['tax_amount'],
+                'unit_price' => $item['unit_price'],
+                'total' => $this->calculateItemTotal($item),
+            ];
+            // );
+        }
+        dd($items);
+        // die;
+        if ($data['paid_amount'] ?? 0 > 0 && !empty($data['payment'])) {
+            InvoicePayment::create([
+                'invoice_id' => $invoice->id,
+                'amount' => $data['paid_amount'],
+                'paid_on' => $data['paid_on'] ?? now(),
+                'payment_method' => $data['payment_method'] ?? 'CASH',
+                'reference_no' => $data['reference_no'] ?? null,
+                'note' => $data['note'] ?? null,
 
-            return $invoice->load(['student', 'schoolClass', 'section', 'items'])->toArray();
+                'received_by' => Auth::id(),
+            ]);
+        }
+
+        return $invoice->load(['student', 'schoolClass', 'section', 'items'])->toArray();
         //});
     }
 
@@ -228,7 +241,9 @@ class InvoiceService implements InvoiceInterface
     {
         $bulkDiscountValue = (float) ($data['discount_value'] ?? 0);
         $bulkDiscountActive = $bulkDiscountValue > 0;
+        // dd($items);
         $calculatedItems = collect($items)->map(function (array $item) use ($bulkDiscountActive): array {
+            // dd($item);
             $quantity = (int) ($item['quantity'] ?? 1);
             $unitPrice = (float) $item['unit_price'];
             $gross = $quantity * $unitPrice;
@@ -237,6 +252,8 @@ class InvoiceService implements InvoiceInterface
             $discountAmount = $discountType === 'percentage'
                 ? min($gross, $gross * $discountValue / 100)
                 : min($gross, $discountValue);
+            // $taxable = (bool) $item['taxable']??false;
+            // $taxPercentage = (float) $item['tax_percentage']??0;
 
             return [
                 ...$item,
@@ -246,10 +263,13 @@ class InvoiceService implements InvoiceInterface
                 'discount_percentage' => $discountType === 'percentage' ? $discountValue : 0,
                 'discount_amount' => round($discountAmount, 2),
                 'total' => round(max($gross - $discountAmount, 0), 2),
+                'taxable' => (bool) $item['taxable']?? false,
+                'tax_percentage' => (float) $item['tax_percentage']??0,
+                'tax_amount' => (float) $this->itemWiseTaxCalculation($item),
             ];
         });
 
-        $subtotal = $calculatedItems->sum(fn (array $item) => $item['quantity'] * $item['unit_price']);
+        $subtotal = $calculatedItems->sum(fn(array $item) => $item['quantity'] * $item['unit_price']);
         $itemDiscountAmount = $calculatedItems->sum('discount_amount');
         $afterItemDiscount = max($subtotal - $itemDiscountAmount, 0);
 
@@ -277,26 +297,26 @@ class InvoiceService implements InvoiceInterface
         } elseif ($invoice->paid_amount > 0) {
             $status = 'partial';
         } elseif (Carbon::parse($invoice->due_date)->isPast()) {
-        $status = 'overdue';
+            $status = 'overdue';
         }
         $invoice->update(['status' => $status]);
     }
 
     public function getStudentWithClassSection(): array
     {
-         return Students::with(['class:id,name', 'section:id,name'])
-                ->select('id', 'first_name', 'last_name', 'class_id', 'section_id')->get()
-                ->map(fn ($s) => [
-                    'value' => (string) $s->id,
-                    'label' => trim("{$s->first_name} {$s->last_name}") . ' - ' . ($s->class?->name ?? 'No class') . ' - ' . ($s->section?->name ?? ' '),
-                    'class_id' => $s->class_id,
-                    'section_id' => $s->section_id,
-                ])->toArray();
+        return Students::with(['class:id,name', 'section:id,name'])
+            ->select('id', 'first_name', 'last_name', 'class_id', 'section_id')->get()
+            ->map(fn($s) => [
+                'value' => (string) $s->id,
+                'label' => trim("{$s->first_name} {$s->last_name}") . ' - ' . ($s->class?->name ?? 'No class') . ' - ' . ($s->section?->name ?? ' '),
+                'class_id' => $s->class_id,
+                'section_id' => $s->section_id,
+            ])->toArray();
     }
 
     public function getPaymentMethods(): array
     {
-        return array_map(fn ($method) => [
+        return array_map(fn($method) => [
             'value' => $method->value,
             'label' => $method->label(),
             'icon' => $method->icon(),
@@ -305,12 +325,61 @@ class InvoiceService implements InvoiceInterface
 
     public function getPaymentGateways(): array
     {
-        return array_map(fn ($gateway) => [
+        return array_map(fn($gateway) => [
             'value' => $gateway->value,
             'label' => $gateway->label(),
             'icon' => $gateway->icon(),
         ], PaymentGateway::cases());
     }
+
+    public function calculateItemTotal($item): float
+    {
+        $quantity = (float) ($item['quantity'] ?? 1);
+        $unitPrice = (float) ($item['unit_price'] ?? 0);
+        $discountType = $item['discount_type'] ?? 'fixed';
+        $discountValue = (float) ($item['discount_value'] ?? 0);
+        $taxable = (bool) ($item['taxable'] ?? false);
+        $taxPercentage = (float) ($item['tax_percentage'] ?? 0);
+        $grossAmount = $quantity * $unitPrice;
+        if ($discountType === 'percentage') {
+            $discountAmount = ($grossAmount * $discountValue) / 100;
+        } else {
+            $discountAmount = $discountValue;
+        }
+        $discountAmount = min($discountAmount, $grossAmount);
+        $amountAfterDiscount = $grossAmount - $discountAmount;
+        $taxAmount = 0;
+        if ($taxable && $taxPercentage > 0) {
+            $taxAmount = ($amountAfterDiscount * $taxPercentage) / 100;
+        }
+        $total = $amountAfterDiscount + $taxAmount;
+
+        return round($total, 2);
+    }
+
+    public function itemWiseTaxCalculation($item):float{
+        
+        $quantity = (float) ($item['quantity'] ?? 1);
+        $unitPrice = (float) ($item['unit_price'] ?? 0);
+        $discountType = $item['discount_type'] ?? 'fixed';
+        $discountValue = (float) ($item['discount_value'] ?? 0);
+        $taxable = (bool) ($item['taxable'] ?? false);
+        $taxPercentage = (float) ($item['tax_percentage'] ?? 0);
+        $grossAmount = $quantity * $unitPrice;
+        if ($discountType === 'percentage') {
+            $discountAmount = ($grossAmount * $discountValue) / 100;
+        } else {
+            $discountAmount = $discountValue;
+        }
+        $discountAmount = min($discountAmount, $grossAmount);
+        $amountAfterDiscount = $grossAmount - $discountAmount;
+        $taxAmount = 0;
+        if ($taxable && $taxPercentage > 0) {
+            $taxAmount = ($amountAfterDiscount * $taxPercentage) / 100;
+        }
+        return round($taxAmount,2);
+    }
+
 }
 
 // 1954538624

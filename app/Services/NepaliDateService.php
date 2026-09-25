@@ -41,7 +41,7 @@ class NepaliDateService
 
         // indexed range query (uses idx on start_ad_date, end_ad_date)
         $row = NepaliCalendar::where('start_ad_date', '<=', $ad)
-            ->where('end_ad_date',   '>=', $ad)
+            ->where('end_ad_date', '>=', $ad)
             ->first();
 
         if (!$row) {
@@ -53,9 +53,9 @@ class NepaliDateService
         $bsDay = $row->start_ad_date->diffInDays($ad) + 1;
 
         return [
-            'year'  => $row->bs_year,
+            'year' => $row->bs_year,
             'month' => $row->bs_month,
-            'day'   => (int) $bsDay,
+            'day' => (int) $bsDay,
         ];
     }
 
@@ -83,9 +83,9 @@ class NepaliDateService
         $ad = $row->start_ad_date->copy()->addDays($bsDay - 1);
 
         return [
-            'year'  => (int) $ad->year,
+            'year' => (int) $ad->year,
             'month' => (int) $ad->month,
-            'day'   => (int) $ad->day,
+            'day' => (int) $ad->day,
         ];
     }
 
@@ -96,7 +96,7 @@ class NepaliDateService
     public function monthsBetweenAd(Carbon $from, Carbon $to): array
     {
         return NepaliCalendar::where('start_ad_date', '<=', $to)
-            ->where('end_ad_date',   '>=', $from)
+            ->where('end_ad_date', '>=', $from)
             ->orderBy('start_ad_date')
             ->get()
             ->all();
@@ -105,9 +105,9 @@ class NepaliDateService
     public function monthsBetweenBs(int $fromYear, int $fromMonth, int $toYear, int $toMonth): array
     {
         return NepaliCalendar::whereRaw(
-                '(bs_year * 100 + bs_month) BETWEEN ? AND ?',
-                [$fromYear * 100 + $fromMonth, $toYear * 100 + $toMonth]
-            )
+            '(bs_year * 100 + bs_month) BETWEEN ? AND ?',
+            [$fromYear * 100 + $fromMonth, $toYear * 100 + $toMonth]
+        )
             ->orderBy('bs_year')
             ->orderBy('bs_month')
             ->get()
@@ -127,14 +127,89 @@ class NepaliDateService
 
     public function toNepaliDigits(string $value): string
     {
-        $map = ['०','१','२','३','४','५','६','७','८','९'];
-        return preg_replace_callback('/\d/', fn ($m) => $map[(int) $m[0]], $value);
+        $map = ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९'];
+        return preg_replace_callback('/\d/', fn($m) => $map[(int) $m[0]], $value);
     }
 
     public function adToBsString(int $y, int $m, int $d, bool $nepali = true): string
     {
         $bs = $this->adToBs($y, $m, $d);
-        $s  = sprintf('%04d-%02d-%02d', $bs['year'], $bs['month'], $bs['day']);
+        $s = sprintf('%04d-%02d-%02d', $bs['year'], $bs['month'], $bs['day']);
         return $nepali ? $this->toNepaliDigits($s) : $s;
+    }
+
+    public function today(?string $tz = null): string
+    {
+        $now = $tz ? now($tz) : now();
+
+        $bs = $this->adToBs($now->year, $now->month, $now->day);
+
+        return $this->format($bs);
+    }
+
+    /**
+     * Format a BS array into a string.
+     *
+     * @param  array{year:int,month:int,day:int} $bs
+     * @param  string $format   one of: iso|iso_np|slash|long|long_np
+     */
+    public function format(array $bs, string $format = 'iso'): string
+    {
+        $y = $bs['year'];
+        $m = $bs['month'];
+        $d = $bs['day'];
+
+        $iso = sprintf('%04d-%02d-%02d', $y, $m, $d);
+
+        return match ($format) {
+            'iso' => $iso,
+            'iso_np' => $this->toNepaliDigits($iso),
+            'slash' => sprintf('%04d/%02d/%02d', $y, $m, $d),
+            'long' => sprintf('%d %s %d', $d, $this->monthNameEn($m), $y),
+            'long_np' => sprintf(
+                '%s %s %s',
+                $this->toNepaliDigits($d),
+                $this->monthNameNp($m),
+                $this->toNepaliDigits($y)
+            ),
+            default => throw new InvalidArgumentException("Unknown format: {$format}"),
+        };
+    }
+    protected function monthNameEn(int $m): string
+    {
+        return [
+            '',
+            'Baisakh',
+            'Jestha',
+            'Ashar',
+            'Shrawan',
+            'Bhadra',
+            'Ashwin',
+            'Kartik',
+            'Mangsir',
+            'Poush',
+            'Magh',
+            'Falgun',
+            'Chaitra'
+        ][$m] ?? '';
+    }
+
+    protected function monthNameNp(int $m): string
+    {
+        return [
+            '',
+            'बैशाख',
+            'जेठ',
+            'असार',
+            'साउन',
+            'भदौ',
+            'असोज',
+            'कार्तिक',
+            'मंसिर',
+            'पुष',
+            'माघ',
+            'फागुन',
+            'चैत'
+        ][$m] ?? '';
     }
 }
