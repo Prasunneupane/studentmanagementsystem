@@ -23,6 +23,7 @@ Route::middleware(['auth'])->group(function () {
         });
         Route::middleware(['permission:record_invoice_payment'])->group(function () {
             Route::post('/{invoice}/payments', [InvoiceController::class, 'recordPayment'])->whereNumber('invoice')->name('payments.store');
+            Route::put('/{invoice}/payments/{payment}', [InvoiceController::class, 'updatePayment'])->whereNumber(['invoice', 'payment'])->name('payments.update');
         });
         Route::middleware(['permission:print_invoice'])->group(function () {
             Route::get('/{invoice}/print', [InvoiceController::class, 'print'])->whereNumber('invoice')->name('print');

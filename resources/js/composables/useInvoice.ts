@@ -6,6 +6,7 @@ export function useInvoices() {
         createInvoice: invoiceService.createInvoice,
         updateInvoice: invoiceService.updateInvoice,
         recordPayment: invoiceService.recordPayment,
+        updatePayment: invoiceService.updatePayment,
         deleteInvoice: invoiceService.deleteInvoice,
     };
 }

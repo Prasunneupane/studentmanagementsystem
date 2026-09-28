@@ -302,7 +302,7 @@ const handlePdfExport = () => {
 </script>
 
 <template>
-    <div class="space-y-4">
+    <div class="mt-5 space-y-5">
         <!-- Search & Controls -->
         <div class="flex flex-col items-start justify-between gap-4 lg:flex-row lg:items-center">
             <div class="flex items-center gap-2">
@@ -361,7 +361,7 @@ const handlePdfExport = () => {
                     placeholder="Search all columns..."
                     :model-value="globalFilter"
                     class="w-full sm:max-w-sm"
-                    @update:model-value="globalFilter = $event"
+                    @update:model-value="globalFilter = String($event)"
                 />
             </div>
         </div>

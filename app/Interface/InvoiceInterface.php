@@ -12,8 +12,10 @@ interface InvoiceInterface
     public function updateInvoice(int $id, array $data): array;
     public function deleteInvoice(int $id): bool;
     public function recordPayment(int $invoiceId, array $data): array;
+    public function updatePayment(int $invoiceId, int $paymentId, array $data): array;
     public function getInvoicesByStudent(int $studentId): array;
     public function generateInvoiceNumber(): string;
     public function getStudentWithClassSection():array;
     public function getPaymentMethods():array;
+    public function getInvoiceStatus():array;
 }

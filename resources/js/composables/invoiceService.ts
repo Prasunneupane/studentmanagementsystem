@@ -67,6 +67,11 @@ export const invoiceService = {
         return data;
     },
 
+    async updatePayment(id: number, paymentId: number, payload: Record<string, unknown>) {
+        const { data } = await axios.put(`/invoice/${id}/payments/${paymentId}`, payload);
+        return data;
+    },
+
     async deleteInvoice(id: number) {
         return new Promise<void>((resolve, reject) => {
             router.delete(`/invoice/${id}`, {

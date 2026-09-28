@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\Invoice as InvoiceStatus;
 use App\Http\Requests\Invoice\StoreInvoiceRequest;
 use App\Http\Requests\Invoice\UpdateInvoiceRequest;
 use App\Interface\InvoiceInterface;
 use App\Models\Classes;
-use App\Models\Students;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redirect;
 use Inertia\Inertia;
@@ -17,9 +17,14 @@ class InvoiceController extends Controller
 
     public function index(Request $request)
     {
+        $filters = $request->only(['status', 'class_id', 'search', 'per_page', 'from_date', 'to_date']);
+        $invoices = $this->invoiceService->getAllInvoices($filters);
+        $invoiceStatus = $this->invoiceService->getInvoiceStatus();
+
         return Inertia::render('invoice/Index', [
-            'invoices' => $this->invoiceService->getAllInvoices($request->only(['status', 'class_id', 'search', 'per_page'])),
+            'invoices' => $invoices,
             'classes' => Classes::select('id', 'name as label')->get(),
+            'statusOptions' => $invoiceStatus,
         ]);
     }
 
@@ -32,7 +37,7 @@ class InvoiceController extends Controller
            'paymentMethods' => $paymentMethods,
         ]);
     }
-
+ 
     public function store(StoreInvoiceRequest $request)
     {
         $invoice = $this->invoiceService->createInvoice($request->validated());
@@ -84,6 +89,21 @@ class InvoiceController extends Controller
         $this->invoiceService->recordPayment((int) $id, $data);
 
         return Redirect::back()->with('success', 'Payment recorded successfully');
+    }
+
+    public function updatePayment(Request $request, string $invoiceId, string $paymentId)
+    {
+        $data = $request->validate([
+            'amount' => 'required|numeric|min:0.01',
+            'paid_on' => 'nullable|date',
+            'payment_method' => 'required|in:cash,bank_transfer,card,online,cheque',
+            'reference_no' => 'nullable|string',
+            'note' => 'nullable|string',
+        ]);
+
+        $this->invoiceService->updatePayment((int) $invoiceId, (int) $paymentId, $data);
+
+        return Redirect::back()->with('success', 'Payment updated successfully');
     }
 
     public function print(string $id)

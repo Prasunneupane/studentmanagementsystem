@@ -17,7 +17,7 @@ class Invoice extends Model
         'issue_date', 'due_date', 'status', 'subtotal',
         'discount_type', 'discount_value', 'discount_amount',
         'tax_percentage', 'tax_amount', 'total_amount',
-        'paid_amount', 'notes', 'created_by',
+        'paid_amount', 'notes', 'created_by','fiscal_year_id','invoice_nepali_date'
     ];
 
     protected $casts = [

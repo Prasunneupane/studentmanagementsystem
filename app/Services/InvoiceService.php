@@ -34,6 +34,14 @@ class InvoiceService implements InvoiceInterface
             $query->where('class_id', $filters['class_id']);
         }
 
+        if (!empty($filters['from_date'])) {
+            $query->whereDate('issue_date', '>=', $filters['from_date']);
+        }
+
+        if (!empty($filters['to_date'])) {
+            $query->whereDate('issue_date', '<=', $filters['to_date']);
+        }
+
         if (!empty($filters['search'])) {
             $search = $filters['search'];
             $query->where(function ($q) use ($search) {
@@ -81,15 +89,21 @@ class InvoiceService implements InvoiceInterface
                 ]);
             }
             [$subtotal, $discountAmount, $taxAmount, $total, $calculatedItems] = $this->calculateTotals($data['items'], $data);
-
-            // $invoice = Invoice::create([
-                dd(['invoice_number' => $this->generateInvoiceNumber(),
+            // to create invoiceStatus based on total amount and paid amount
+             $invoiceStatus =  (object) [
+                    'paid_amount'=>$data['paid_amount'] ?? 0,
+                    'total_amount'=>$total,
+                    'due_date'=>$data['due_date']
+            ];
+            $invoice = Invoice::create([
+                // dd([
+                'invoice_number' => $this->generateInvoiceNumber(),
                 'student_id' => $data['student_id'],
                 'class_id' => $data['class_id'] ?? null,
                 'section_id' => $data['section_id'] ?? null,
                 'issue_date' => $data['issue_date'],
                 'due_date' => $data['due_date'],
-                'status' => 'unpaid',
+                'status' => $this->billInVoiceStatus($invoiceStatus),
                 'subtotal' => $subtotal,
                 'invoice_nepali_date' => NepaliDate::today(),   
                 'discount_type' => $data['discount_type'] ?? null,
@@ -103,9 +117,10 @@ class InvoiceService implements InvoiceInterface
                 'academic_year_id' => $academicYearId,
                 'fiscal_year_id' => Cache::get('active_fiscal_year')->id,
                 'created_by' => Auth::id(),
-                ]);
-            // ]);
-            exit;
+                // ]
+                // );
+            ]);
+            // exit;
             foreach ($calculatedItems as $item) {
                 $invoice->items()->create(
 
@@ -206,6 +221,31 @@ class InvoiceService implements InvoiceInterface
             ]);
 
             $invoice->increment('paid_amount', $data['amount']);
+            $this->refreshStatus($invoice->fresh());
+
+            return $invoice->fresh(['payments'])->toArray();
+        });
+    }
+
+    public function updatePayment(int $invoiceId, int $paymentId, array $data): array
+    {
+        return DB::transaction(function () use ($invoiceId, $paymentId, $data) {
+            $invoice = Invoice::findOrFail($invoiceId);
+            $payment = InvoicePayment::where('invoice_id', $invoiceId)->findOrFail($paymentId);
+
+            $oldAmount = (float) $payment->amount;
+            $newAmount = (float) $data['amount'];
+
+            $payment->update([
+                'amount' => $newAmount,
+                'paid_on' => $data['paid_on'] ?? $payment->paid_on,
+                'payment_method' => $data['payment_method'] ?? $payment->payment_method,
+                'reference_no' => $data['reference_no'] ?? $payment->reference_no,
+                'note' => $data['note'] ?? $payment->note,
+            ]);
+
+            $invoice->paid_amount = (float) $invoice->paid_amount - $oldAmount + $newAmount;
+            $invoice->save();
             $this->refreshStatus($invoice->fresh());
 
             return $invoice->fresh(['payments'])->toArray();
@@ -356,6 +396,27 @@ class InvoiceService implements InvoiceInterface
         return round($taxAmount, 2);
     }
 
+    public function billInVoiceStatus($data):string
+    {
+        $status = 'unpaid';
+        if ($data->paid_amount >= $data->total_amount) {
+            $status = 'paid';
+        } elseif ($data->paid_amount > 0) {
+            $status = 'partial';
+        } elseif (Carbon::parse($data->due_date)->isPast()) {
+            $status = 'overdue';
+        }
+        return $status;
+    }
+
+    public function getInvoiceStatus(): array
+    {
+        return array_map(fn($gateway) => [
+            'value' => $gateway->value,
+            'label' => $gateway->label(),
+            // 'icon' => $gateway->icon(),
+        ], \App\Enums\Invoice::cases());
+    }
+
 }
 
-// 1954538624

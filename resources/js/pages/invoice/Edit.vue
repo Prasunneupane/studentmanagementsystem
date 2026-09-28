@@ -13,20 +13,35 @@ import { useToast } from '@/composables/useToast';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { Invoice } from '@/composables/invoiceService';
 import { Head, router } from '@inertiajs/vue3';
-import { ArrowLeft, Loader2, Plus, Save, Trash2, Receipt } from 'lucide-vue-next';
+import { ArrowLeft, Loader2, Pencil, Plus, Printer, Save, Trash2, Receipt, Wallet, X } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
-import CustomSelect from '../CustomSelect.vue';
 import 'vue-sonner/style.css';
 
-const props = defineProps<{ invoice: Invoice }>();
+interface Payment {
+    id: number;
+    amount: number;
+    paid_on: string;
+    payment_method: string;
+    reference_no?: string;
+    note?: string;
+}
+
+const props = defineProps<{ invoice: Invoice & { payments?: Payment[] } }>();
 
 const { toast } = useToast();
-const { updateInvoice } = useInvoices();
+const { updateInvoice, recordPayment, updatePayment } = useInvoices();
 
 const breadcrumbs = [
     { title: 'Invoices', href: '/invoice' },
-    { title: props.invoice.invoice_number, href: `/invoice/${props.invoice.id}` },
-    { title: 'Edit', href: `/invoice/${props.invoice.id}/edit` },
+    { title: 'Edit invoice', href: `/invoice/${props.invoice.id}/edit` },
+];
+
+const paymentMethods = [
+    { value: 'cash', label: 'Cash' },
+    { value: 'bank_transfer', label: 'Bank transfer' },
+    { value: 'card', label: 'Card' },
+    { value: 'online', label: 'Online' },
+    { value: 'cheque', label: 'Cheque' },
 ];
 
 const feeTypeSuggestions = ['Tuition Fee', 'Admission Fee', 'Exam Fee', 'Transport Fee', 'Library Fee', 'Lab Fee', 'Sports Fee', 'Miscellaneous'];
@@ -62,6 +77,53 @@ const form = ref({
 const errors = ref<Record<string, string>>({});
 const saving = ref(false);
 const hasPayments = computed(() => Number(props.invoice.paid_amount) > 0);
+const balanceDue = computed(() => Math.max(Number(props.invoice.total_amount) - Number(props.invoice.paid_amount), 0));
+const paymentSaving = ref(false);
+const paymentErrors = ref<Record<string, string>>({});
+const paymentForm = ref({
+    id: null as number | null,
+    amount: balanceDue.value > 0 ? balanceDue.value : 0,
+    paidOn: new Date().toISOString().split('T')[0],
+    method: paymentMethods[0],
+    referenceNo: '',
+    note: '',
+});
+
+const resetPaymentForm = () => {
+    paymentForm.value = {
+        id: null,
+        amount: balanceDue.value > 0 ? balanceDue.value : 0,
+        paidOn: new Date().toISOString().split('T')[0],
+        method: paymentMethods[0],
+        referenceNo: '',
+        note: '',
+    };
+    paymentErrors.value = {};
+};
+
+const paymentLimit = computed(() => {
+    const invoiceTotal = Number(props.invoice.total_amount) || 0;
+    const paidTotal = Number(props.invoice.paid_amount) || 0;
+    const editingPayment = props.invoice.payments?.find((payment) => payment.id === paymentForm.value.id);
+
+    if (!editingPayment) {
+        return Math.max(0, invoiceTotal - paidTotal);
+    }
+
+    return Math.max(0, invoiceTotal - (paidTotal - Number(editingPayment.amount)));
+});
+
+const beginPaymentEdit = (payment: Payment) => {
+    paymentErrors.value = {};
+    paymentForm.value = {
+        id: payment.id,
+        amount: Number(payment.amount),
+        paidOn: payment.paid_on || new Date().toISOString().split('T')[0],
+        method: paymentMethods.find((method) => method.value === payment.payment_method) || paymentMethods[0],
+        referenceNo: payment.reference_no || '',
+        note: payment.note || '',
+    };
+};
 
 const dateValue = (value: string) => {
     if (!value) return null;
@@ -69,6 +131,11 @@ const dateValue = (value: string) => {
     return new Date(year, month - 1, day);
 };
 const formatDate = (date: Date | null | undefined) => (date ? date.toISOString().split('T')[0] : '');
+const formatDateDisplay = (value: string) => new Date(value).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+const money = (value: number) => `Rs. ${Number(value || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const openPrintWindow = (invoiceId: number) => {
+    window.open(`/invoice/${invoiceId}/print`, '_blank', 'noopener,noreferrer');
+};
 
 const addItem = () => form.value.items.push({ fee_type: '', description: '', quantity: 1, unit_price: 0, discount_type: 'fixed', discount_value: 0 });
 const removeItem = (index: number) => {
@@ -92,11 +159,50 @@ const discountAmount = computed(() => {
 const taxableAmount = computed(() => Math.max(itemNetSubtotal.value - discountAmount.value, 0));
 const taxAmount = computed(() => taxableAmount.value * ((form.value.taxPercentage || 0) / 100));
 const totalAmount = computed(() => taxableAmount.value + taxAmount.value);
-
-const money = (value: number) => `Rs. ${value.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const clearItemDiscounts = () => {
     if ((form.value.discountValue || 0) <= 0) return;
     form.value.items.forEach((item) => { item.discount_value = 0; });
+};
+
+const savePayment = async () => {
+    paymentErrors.value = {};
+
+    if (!paymentForm.value.amount || paymentForm.value.amount <= 0) {
+        paymentErrors.value.amount = 'Enter a valid amount';
+        return;
+    }
+
+    const maxAllowed = paymentLimit.value;
+    if (paymentForm.value.amount > maxAllowed) {
+        paymentErrors.value.amount = `Amount cannot exceed ${money(maxAllowed)} for this invoice.`;
+        return;
+    }
+
+    const payload = {
+        amount: paymentForm.value.amount,
+        paid_on: paymentForm.value.paidOn,
+        payment_method: paymentForm.value.method.value,
+        reference_no: paymentForm.value.referenceNo || null,
+        note: paymentForm.value.note || null,
+    };
+
+    paymentSaving.value = true;
+    try {
+        if (paymentForm.value.id) {
+            await updatePayment(props.invoice.id, paymentForm.value.id, payload);
+            toast.success('Payment updated successfully');
+        } else {
+            await recordPayment(props.invoice.id, payload);
+            toast.success('Payment recorded successfully');
+        }
+
+        resetPaymentForm();
+        router.reload({ only: ['invoice'] });
+    } catch {
+        toast.error(paymentForm.value.id ? 'Failed to update payment' : 'Failed to record payment');
+    } finally {
+        paymentSaving.value = false;
+    }
 };
 
 const validate = () => {
@@ -146,13 +252,24 @@ const submit = async () => {
     <AppLayout :breadcrumbs="breadcrumbs">
         <Toaster />
         <div class="w-full space-y-5 bg-slate-50 p-4 sm:p-6">
-            <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-                <div>
-                    <p class="text-sm font-medium text-blue-600">Fee management</p>
-                    <h1 class="text-2xl font-bold tracking-tight text-slate-950">Edit {{ invoice.invoice_number }}</h1>
-                    <p class="mt-1 text-sm text-slate-500">{{ invoice.student?.first_name }} {{ invoice.student?.last_name }}</p>
+            <div class="flex flex-col justify-between gap-4 xl:flex-row xl:items-center">
+                <div class="flex-1 rounded-2xl border bg-white p-3 shadow-sm">
+                    <p class="text-[10px] font-medium uppercase tracking-[0.2em] text-slate-500">Student</p>
+                    <div class="mt-2 flex items-center justify-between gap-3">
+                        <div>
+                            <h1 class="text-xl font-bold tracking-tight text-slate-950">Edit invoice</h1>
+                            <p class="mt-1 text-sm text-slate-600">{{ invoice.student?.first_name }} {{ invoice.student?.last_name }}</p>
+                        </div>
+                        <span class="rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">{{ invoice.invoice_number }}</span>
+                    </div>
                 </div>
-                <Button variant="outline" @click="router.visit(`/invoice/${invoice.id}`)"><ArrowLeft class="mr-2 h-4 w-4" />Back to invoice</Button>
+
+                <div class="rounded-2xl border bg-white p-2 shadow-sm">
+                    <div class="flex flex-wrap gap-2">
+                        <Button variant="outline" size="sm" @click="router.visit(`/invoice/${invoice.id}`)"><ArrowLeft class="mr-2 h-4 w-4" />Back</Button>
+                        <Button variant="outline" size="sm" @click="openPrintWindow(invoice.id)"><Printer class="mr-2 h-4 w-4" />Print</Button>
+                    </div>
+                </div>
             </div>
 
             <div v-if="hasPayments" class="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
@@ -162,7 +279,7 @@ const submit = async () => {
             <form @submit.prevent="submit" class="grid gap-5 lg:grid-cols-3">
                 <div class="space-y-5 lg:col-span-2">
                     <Card class="overflow-hidden rounded-2xl border-0 shadow-sm">
-                        <CardHeader class="border-b bg-gradient-to-r from-slate-950 to-blue-950 text-white">
+                        <CardHeader class="border-b bg-white text-slate-900">
                             <CardTitle class="flex items-center gap-2 text-lg"><Receipt class="h-5 w-5" />Invoice details</CardTitle>
                         </CardHeader>
                         <CardContent class="space-y-5 p-5 sm:p-7">
@@ -230,7 +347,7 @@ const submit = async () => {
                     </Card>
                 </div>
 
-                <div class="space-y-1.5 lg:sticky lg:top-4 lg:self-start">
+                <div class="space-y-5 lg:sticky lg:top-4 lg:self-start">
                     <Card class="rounded-2xl border-0 shadow-sm">
                         <CardHeader class="border-b"><CardTitle>Discount & tax</CardTitle></CardHeader>
                         <CardContent class="space-y-2 p-4">
@@ -247,7 +364,7 @@ const submit = async () => {
                     </Card>
 
                     <Card class="overflow-hidden rounded-2xl border-0 shadow-sm">
-                        <CardHeader class="border-b bg-slate-950 text-white"><CardTitle>Summary</CardTitle></CardHeader>
+                        <CardHeader class="border-b bg-white"><CardTitle class="flex items-center gap-2 text-slate-900"><Wallet class="h-5 w-5" />Summary</CardTitle></CardHeader>
                         <CardContent class="space-y-2 p-4">
                             <div class="flex justify-between text-sm text-slate-600"><span>Subtotal</span><span class="font-medium text-slate-900">{{ money(subtotal) }}</span></div>
                             <div class="flex justify-between text-sm text-slate-600"><span>Item discount</span><span class="font-medium text-red-600">- {{ money(itemDiscountTotal) }}</span></div>
@@ -255,9 +372,79 @@ const submit = async () => {
                             <div class="flex justify-between text-sm text-slate-600"><span>Tax</span><span class="font-medium text-slate-900">{{ money(taxAmount) }}</span></div>
                             <div class="flex items-center justify-between border-t pt-2.5">
                                 <span class="text-base font-semibold text-slate-950">Total</span>
-                                <Badge class="bg-blue-600 px-3 py-1 text-base">{{ money(totalAmount) }}</Badge>
+                                <Badge class="bg-blue-100 px-3 py-1 text-base text-blue-700">{{ money(totalAmount) }}</Badge>
                             </div>
                             <div class="flex justify-between border-t pt-2.5 text-sm text-slate-600"><span>Already paid</span><span class="font-medium text-emerald-600">{{ money(invoice.paid_amount) }}</span></div>
+                        </CardContent>
+                    </Card>
+
+                    <Card class="rounded-2xl border-0 shadow-sm">
+                        <CardHeader class="flex flex-row items-center justify-between border-b">
+                            <div>
+                                <CardTitle>{{ paymentForm.id ? 'Update payment' : 'Add payment' }}</CardTitle>
+                            </div>
+                            <Button v-if="paymentForm.id" type="button" variant="outline" size="sm" @click="resetPaymentForm">
+                                <X class="mr-2 h-4 w-4" />Clear
+                            </Button>
+                        </CardHeader>
+                        <CardContent class="space-y-4 p-4">
+                            <div>
+                                <Label>Amount *</Label>
+                                <Input v-model.number="paymentForm.amount" type="number" min="0.01" :max="paymentLimit" step="0.01" :class="{ 'border-red-500': paymentErrors.amount }" />
+                                <p v-if="paymentErrors.amount" class="mt-1 text-sm text-red-600">{{ paymentErrors.amount }}</p>
+                                <p class="mt-1 text-xs text-slate-500">Allowed: {{ money(paymentLimit) }}</p>
+                            </div>
+                            <div>
+                                <Label>Paid on</Label>
+                                <DatePicker :model-value="dateValue(paymentForm.paidOn)" @update:model-value="paymentForm.paidOn = formatDate($event)" />
+                            </div>
+                            <div>
+                                <Label>Payment method</Label>
+                                <select v-model="paymentForm.method" class="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
+                                    <option v-for="method in paymentMethods" :key="method.value" :value="method">{{ method.label }}</option>
+                                </select>
+                            </div>
+                            <div>
+                                <Label>Reference number</Label>
+                                <Input v-model="paymentForm.referenceNo" placeholder="Transaction / cheque no." />
+                            </div>
+                            <div>
+                                <Label>Note</Label>
+                                <Textarea v-model="paymentForm.note" rows="2" />
+                            </div>
+                            <div class="flex gap-2 pt-1">
+                                <Button type="button" class="flex-1" :disabled="paymentSaving" @click="savePayment">
+                                    <Loader2 v-if="paymentSaving" class="mr-2 h-4 w-4 animate-spin" />
+                                    <Save v-else class="mr-2 h-4 w-4" />
+                                    {{ paymentSaving ? 'Saving...' : paymentForm.id ? 'Update payment' : 'Save payment' }}
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card class="rounded-2xl border-0 shadow-sm">
+                        <CardHeader class="flex flex-row items-center justify-between border-b">
+                            <div>
+                                <CardTitle>Payment history</CardTitle>
+                            </div>
+                            <Button v-if="!paymentForm.id" type="button" variant="outline" size="sm" @click="resetPaymentForm"><Plus class="mr-2 h-4 w-4" />New</Button>
+                        </CardHeader>
+                        <CardContent class="p-0">
+                            <div v-if="!invoice.payments?.length" class="p-6 text-center text-sm text-slate-500">No payments recorded yet.</div>
+                            <div v-else class="divide-y">
+                                <div v-for="payment in invoice.payments" :key="payment.id" class="flex items-center justify-between gap-3 p-4">
+                                    <div>
+                                        <p class="font-medium text-slate-900">{{ money(payment.amount) }}</p>
+                                        <p class="text-sm text-slate-500">{{ formatDateDisplay(payment.paid_on) }} · {{ payment.payment_method.replace('_', ' ') }} <span v-if="payment.reference_no"> · Ref: {{ payment.reference_no }}</span></p>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <Button type="button" variant="outline" size="sm" @click="beginPaymentEdit(payment)">
+                                            <Pencil class="mr-2 h-3.5 w-3.5" />Edit
+                                        </Button>
+                                        <Badge variant="secondary" class="bg-emerald-100 text-emerald-700">Paid</Badge>
+                                    </div>
+                                </div>
+                            </div>
                         </CardContent>
                     </Card>
 
@@ -269,4 +456,5 @@ const submit = async () => {
             </form>
         </div>
     </AppLayout>
+
 </template>
