@@ -18,4 +18,5 @@ interface InvoiceInterface
     public function getStudentWithClassSection():array;
     public function getPaymentMethods():array;
     public function getInvoiceStatus():array;
+    public function getPaymentGateways():array;
 }

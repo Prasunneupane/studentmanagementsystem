@@ -89,9 +89,12 @@ class InvoiceService implements InvoiceInterface
                 ]);
             }
             [$subtotal, $discountAmount, $taxAmount, $total, $calculatedItems] = $this->calculateTotals($data['items'], $data);
+                $payments = $data['payments'] ?? [];
+                $paymentTotal = array_sum(array_map(fn ($payment) => (float) $payment['amount'], $payments));
+                $paidAmount = min($paymentTotal, $total);
             // to create invoiceStatus based on total amount and paid amount
              $invoiceStatus =  (object) [
-                    'paid_amount'=>$data['paid_amount'] ?? 0,
+                    'paid_amount' => $paidAmount,
                     'total_amount'=>$total,
                     'due_date'=>$data['due_date']
             ];
@@ -112,7 +115,7 @@ class InvoiceService implements InvoiceInterface
                 'tax_percentage' => $data['tax_percentage'] ?? 0,
                 'tax_amount' => $taxAmount,
                 'total_amount' => $total,
-                'paid_amount' => $data['paid_amount'] ?? 0,
+                'paid_amount' => $paidAmount,
                 'notes' => $data['notes'] ?? null,
                 'academic_year_id' => $academicYearId,
                 'fiscal_year_id' => Cache::get('active_fiscal_year')->id,
@@ -140,15 +143,21 @@ class InvoiceService implements InvoiceInterface
                     ]
                 );
             }
-            if ($data['paid_amount'] ?? 0 > 0 && !empty($data['payment'])) {
+            foreach ($payments as $index => $payment) {
                 InvoicePayment::create([
                     'invoice_id' => $invoice->id,
-                    'amount' => $data['paid_amount'],
-                    'paid_on' => $data['paid_on'] ?? now(),
-                    'payment_method' => $data['payment_method'] ?? 'CASH',
-                    'reference_no' => $data['reference_no'] ?? null,
-                    'note' => $data['note'] ?? null,
-
+                    'amount' => $payment['amount'],
+                    'paid_on' => now()->toDateString(),
+                    'payment_method' => $payment['payment_method'],
+                    'payment_gateway' => $payment['payment_gateway'] ?? null,
+                    'payment_code' => $payment['payment_code'] ?? null,
+                    'reference_no' => $payment['reference_no'] ?? null,
+                    'bank_name' => $payment['bank_name'] ?? null,
+                    'cheque_number' => $payment['cheque_number'] ?? null,
+                    'cheque_date' => $payment['cheque_date'] ?? null,
+                    'return_amount' => $index === count($payments) - 1 ? max($paymentTotal - $total, 0) : 0,
+                    'payment_date' => now()->toDateString(),
+                    'payment_nepali_date' => NepaliDate::today(),
                     'received_by' => Auth::id(),
                 ]);
             }

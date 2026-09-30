@@ -35,7 +35,15 @@ class StoreInvoiceRequest extends FormRequest
             'items.*.discount_value' => ['nullable', 'numeric', 'min:0'],
             'items.*.taxable'=>['nullable','boolean'],
             'items.*.tax_percentage'=>['nullable','integer'],
-        
+            'payments' => ['nullable', 'array'],
+            'payments.*.amount' => ['required', 'numeric', 'min:0.01'],
+            'payments.*.payment_method' => ['required', 'in:cash,card,cheque,bank_transfer,online_payment'],
+            'payments.*.payment_gateway' => ['nullable', 'required_if:payments.*.payment_method,online_payment', 'in:esewa,khalti'],
+            'payments.*.payment_code' => ['nullable', 'string', 'max:255'],
+            'payments.*.reference_no' => ['nullable', 'string', 'max:255'],
+            'payments.*.bank_name' => ['nullable', 'string', 'max:255'],
+            'payments.*.cheque_number' => ['nullable', 'string', 'max:255'],
+            'payments.*.cheque_date' => ['nullable', 'date'],
         ];
     }
 }

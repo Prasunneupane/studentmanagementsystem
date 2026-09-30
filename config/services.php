@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    'payment_qr' => [
+        'bank' => env('BANK_QR_URL'),
+        'esewa' => env('ESEWA_QR_URL'),
+        'khalti' => env('KHALTI_QR_URL'),
+    ],
+
 ];

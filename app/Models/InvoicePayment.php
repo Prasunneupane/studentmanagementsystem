@@ -11,7 +11,9 @@ class InvoicePayment extends Model
     protected $fillable = [
         'invoice_id', 'amount', 'paid_on',
         'payment_method', 'reference_no',
-        'note', 'received_by','payment_status'
+                'payment_gateway', 'payment_code', 'bank_name', 'cheque_number', 'cheque_date',
+                'return_amount', 'payment_date', 'payment_nepali_date',
+                'note', 'received_by', 'payment_status'
       ];
 
     protected $casts = [

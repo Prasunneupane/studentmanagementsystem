@@ -60,11 +60,7 @@ const props = withDefaults(
         requireNotesOnDiscount?: boolean;
     }>(),
     {
-        paymentGateways: () => [
-            { value: 'esewa', label: 'eSewa' },
-            { value: 'khalti', label: 'Khalti' },
-            { value: 'other', label: 'Other' },
-        ],
+        paymentGateways: () => [],
         requireNotesOnDiscount: true,
     },
 );
@@ -115,8 +111,8 @@ const newItem = (): LineItem => ({
 interface PaymentEntry {
     id: number;
     amount: number;
-    method: Option | null;
-    gateway: Option | null; // only for online_payment
+    method: string | null;
+    gateway: string | null; // only for online_payment
     gatewayCode: string; // maps to payment_code
     bankName: string;
     referenceNo: string;
@@ -234,32 +230,33 @@ const cancelChequeDialog = () => {
 };
 
 // Only one method's extra data is ever kept per row — switching methods wipes the rest.
-const setEntryMethod = (entry: PaymentEntry, value: Option | null) => {
+const setEntryMethod = (entry: PaymentEntry, value: string | null) => {
     entry.method = value;
-    const v = value?.value;
 
-    if (v !== 'bank_transfer') entry.bankName = '';
-    if (v !== 'online_payment') {
+    if (entry.method !== 'bank_transfer') entry.bankName = '';
+    if (entry.method !== 'online_payment') {
         entry.gateway = null;
         entry.gatewayCode = '';
     }
-    if (v !== 'cheque') {
+    if (entry.method !== 'cheque') {
         entry.chequeNumber = '';
         entry.chequeDate = '';
     }
-    if (!['bank_transfer', 'credit_card', 'debit_card', 'paypal'].includes(v ?? '')) {
+    if (!['bank_transfer', 'card'].includes(entry.method ?? '')) {
         entry.referenceNo = '';
     }
 
-    if (v === 'cheque') openChequeDialog(entry);
+    if (entry.method === 'cheque') openChequeDialog(entry);
 };
 
 const gatewayQr = (entry: PaymentEntry) => {
-    if (entry.method?.value !== 'online_payment') return null;
-    if (entry.gateway?.value === 'esewa') return props.esewaQrUrl;
-    if (entry.gateway?.value === 'khalti') return props.khaltiQrUrl;
+    if (entry.method !== 'online_payment') return null;
+    if (entry.gateway === 'esewa') return props.esewaQrUrl;
+    if (entry.gateway === 'khalti') return props.khaltiQrUrl;
     return null;
 };
+
+const gatewayLabel = (entry: PaymentEntry) => props.paymentGateways.find((gateway) => gateway.value === entry.gateway)?.label ?? entry.gateway;
 
 /* ------------------------------------------------------------------ */
 /* Totals                                                               */
@@ -396,10 +393,10 @@ const validate = () => {
             errors.value[`payment_${index}`] = 'Select a payment method';
             return;
         }
-        if (entry.method.value === 'online_payment' && !entry.gateway) {
+        if (entry.method === 'online_payment' && !entry.gateway) {
             errors.value[`payment_${index}`] = 'Select a gateway (eSewa / Khalti / Other)';
         }
-        if (entry.method.value === 'cheque' && (!entry.chequeNumber || !entry.chequeDate)) {
+        if (entry.method === 'cheque' && (!entry.chequeNumber || !entry.chequeDate)) {
             errors.value[`payment_${index}`] = 'Enter cheque details';
         }
     });
@@ -439,8 +436,8 @@ const submit = async () => {
                 .filter((p) => p.amount > 0)
                 .map((p, index, arr) => ({
                     amount: p.amount,
-                    payment_method: p.method?.value,
-                    payment_gateway: p.method?.value === 'online_payment' ? p.gateway?.value : p.method?.value === 'bank_transfer' ? 'bank_transfer' : null,
+                    payment_method: p.method,
+                    payment_gateway: p.method === 'online_payment' ? p.gateway : null,
                     payment_code: p.gatewayCode || null,
                     reference_no: p.referenceNo || null,
                     bank_name: p.bankName || null,
@@ -711,7 +708,7 @@ const handleFormKeydown = (event: KeyboardEvent) => {
                                         <Input v-model.number="entry.amount" type="number" min="0" step="0.01" placeholder="Amount" class="h-9 flex-1 text-xs" />
                                         <CustomSelect
                                             :model-value="entry.method"
-                                            @update:model-value="(val) => setEntryMethod(entry, val)"
+                                            @update:model-value="(val: string | null) => setEntryMethod(entry, val)"
                                             :options="props.paymentMethods"
                                             placeholder="Method"
                                             class="h-9 flex-1 text-xs"
@@ -722,7 +719,7 @@ const handleFormKeydown = (event: KeyboardEvent) => {
                                     </div>
 
                                     <!-- Bank transfer -->
-                                    <div v-if="entry.method?.value === 'bank transfer'" class="space-y-1.5">
+                                    <div v-if="entry.method === 'bank_transfer'" class="space-y-1.5">
                                         <div class="flex gap-1.5">
                                             <Input v-model="entry.bankName" placeholder="Bank name" class="h-9 flex-1 text-xs" />
                                             <Input v-model="entry.referenceNo" placeholder="Reference no." class="h-9 flex-1 text-xs" />
@@ -734,25 +731,25 @@ const handleFormKeydown = (event: KeyboardEvent) => {
                                     </div>
 
                                     <!-- Online payment (eSewa / Khalti / other) -->
-                                    <div v-else-if="entry.method?.value === 'online payment'" class="space-y-1.5">
+                                    <div v-else-if="entry.method === 'online_payment'" class="space-y-1.5">
                                         <div class="flex gap-1.5">
                                             <CustomSelect v-model="entry.gateway" :options="props.paymentGateways" placeholder="Gateway" class="h-9 flex-1 text-xs" />
                                             <Input v-model="entry.gatewayCode" placeholder="Transaction code" class="h-9 flex-1 text-xs" />
                                         </div>
                                         <div v-if="gatewayQr(entry)" class="flex items-center gap-2 rounded bg-slate-50 p-1.5">
-                                            <img :src="gatewayQr(entry) ?? undefined" :alt="`${entry.gateway?.label} QR`" class="h-14 w-14 rounded border bg-white object-contain" />
-                                            <span class="flex items-center gap-1 text-[10px] text-slate-500"><QrCode class="h-3 w-3" />Scan with {{ entry.gateway?.label }}</span>
+                                            <img :src="gatewayQr(entry) ?? undefined" :alt="`${gatewayLabel(entry)} QR`" class="h-14 w-14 rounded border bg-white object-contain" />
+                                            <span class="flex items-center gap-1 text-[10px] text-slate-500"><QrCode class="h-3 w-3" />Scan with {{ gatewayLabel(entry) }}</span>
                                         </div>
                                     </div>
 
                                     <!-- Card / PayPal -->
-                                    <div v-else-if="['credit_card', 'debit_card', 'paypal'].includes(entry.method?.value ?? '')" class="flex items-center gap-1.5">
+                                    <div v-else-if="entry.method === 'card'" class="flex items-center gap-1.5">
                                         <CreditCard class="h-3.5 w-3.5 shrink-0 text-slate-400" />
                                         <Input v-model="entry.referenceNo" placeholder="Transaction / reference ID" class="h-7 flex-1 text-xs" />
                                     </div>
 
                                     <!-- Cheque -->
-                                    <div v-else-if="entry.method?.value === 'cheque'" class="flex items-center justify-between rounded bg-slate-50 px-2 py-1.5 text-[11px]">
+                                    <div v-else-if="entry.method === 'cheque'" class="flex items-center justify-between rounded bg-slate-50 px-2 py-1.5 text-[11px]">
                                         <span v-if="entry.chequeNumber" class="text-slate-600">Cheque #{{ entry.chequeNumber }} · {{ entry.chequeDate }}</span>
                                         <span v-else class="text-amber-600">Cheque details not entered</span>
                                         <Button type="button" variant="ghost" size="icon" class="h-6 w-6 text-slate-400" @click="openChequeDialog(entry)">
@@ -809,7 +806,13 @@ const handleFormKeydown = (event: KeyboardEvent) => {
 
         <!-- Cheque details popup -->
         <Dialog v-model:open="chequeDialogOpen">
-            <DialogContent class="sm:max-w-sm">
+            <DialogContent
+                class="sm:max-w-sm"
+                @pointer-down-outside="(event) => {
+                    const target = event.detail.originalEvent.target as Element | null;
+                    if (target?.closest('[data-datepicker-calendar]')) event.preventDefault();
+                }"
+            >
                 <DialogHeader><DialogTitle>Cheque details</DialogTitle></DialogHeader>
                 <div class="space-y-3">
                     <div>

@@ -528,6 +528,7 @@ const showBootstrapHeader = computed(() => !showMonthSelector.value && !showYear
     <div
       v-if="isOpen"
       ref="calendarContainer"
+      data-datepicker-calendar
       :style="dropdownStyle"
       class="bg-popover border border-border rounded-lg shadow-lg p-4"
     >

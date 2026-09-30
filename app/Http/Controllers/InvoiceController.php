@@ -32,9 +32,14 @@ class InvoiceController extends Controller
     {
         $studentWithClassSection = $this->invoiceService->getStudentWithClassSection();
         $paymentMethods = $this->invoiceService->getPaymentMethods();
+        $paymentGateways = $this->invoiceService->getPaymentGateways();
         return Inertia::render('invoice/Create', [
-           'students' => $studentWithClassSection,
-           'paymentMethods' => $paymentMethods,
+            'students' => $studentWithClassSection,
+            'paymentMethods' => $paymentMethods,
+            'paymentGateways' => $paymentGateways,
+            'bankQrUrl' => config('services.payment_qr.bank'),
+            'esewaQrUrl' => config('services.payment_qr.esewa'),
+            'khaltiQrUrl' => config('services.payment_qr.khalti'),
         ]);
     }
  
