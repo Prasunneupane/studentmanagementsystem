@@ -13,9 +13,11 @@ import { useInvoices } from '@/composables/useInvoice';
 import { useToast } from '@/composables/useToast';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { Invoice } from '@/composables/invoiceService';
+import type { PaymentGatewayOption } from '@/composables/usePaymentAttempt';
+import PaymentAttemptModal from '@/components/invoice/PaymentAttemptModal.vue';
 import { Head, router } from '@inertiajs/vue3';
-import { ArrowLeft, Loader2, Pencil, Plus, Printer, Save, Trash2, Wallet, X } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
+import { ArrowLeft, Loader2, Pencil, Plus, Printer, QrCode, Save, Trash2, Wallet, X } from 'lucide-vue-next';
+import { computed, onMounted, ref } from 'vue';
 import 'vue-sonner/style.css';
 
 interface Payment {
@@ -31,7 +33,7 @@ interface InvoiceFull extends Invoice {
     payments: Payment[];
 }
 
-const props = defineProps<{ invoice: InvoiceFull }>();
+const props = defineProps<{ invoice: InvoiceFull; paymentGateways?: PaymentGatewayOption[] }>();
 
 const { toast } = useToast();
 const { can } = usePermission();
@@ -54,7 +56,7 @@ const paymentMethods = [
     { value: 'cash', label: 'Cash' },
     { value: 'bank_transfer', label: 'Bank transfer' },
     { value: 'card', label: 'Card' },
-    { value: 'online', label: 'Online' },
+    { value: 'online_payment', label: 'Online' },
     { value: 'cheque', label: 'Cheque' },
 ];
 
@@ -160,6 +162,47 @@ const savePayment = async () => {
         paymentSaving.value = false;
     }
 };
+
+const gatewayModalOpen = ref(false);
+const selectedGateway = ref<PaymentGatewayOption | null>(null);
+
+const openGatewayModal = (gateway: PaymentGatewayOption) => {
+    if (!paymentForm.value.amount || paymentForm.value.amount <= 0 || paymentForm.value.amount > paymentLimit.value) {
+        paymentErrors.value.amount = `Enter an amount up to ${money(paymentLimit.value)} before choosing a gateway.`;
+        return;
+    }
+    selectedGateway.value = gateway;
+    gatewayModalOpen.value = true;
+};
+
+const onGatewaySettled = () => {
+    gatewayModalOpen.value = false;
+    resetPaymentForm();
+    router.reload({ only: ['invoice'] });
+};
+
+// Picks up the gateway intent Create.vue stashed right before submitting
+// (sessionStorage, not a query param — see PENDING_GATEWAY_INTENT_KEY in
+// Create.vue). One-time use: cleared immediately whether or not it matches,
+// so navigating to a different invoice afterwards never re-triggers it.
+onMounted(() => {
+    const raw = sessionStorage.getItem('pendingGatewayIntent');
+    if (!raw) return;
+    sessionStorage.removeItem('pendingGatewayIntent');
+
+    try {
+        const intent = JSON.parse(raw) as { gateway: string; amount: number; ts: number };
+        const isFresh = Date.now() - intent.ts < 2 * 60 * 1000;
+        const gateway = props.paymentGateways?.find((g) => g.value === intent.gateway);
+        if (!isFresh || !gateway || intent.amount <= 0 || intent.amount > paymentLimit.value) return;
+
+        paymentForm.value.amount = intent.amount;
+        selectedGateway.value = gateway;
+        gatewayModalOpen.value = true;
+    } catch {
+        // malformed/stale value — ignore
+    }
+});
 
 const removeInvoice = async () => {
     if (!window.confirm(`Delete invoice ${props.invoice.invoice_number}? This cannot be undone.`)) return;
@@ -304,6 +347,23 @@ const removeInvoice = async () => {
                                 <p v-if="paymentErrors.amount" class="mt-1 text-sm text-red-600">{{ paymentErrors.amount }}</p>
                                 <p class="mt-1 text-xs text-slate-500">Allowed: {{ money(paymentLimit) }}</p>
                             </div>
+
+                            <div v-if="!paymentForm.id && paymentGateways?.length && paymentLimit > 0">
+                                <Label class="mb-1.5 block">Or collect online</Label>
+                                <div class="flex flex-wrap gap-2">
+                                    <Button
+                                        v-for="gateway in paymentGateways"
+                                        :key="gateway.value"
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        @click="openGatewayModal(gateway)"
+                                    >
+                                        <QrCode class="mr-1.5 h-3.5 w-3.5" :style="{ color: gateway.color }" />{{ gateway.label }}
+                                    </Button>
+                                </div>
+                            </div>
+
                             <div>
                                 <Label>Paid on</Label>
                                 <DatePicker :model-value="dateValue(paymentForm.paidOn)" @update:model-value="paymentForm.paidOn = formatDateInput($event)" />
@@ -334,5 +394,13 @@ const removeInvoice = async () => {
                 </div>
             </div>
         </div>
+
+        <PaymentAttemptModal
+            v-model:open="gatewayModalOpen"
+            :invoice-id="invoice.id"
+            :gateway="selectedGateway"
+            :amount="paymentForm.amount"
+            @settled="onGatewaySettled"
+        />
     </AppLayout>
 </template>

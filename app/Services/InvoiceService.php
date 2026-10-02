@@ -9,7 +9,9 @@ use App\Interface\InvoiceInterface;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\InvoicePayment;
+use App\Models\PaymentAttempt;
 use App\Models\Students;
+use App\Payments\DTOs\PaymentVerification;
 use Cache;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -217,19 +219,29 @@ class InvoiceService implements InvoiceInterface
     public function recordPayment(int $invoiceId, array $data): array
     {
         return DB::transaction(function () use ($invoiceId, $data) {
-            $invoice = Invoice::findOrFail($invoiceId);
+            $invoice = Invoice::lockForUpdate()->findOrFail($invoiceId);
+
+            $amount = (float) $data['amount'];
+            $balance = $this->outstandingBalance($invoice);
+            if ($amount > $balance) {
+                throw ValidationException::withMessages([
+                    'amount' => "Payment amount cannot exceed the outstanding balance ({$balance}).",
+                ]);
+            }
 
             InvoicePayment::create([
                 'invoice_id' => $invoice->id,
-                'amount' => $data['amount'],
-                'paid_on' => $data['paid_on'] ?? now(),
-                'payment_method' => $data['payment_method'] ?? 'CASH',
+                'amount' => $amount,
+                'paid_on' => $data['paid_on'] ?? now()->toDateString(),
+                'payment_method' => $data['payment_method'] ?? PaymentMethod::CASH->value,
                 'reference_no' => $data['reference_no'] ?? null,
                 'note' => $data['note'] ?? null,
+                'payment_date' => now()->toDateString(),
+                'payment_nepali_date' => NepaliDate::today(),
                 'received_by' => Auth::id(),
             ]);
 
-            $invoice->increment('paid_amount', $data['amount']);
+            $invoice->increment('paid_amount', $amount);
             $this->refreshStatus($invoice->fresh());
 
             return $invoice->fresh(['payments'])->toArray();
@@ -239,11 +251,17 @@ class InvoiceService implements InvoiceInterface
     public function updatePayment(int $invoiceId, int $paymentId, array $data): array
     {
         return DB::transaction(function () use ($invoiceId, $paymentId, $data) {
-            $invoice = Invoice::findOrFail($invoiceId);
-            $payment = InvoicePayment::where('invoice_id', $invoiceId)->findOrFail($paymentId);
+            $invoice = Invoice::lockForUpdate()->findOrFail($invoiceId);
+            $payment = InvoicePayment::where('invoice_id', $invoiceId)->lockForUpdate()->findOrFail($paymentId);
 
             $oldAmount = (float) $payment->amount;
             $newAmount = (float) $data['amount'];
+            $balanceExcludingThisPayment = $this->outstandingBalance($invoice) + $oldAmount;
+            if ($newAmount > $balanceExcludingThisPayment) {
+                throw ValidationException::withMessages([
+                    'amount' => "Payment amount cannot exceed the outstanding balance ({$balanceExcludingThisPayment}).",
+                ]);
+            }
 
             $payment->update([
                 'amount' => $newAmount,
@@ -315,15 +333,54 @@ class InvoiceService implements InvoiceInterface
 
     private function refreshStatus(Invoice $invoice): void
     {
-        $status = 'unpaid';
-        if ($invoice->paid_amount >= $invoice->total_amount) {
-            $status = 'paid';
-        } elseif ($invoice->paid_amount > 0) {
-            $status = 'partial';
-        } elseif (Carbon::parse($invoice->due_date)->isPast()) {
-            $status = 'overdue';
-        }
-        $invoice->update(['status' => $status]);
+        $invoice->update(['status' => $this->billInVoiceStatus($invoice)]);
+    }
+
+    public function outstandingBalance(Invoice|int $invoice): float
+    {
+        $invoice = $invoice instanceof Invoice ? $invoice : Invoice::findOrFail($invoice);
+
+        return max(round((float) $invoice->total_amount - (float) $invoice->paid_amount, 2), 0.0);
+    }
+
+    /**
+     * The single place a verified gateway payment is turned into an
+     * InvoicePayment row and reflected in the invoice's paid_amount/status.
+     * Called only by PaymentAttemptService, only after it has confirmed the
+     * attempt is pending/unexpired and the provider verification succeeded —
+     * this method re-checks the balance itself rather than trusting that.
+     */
+    public function applyGatewayPayment(int $invoiceId, PaymentAttempt $attempt, PaymentVerification $verification): array
+    {
+        return DB::transaction(function () use ($invoiceId, $attempt, $verification) {
+            $invoice = Invoice::lockForUpdate()->findOrFail($invoiceId);
+
+            $amount = (float) $attempt->amount;
+            $balance = $this->outstandingBalance($invoice);
+            if ($amount > $balance) {
+                throw ValidationException::withMessages([
+                    'amount' => "Gateway payment amount ({$amount}) exceeds the invoice's outstanding balance ({$balance}).",
+                ]);
+            }
+
+            InvoicePayment::create([
+                'invoice_id' => $invoice->id,
+                'amount' => $amount,
+                'paid_on' => now()->toDateString(),
+                'payment_method' => PaymentMethod::ONLINE_PAYMENT->value,
+                'payment_gateway' => $attempt->gateway instanceof PaymentGateway ? $attempt->gateway->value : $attempt->gateway,
+                'payment_code' => null,
+                'reference_no' => $verification->providerTransactionId,
+                'payment_date' => now()->toDateString(),
+                'payment_nepali_date' => NepaliDate::today(),
+                'received_by' => $attempt->created_by,
+            ]);
+
+            $invoice->increment('paid_amount', $amount);
+            $this->refreshStatus($invoice->fresh());
+
+            return $invoice->fresh(['payments'])->toArray();
+        });
     }
 
     public function getStudentWithClassSection(): array
@@ -353,6 +410,8 @@ class InvoiceService implements InvoiceInterface
             'value' => $gateway->value,
             'label' => $gateway->label(),
             'icon' => $gateway->icon(),
+            'color' => $gateway->color(),
+            'sessionType' => $gateway->sessionType(),
         ], PaymentGateway::cases());
     }
 

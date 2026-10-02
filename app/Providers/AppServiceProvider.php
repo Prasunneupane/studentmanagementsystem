@@ -16,6 +16,8 @@ use App\Interface\SubjectInterface;
 use App\Interface\TeacherInterfacce;
 use App\Interface\UserInterface;
 use App\Interface\InvoiceInterface;
+use App\Interface\PaymentAttemptInterface;
+use App\Services\PaymentAttemptService;
 use App\Models\Permission;
 use App\Models\Roles;
 use App\Observers\PermissionObserver;
@@ -71,6 +73,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(DashboardInterface::class, DashboardService::class);
         $this->app->bind(EventsInterface::class, EventsService::class);
         $this->app->bind(InvoiceInterface::class,InvoiceService::class);
+        $this->app->bind(PaymentAttemptInterface::class, PaymentAttemptService::class);
         $this->app->singleton(NepaliDateService::class);
     }
 

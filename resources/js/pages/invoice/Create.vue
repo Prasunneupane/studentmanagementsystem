@@ -53,10 +53,8 @@ const props = withDefaults(
     defineProps<{
         students: Option[];
         paymentMethods: Option[]; // from App\Enums\PaymentMethod
-        paymentGateways?: Option[]; // esewa / khalti / other, for online_payment
+        paymentGateways?: Option[]; // esewa / khalti / fonepay, for online_payment — collected after creation, see submit()
         bankQrUrl?: string;
-        esewaQrUrl?: string;
-        khaltiQrUrl?: string;
         requireNotesOnDiscount?: boolean;
     }>(),
     {
@@ -112,8 +110,7 @@ interface PaymentEntry {
     id: number;
     amount: number;
     method: string | null;
-    gateway: string | null; // only for online_payment
-    gatewayCode: string; // maps to payment_code
+    gateway: string | null; // only for online_payment — an intent, collected after creation
     bankName: string;
     referenceNo: string;
     chequeNumber: string;
@@ -126,7 +123,6 @@ const newPaymentEntry = (): PaymentEntry => ({
     amount: 0,
     method: null,
     gateway: null,
-    gatewayCode: '',
     bankName: '',
     referenceNo: '',
     chequeNumber: '',
@@ -236,7 +232,6 @@ const setEntryMethod = (entry: PaymentEntry, value: string | null) => {
     if (entry.method !== 'bank_transfer') entry.bankName = '';
     if (entry.method !== 'online_payment') {
         entry.gateway = null;
-        entry.gatewayCode = '';
     }
     if (entry.method !== 'cheque') {
         entry.chequeNumber = '';
@@ -247,13 +242,6 @@ const setEntryMethod = (entry: PaymentEntry, value: string | null) => {
     }
 
     if (entry.method === 'cheque') openChequeDialog(entry);
-};
-
-const gatewayQr = (entry: PaymentEntry) => {
-    if (entry.method !== 'online_payment') return null;
-    if (entry.gateway === 'esewa') return props.esewaQrUrl;
-    if (entry.gateway === 'khalti') return props.khaltiQrUrl;
-    return null;
 };
 
 const gatewayLabel = (entry: PaymentEntry) => props.paymentGateways.find((gateway) => gateway.value === entry.gateway)?.label ?? entry.gateway;
@@ -305,10 +293,18 @@ const taxAmount = computed(() => {
 });
 const totalAmount = computed(() => taxableAmount.value + taxAmount.value);
 
-const totalEntered = computed(() => form.value.payments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0));
+// Online-gateway rows are an intent, not a recorded payment — they're excluded
+// from what's sent to createInvoice (see submit()), so they're excluded here
+// too, otherwise this preview would show "paid" for money the server hasn't
+// actually received yet.
+const settledPayments = computed(() => form.value.payments.filter((p) => p.method !== 'online_payment'));
+const gatewayIntents = computed(() => form.value.payments.filter((p) => p.method === 'online_payment' && p.amount > 0 && p.gateway));
+
+const totalEntered = computed(() => settledPayments.value.reduce((sum, p) => sum + (Number(p.amount) || 0), 0));
 const appliedPaid = computed(() => Math.min(totalEntered.value, totalAmount.value));
 const changeReturned = computed(() => Math.max(totalEntered.value - totalAmount.value, 0));
 const balanceDue = computed(() => Math.max(totalAmount.value - appliedPaid.value, 0));
+const pendingGatewayTotal = computed(() => gatewayIntents.value.reduce((sum, p) => sum + (Number(p.amount) || 0), 0));
 
 const invoiceStatus = computed<'unpaid' | 'partial' | 'paid'>(() => {
     if (appliedPaid.value <= 0) return 'unpaid';
@@ -405,8 +401,19 @@ const validate = () => {
         errors.value.notes = 'Notes are required when a discount is applied';
     }
 
+    if (totalEntered.value + pendingGatewayTotal.value > totalAmount.value + 0.01) {
+        errors.value.payments = 'Entered payments plus the gateway amount exceed the invoice total';
+    }
+
     return !Object.keys(errors.value).length;
 };
+
+// The chosen gateway/amount is remembered here, for the Show page (which the
+// backend redirects to right after creation) to pick up and auto-open the
+// payment modal against the now-persisted invoice — see Decision 3 in
+// PAYMENT_IMPLEMENTATION_PLAN.md for why this happens post-creation rather
+// than here.
+const PENDING_GATEWAY_INTENT_KEY = 'pendingGatewayIntent';
 
 const submit = async () => {
     if (!validate()) {
@@ -417,6 +424,13 @@ const submit = async () => {
 
     saving.value = true;
     try {
+        const intent = gatewayIntents.value[0];
+        if (intent) {
+            sessionStorage.setItem(PENDING_GATEWAY_INTENT_KEY, JSON.stringify({ gateway: intent.gateway, amount: intent.amount, ts: Date.now() }));
+        } else {
+            sessionStorage.removeItem(PENDING_GATEWAY_INTENT_KEY);
+        }
+
         await createInvoice({
             student_id: form.value.studentId,
             class_id: selectedStudent.value?.class_id ?? null,
@@ -432,13 +446,14 @@ const submit = async () => {
                 tax_percentage: bulkTaxActive.value ? Number(form.value.taxPercentage ?? 0) : (item.taxable ? Number(item.tax_percentage ?? ITEM_TAX_RATE) : 0),
                 taxable: bulkTaxActive.value ? true : item.taxable,
             })),
-            payments: form.value.payments
+            // Online-gateway rows are never sent here — they're not a settled
+            // payment yet. Only cash/bank/card/cheque rows the invoice is
+            // actually created with.
+            payments: settledPayments.value
                 .filter((p) => p.amount > 0)
                 .map((p, index, arr) => ({
                     amount: p.amount,
                     payment_method: p.method,
-                    payment_gateway: p.method === 'online_payment' ? p.gateway : null,
-                    payment_code: p.gatewayCode || null,
                     reference_no: p.referenceNo || null,
                     bank_name: p.bankName || null,
                     cheque_number: p.chequeNumber || null,
@@ -449,6 +464,7 @@ const submit = async () => {
         });
         toast.success('Invoice created successfully');
     } catch (error: unknown) {
+        sessionStorage.removeItem(PENDING_GATEWAY_INTENT_KEY);
         const responseErrors = error && typeof error === 'object' ? (error as Record<string, string>) : {};
         errors.value = responseErrors;
         toast.error(Object.values(responseErrors)[0] || 'Failed to create invoice');
@@ -730,16 +746,15 @@ const handleFormKeydown = (event: KeyboardEvent) => {
                                         </div>
                                     </div>
 
-                                    <!-- Online payment (eSewa / Khalti / other) -->
+                                    <!-- Online payment (eSewa / Khalti / Fonepay) — collected right after the invoice
+                                         is created, against the saved invoice, not here. See entry.method === 'online_payment'
+                                         handling in submit(): this amount is excluded from the create payload and instead
+                                         opens the gateway modal on the invoice page immediately after creation. -->
                                     <div v-else-if="entry.method === 'online_payment'" class="space-y-1.5">
-                                        <div class="flex gap-1.5">
-                                            <CustomSelect v-model="entry.gateway" :options="props.paymentGateways" placeholder="Gateway" class="h-9 flex-1 text-xs" />
-                                            <Input v-model="entry.gatewayCode" placeholder="Transaction code" class="h-9 flex-1 text-xs" />
-                                        </div>
-                                        <div v-if="gatewayQr(entry)" class="flex items-center gap-2 rounded bg-slate-50 p-1.5">
-                                            <img :src="gatewayQr(entry) ?? undefined" :alt="`${gatewayLabel(entry)} QR`" class="h-14 w-14 rounded border bg-white object-contain" />
-                                            <span class="flex items-center gap-1 text-[10px] text-slate-500"><QrCode class="h-3 w-3" />Scan with {{ gatewayLabel(entry) }}</span>
-                                        </div>
+                                        <CustomSelect v-model="entry.gateway" :options="props.paymentGateways" placeholder="Gateway" class="h-9 w-full text-xs" />
+                                        <p class="flex items-center gap-1 text-[10px] text-slate-500">
+                                            <QrCode class="h-3 w-3" />You'll collect this via {{ gatewayLabel(entry) || 'the selected gateway' }} right after the invoice is created.
+                                        </p>
                                     </div>
 
                                     <!-- Card / PayPal -->
@@ -765,8 +780,12 @@ const handleFormKeydown = (event: KeyboardEvent) => {
                                         <span class="text-amber-700">Change to return</span>
                                         <span class="font-semibold tabular-nums text-amber-700">{{ money(changeReturned) }}</span>
                                     </div>
+                                    <div v-if="pendingGatewayTotal > 0" class="flex justify-between rounded-md bg-blue-50 px-2.5 py-1.5 text-xs">
+                                        <span class="text-blue-700">Pending gateway collection</span>
+                                        <span class="font-semibold tabular-nums text-blue-700">{{ money(pendingGatewayTotal) }}</span>
+                                    </div>
                                     <div class="flex justify-between rounded-md bg-slate-50 px-2.5 py-1.5 text-xs">
-                                        <span class="text-slate-500">Balance due</span>
+                                        <span class="text-slate-500">Balance due after this</span>
                                         <span class="font-semibold tabular-nums" :class="balanceDue > 0 ? 'text-red-600' : 'text-emerald-600'">{{ money(balanceDue) }}</span>
                                     </div>
                                 </div>

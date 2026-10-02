@@ -2,7 +2,9 @@
 
 namespace App\Interface;
 
-use Arr;
+use App\Models\Invoice;
+use App\Models\PaymentAttempt;
+use App\Payments\DTOs\PaymentVerification;
 
 interface InvoiceInterface
 {
@@ -19,4 +21,6 @@ interface InvoiceInterface
     public function getPaymentMethods():array;
     public function getInvoiceStatus():array;
     public function getPaymentGateways():array;
+    public function outstandingBalance(Invoice|int $invoice): float;
+    public function applyGatewayPayment(int $invoiceId, PaymentAttempt $attempt, PaymentVerification $verification): array;
 }

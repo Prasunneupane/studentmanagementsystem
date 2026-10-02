@@ -3,12 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Enums\Invoice as InvoiceStatus;
+use App\Enums\PaymentMethod;
 use App\Http\Requests\Invoice\StoreInvoiceRequest;
 use App\Http\Requests\Invoice\UpdateInvoiceRequest;
 use App\Interface\InvoiceInterface;
 use App\Models\Classes;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Validation\Rules\Enum;
 use Inertia\Inertia;
 
 class InvoiceController extends Controller
@@ -20,7 +22,7 @@ class InvoiceController extends Controller
         $filters = $request->only(['status', 'class_id', 'search', 'per_page', 'from_date', 'to_date']);
         $invoices = $this->invoiceService->getAllInvoices($filters);
         $invoiceStatus = $this->invoiceService->getInvoiceStatus();
-
+        $invoicPaidAmount ="";
         return Inertia::render('invoice/Index', [
             'invoices' => $invoices,
             'classes' => Classes::select('id', 'name as label')->get(),
@@ -38,8 +40,6 @@ class InvoiceController extends Controller
             'paymentMethods' => $paymentMethods,
             'paymentGateways' => $paymentGateways,
             'bankQrUrl' => config('services.payment_qr.bank'),
-            'esewaQrUrl' => config('services.payment_qr.esewa'),
-            'khaltiQrUrl' => config('services.payment_qr.khalti'),
         ]);
     }
  
@@ -55,7 +55,10 @@ class InvoiceController extends Controller
         $invoice = $this->invoiceService->getInvoiceById((int) $id);
         abort_unless($invoice !== null, 404);
 
-        return Inertia::render('invoice/Show', ['invoice' => $invoice]);
+        return Inertia::render('invoice/Show', [
+            'invoice' => $invoice,
+            'paymentGateways' => $this->invoiceService->getPaymentGateways(),
+        ]);
     }
 
     public function edit(string $id)
@@ -86,7 +89,7 @@ class InvoiceController extends Controller
         $data = $request->validate([
             'amount' => 'required|numeric|min:0.01',
             'paid_on' => 'nullable|date',
-            'payment_method' => 'required|in:cash,bank_transfer,card,online,cheque',
+            'payment_method' => ['required', new Enum(PaymentMethod::class)],
             'reference_no' => 'nullable|string',
             'note' => 'nullable|string',
         ]);
@@ -101,7 +104,7 @@ class InvoiceController extends Controller
         $data = $request->validate([
             'amount' => 'required|numeric|min:0.01',
             'paid_on' => 'nullable|date',
-            'payment_method' => 'required|in:cash,bank_transfer,card,online,cheque',
+            'payment_method' => ['required', new Enum(PaymentMethod::class)],
             'reference_no' => 'nullable|string',
             'note' => 'nullable|string',
         ]);
