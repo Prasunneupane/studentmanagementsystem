@@ -39,13 +39,55 @@ class PaymentCallbackController extends Controller
             return response()->json(['status' => $result->status]);
         }
 
-        $message = match ($result->status) {
-            'succeeded' => 'Payment received. You can close this tab and return to the invoice.',
-            'failed' => 'Payment was not completed. You can close this tab and try again from the invoice page.',
-            default => 'Payment is still being confirmed. You can close this tab; the invoice page will update automatically.',
+        return response($this->renderClosingPage($result->status));
+    }
+
+    /**
+     * This tab (opened via window.open() from the invoice page) is only ever
+     * meant to carry the payer through the provider's checkout. The result
+     * itself is shown back on the original invoice tab, which is already
+     * listening for it over the socket/polling fallback — so this page's only
+     * job is a brief confirmation, then closing itself automatically.
+     */
+    private function renderClosingPage(string $status): string
+    {
+        [$heading, $tone] = match ($status) {
+            'succeeded' => ['Payment received', '#15803d'],
+            'failed' => ['Payment was not completed', '#b91c1c'],
+            default => ['Payment is still being confirmed', '#1d4ed8'],
         };
 
-        return response("<!doctype html><html><body style=\"font-family:sans-serif;padding:2rem\"><p>{$message}</p></body></html>");
+        return <<<HTML
+            <!doctype html>
+            <html>
+            <head>
+                <meta charset="utf-8">
+                <title>{$heading}</title>
+                <style>
+                    body { font-family: system-ui, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #f8fafc; }
+                    .card { text-align: center; padding: 2rem; }
+                    h1 { color: {$tone}; font-size: 1.1rem; margin-bottom: 0.5rem; }
+                    p { color: #64748b; font-size: 0.875rem; }
+                </style>
+            </head>
+            <body>
+                <div class="card">
+                    <h1>{$heading}</h1>
+                    <p id="message">Returning you to the invoice…</p>
+                </div>
+                <script>
+                    setTimeout(function () {
+                        window.close();
+                        // If the browser      blocked the close (e.g. this tab wasn't
+                        // opened by script in this session), fall back to a message.
+                        setTimeout(function () {
+                            document.getElementById('message').textContent = 'You can close this tab now.';
+                        }, 300);
+                    }, 1200);
+                </script>
+            </body>
+            </html>
+            HTML;
     }
 
     private function decodeEsewaPayload(Request $request): array

@@ -168,19 +168,23 @@ class InvoiceService implements InvoiceInterface
         });
     }
 
+    /**
+     * Fee items are immutable once an invoice is created (correcting a mistake
+     * means voiding/returning the invoice and creating a new one, not editing
+     * line items after the fact — these can already be reported externally).
+     * update() therefore never touches `tbl_invoice_items`; it only updates
+     * invoice-level fields and recomputes totals from the items already on
+     * file, combined with whatever bulk discount/tax is submitted now.
+     */
     public function updateInvoice(int $id, array $data): array
     {
         return DB::transaction(function () use ($id, $data) {
-            $invoice = Invoice::findOrFail($id);
-            [$subtotal, $discountAmount, $taxAmount, $total, $calculatedItems] = $this->calculateTotals($data['items'], $data);
+            $invoice = Invoice::with('items')->lockForUpdate()->findOrFail($id);
+            [$subtotal, $discountAmount, $taxAmount, $total] = $this->recalculateTotalsFromExistingItems($invoice, $data);
 
             $invoice->update([
-                'student_id' => $data['student_id'],
-                'academic_year_id' => $data['academic_year_id'] ?? $invoice->academic_year_id,
-                'class_id' => $data['class_id'] ?? null,
-                'section_id' => $data['section_id'] ?? null,
-                'issue_date' => $data['issue_date'],
-                'due_date' => $data['due_date'],
+                'issue_date' => $data['issue_date'] ?? $invoice->issue_date,
+                'due_date' => $data['due_date'] ?? $invoice->due_date,
                 'subtotal' => $subtotal,
                 'discount_type' => $data['discount_type'] ?? null,
                 'discount_value' => $data['discount_value'] ?? 0,
@@ -188,27 +192,41 @@ class InvoiceService implements InvoiceInterface
                 'tax_percentage' => $data['tax_percentage'] ?? 0,
                 'tax_amount' => $taxAmount,
                 'total_amount' => $total,
-                'notes' => $data['notes'] ?? null,
+                'notes' => $data['notes'] ?? $invoice->notes,
             ]);
-
-            $invoice->items()->delete();
-            foreach ($calculatedItems as $item) {
-                $invoice->items()->create([
-                    'fee_type' => $item['fee_type'],
-                    'description' => $item['description'] ?? null,
-                    'quantity' => $item['quantity'],
-                    'discount_type' => $item['discount_type'],
-                    'discount_percentage' => $item['discount_percentage'],
-                    'discount_amount' => $item['discount_amount'],
-                    'unit_price' => $item['unit_price'],
-                    'total' => $item['total'],
-                ]);
-            }
 
             $this->refreshStatus($invoice);
 
             return $invoice->load(['student', 'schoolClass', 'section', 'items'])->toArray();
         });
+    }
+
+    /**
+     * Same bulk-discount/tax math as calculateTotals(), but starting from the
+     * invoice's existing items (and their already-stored per-item discount)
+     * instead of a freshly submitted items array — since items can't change.
+     */
+    private function recalculateTotalsFromExistingItems(Invoice $invoice, array $data): array
+    {
+        $subtotal = $invoice->items->sum(fn ($item) => $item->quantity * $item->unit_price);
+        $itemDiscountAmount = $invoice->items->sum('discount_amount');
+        $afterItemDiscount = max($subtotal - $itemDiscountAmount, 0);
+
+        $bulkDiscountValue = (float) ($data['discount_value'] ?? 0);
+        $bulkDiscountAmount = 0;
+        if (($data['discount_type'] ?? null) === 'percentage') {
+            $bulkDiscountAmount = $afterItemDiscount * ($bulkDiscountValue / 100);
+        } elseif (($data['discount_type'] ?? null) === 'fixed') {
+            $bulkDiscountAmount = $bulkDiscountValue;
+        }
+        $bulkDiscountAmount = min($afterItemDiscount, $bulkDiscountAmount);
+        $discountAmount = $itemDiscountAmount + $bulkDiscountAmount;
+
+        $taxable = max($afterItemDiscount - $bulkDiscountAmount, 0);
+        $taxAmount = $taxable * (($data['tax_percentage'] ?? 0) / 100);
+        $total = $taxable + $taxAmount;
+
+        return [round((float) $subtotal, 2), round($discountAmount, 2), round($taxAmount, 2), round($total, 2)];
     }
 
     public function deleteInvoice(int $id): bool

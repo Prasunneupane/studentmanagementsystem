@@ -12,8 +12,9 @@ import { useInvoices } from '@/composables/useInvoice';
 import { useToast } from '@/composables/useToast';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { Invoice } from '@/composables/invoiceService';
+import CustomSelect from '../CustomSelect.vue';
 import { Head, router } from '@inertiajs/vue3';
-import { ArrowLeft, Loader2, Pencil, Plus, Printer, Save, Trash2, Receipt, Wallet, X } from 'lucide-vue-next';
+import { ArrowLeft, CheckCircle2, Loader2, Pencil, Plus, Printer, Save, Receipt, Wallet, X } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import 'vue-sonner/style.css';
 
@@ -26,7 +27,13 @@ interface Payment {
     note?: string;
 }
 
-const props = defineProps<{ invoice: Invoice & { payments?: Payment[] } }>();
+interface PaymentMethodOption {
+    value: string;
+    label: string;
+    icon?: string;
+}
+
+const props = defineProps<{ invoice: Invoice & { payments?: Payment[] }; paymentMethods?: PaymentMethodOption[] }>();
 
 const { toast } = useToast();
 const { updateInvoice, recordPayment, updatePayment } = useInvoices();
@@ -36,25 +43,10 @@ const breadcrumbs = [
     { title: 'Edit invoice', href: `/invoice/${props.invoice.id}/edit` },
 ];
 
-const paymentMethods = [
-    { value: 'cash', label: 'Cash' },
-    { value: 'bank_transfer', label: 'Bank transfer' },
-    { value: 'card', label: 'Card' },
-    { value: 'online', label: 'Online' },
-    { value: 'cheque', label: 'Cheque' },
-];
-
-const feeTypeSuggestions = ['Tuition Fee', 'Admission Fee', 'Exam Fee', 'Transport Fee', 'Library Fee', 'Lab Fee', 'Sports Fee', 'Miscellaneous'];
-
-interface LineItem {
-    id?: number;
-    fee_type: string;
-    description: string;
-    quantity: number;
-    unit_price: number;
-    discount_type: 'fixed' | 'percentage';
-    discount_value: number;
-}
+const paymentMethodOptions = computed<PaymentMethodOption[]>(
+    () => props.paymentMethods ?? [{ value: 'cash', label: 'Cash' }, { value: 'bank_transfer', label: 'Bank transfer' }, { value: 'card', label: 'Card' }, { value: 'online_payment', label: 'Online' }, { value: 'cheque', label: 'Cheque' }],
+);
+const defaultMethod = computed(() => paymentMethodOptions.value[0]?.value ?? 'cash');
 
 const form = ref({
     issueDate: props.invoice.issue_date,
@@ -63,28 +55,20 @@ const form = ref({
     discountValue: Number(props.invoice.discount_value) || 0,
     taxPercentage: Number(props.invoice.tax_percentage) || 0,
     notes: props.invoice.notes || '',
-    items: props.invoice.items.map((item) => ({
-        id: item.id,
-        fee_type: item.fee_type,
-        description: item.description || '',
-        quantity: item.quantity,
-        unit_price: Number(item.unit_price),
-        discount_type: item.discount_type || 'fixed',
-        discount_value: Number(item.discount_value) || 0,
-    })) as LineItem[],
 });
 
 const errors = ref<Record<string, string>>({});
 const saving = ref(false);
 const hasPayments = computed(() => Number(props.invoice.paid_amount) > 0);
 const balanceDue = computed(() => Math.max(Number(props.invoice.total_amount) - Number(props.invoice.paid_amount), 0));
+const isFullyPaid = computed(() => Number(props.invoice.total_amount) > 0 && balanceDue.value <= 0);
 const paymentSaving = ref(false);
 const paymentErrors = ref<Record<string, string>>({});
 const paymentForm = ref({
     id: null as number | null,
     amount: balanceDue.value > 0 ? balanceDue.value : 0,
     paidOn: new Date().toISOString().split('T')[0],
-    method: paymentMethods[0],
+    method: defaultMethod.value,
     referenceNo: '',
     note: '',
 });
@@ -94,7 +78,7 @@ const resetPaymentForm = () => {
         id: null,
         amount: balanceDue.value > 0 ? balanceDue.value : 0,
         paidOn: new Date().toISOString().split('T')[0],
-        method: paymentMethods[0],
+        method: defaultMethod.value,
         referenceNo: '',
         note: '',
     };
@@ -119,7 +103,7 @@ const beginPaymentEdit = (payment: Payment) => {
         id: payment.id,
         amount: Number(payment.amount),
         paidOn: payment.paid_on || new Date().toISOString().split('T')[0],
-        method: paymentMethods.find((method) => method.value === payment.payment_method) || paymentMethods[0],
+        method: payment.payment_method,
         referenceNo: payment.reference_no || '',
         note: payment.note || '',
     };
@@ -137,20 +121,13 @@ const openPrintWindow = (invoiceId: number) => {
     window.open(`/invoice/${invoiceId}/print`, '_blank', 'noopener,noreferrer');
 };
 
-const addItem = () => form.value.items.push({ fee_type: '', description: '', quantity: 1, unit_price: 0, discount_type: 'fixed', discount_value: 0 });
-const removeItem = (index: number) => {
-    if (form.value.items.length > 1) form.value.items.splice(index, 1);
-};
-
-const itemGross = (item: LineItem) => (item.quantity || 0) * (item.unit_price || 0);
-const itemDiscount = (item: LineItem) => {
-    if ((form.value.discountValue || 0) > 0) return 0;
-    const gross = itemGross(item);
-    const value = Number(item.discount_value) || 0;
-    return Math.min(gross, item.discount_type === 'percentage' ? gross * value / 100 : value);
-};
-const subtotal = computed(() => form.value.items.reduce((sum, item) => sum + itemGross(item), 0));
-const itemDiscountTotal = computed(() => form.value.items.reduce((sum, item) => sum + itemDiscount(item), 0));
+// Items are immutable after creation — these are read-only totals computed
+// from what's already on the invoice, mirroring InvoiceService's
+// recalculateTotalsFromExistingItems() so the preview matches what the
+// server will actually save.
+const itemTotal = (item: Invoice['items'][number]) => Number(item.total ?? item.amount ?? item.quantity * item.unit_price);
+const subtotal = computed(() => props.invoice.items.reduce((sum, item) => sum + item.quantity * Number(item.unit_price), 0));
+const itemDiscountTotal = computed(() => props.invoice.items.reduce((sum, item) => sum + Number(item.discount_amount ?? 0), 0));
 const itemNetSubtotal = computed(() => Math.max(subtotal.value - itemDiscountTotal.value, 0));
 const discountAmount = computed(() => {
     if (form.value.discountType === 'percentage') return Math.min(itemNetSubtotal.value, itemNetSubtotal.value * ((form.value.discountValue || 0) / 100));
@@ -159,10 +136,6 @@ const discountAmount = computed(() => {
 const taxableAmount = computed(() => Math.max(itemNetSubtotal.value - discountAmount.value, 0));
 const taxAmount = computed(() => taxableAmount.value * ((form.value.taxPercentage || 0) / 100));
 const totalAmount = computed(() => taxableAmount.value + taxAmount.value);
-const clearItemDiscounts = () => {
-    if ((form.value.discountValue || 0) <= 0) return;
-    form.value.items.forEach((item) => { item.discount_value = 0; });
-};
 
 const savePayment = async () => {
     paymentErrors.value = {};
@@ -181,7 +154,7 @@ const savePayment = async () => {
     const payload = {
         amount: paymentForm.value.amount,
         paid_on: paymentForm.value.paidOn,
-        payment_method: paymentForm.value.method.value,
+        payment_method: paymentForm.value.method,
         reference_no: paymentForm.value.referenceNo || null,
         note: paymentForm.value.note || null,
     };
@@ -208,14 +181,11 @@ const savePayment = async () => {
 const validate = () => {
     errors.value = {};
     if (!form.value.dueDate) errors.value.dueDate = 'Due date is required';
-    form.value.items.forEach((item, index) => {
-        if (!item.fee_type.trim()) errors.value[`item_${index}`] = 'Fee type is required';
-        if (item.unit_price <= 0) errors.value[`price_${index}`] = 'Amount must be greater than 0';
-    });
     return !Object.keys(errors.value).length;
 };
 
 const submit = async () => {
+    if (isFullyPaid.value) return;
     if (!validate()) {
         toast.error('Please complete the required fields');
         return;
@@ -227,16 +197,12 @@ const submit = async () => {
     saving.value = true;
     try {
         await updateInvoice(props.invoice.id, {
-            student_id: props.invoice.student_id,
-            class_id: props.invoice.class_id,
-            section_id: props.invoice.section_id,
             issue_date: form.value.issueDate,
             due_date: form.value.dueDate,
             discount_type: form.value.discountType,
             discount_value: form.value.discountValue,
             tax_percentage: form.value.taxPercentage,
             notes: form.value.notes,
-            items: form.value.items,
         });
         toast.success('Invoice updated successfully');
     } catch {
@@ -272,7 +238,10 @@ const submit = async () => {
                 </div>
             </div>
 
-            <div v-if="hasPayments" class="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+            <div v-if="isFullyPaid" class="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+                <div class="flex items-center gap-2"><CheckCircle2 class="h-4 w-4" />This invoice is fully paid. Editing is disabled — void/return this invoice and create a new one if a correction is needed.</div>
+            </div>
+            <div v-else-if="hasPayments" class="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
                 This invoice already has {{ money(invoice.paid_amount) }} recorded in payments. The new total cannot go below that amount.
             </div>
 
@@ -283,65 +252,47 @@ const submit = async () => {
                             <CardTitle class="flex items-center gap-2 text-lg"><Receipt class="h-5 w-5" />Invoice details</CardTitle>
                         </CardHeader>
                         <CardContent class="space-y-5 p-5 sm:p-7">
-                            <div class="grid gap-4 md:grid-cols-2">
+                            <fieldset :disabled="isFullyPaid" class="grid gap-4 md:grid-cols-2">
                                 <div><Label>Issue date *</Label><DatePicker :model-value="dateValue(form.issueDate)" @update:model-value="form.issueDate = formatDate($event)" /></div>
                                 <div>
                                     <Label>Due date *</Label>
                                     <DatePicker :model-value="dateValue(form.dueDate)" @update:model-value="form.dueDate = formatDate($event)" />
                                     <p v-if="errors.dueDate" class="text-sm text-red-600">{{ errors.dueDate }}</p>
                                 </div>
-                            </div>
+                            </fieldset>
 
                             <div class="border-t pt-5">
-                                <div class="mb-3 flex items-center justify-between">
-                                    <h2 class="text-lg font-semibold text-slate-900">Fee items</h2>
-                                    <Button type="button" size="sm" variant="outline" @click="addItem"><Plus class="mr-2 h-4 w-4" />Add item</Button>
+                                <h2 class="mb-3 text-lg font-semibold text-slate-900">Fee items</h2>
+                                <div class="overflow-hidden rounded-xl border">
+                                    <table class="w-full text-sm">
+                                        <thead class="bg-slate-50 text-left text-xs text-slate-500 uppercase">
+                                            <tr>
+                                                <th class="px-4 py-2">Fee type</th>
+                                                <th class="px-4 py-2">Description</th>
+                                                <th class="px-4 py-2 text-right">Qty</th>
+                                                <th class="px-4 py-2 text-right">Unit price</th>
+                                                <th class="px-4 py-2 text-right">Amount</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y">
+                                            <tr v-for="item in invoice.items" :key="item.id">
+                                                <td class="px-4 py-2 font-medium text-slate-900">{{ item.fee_type }}</td>
+                                                <td class="px-4 py-2 text-slate-500">{{ item.description || '-' }}</td>
+                                                <td class="px-4 py-2 text-right">{{ item.quantity }}</td>
+                                                <td class="px-4 py-2 text-right">{{ money(item.unit_price) }}</td>
+                                                <td class="px-4 py-2 text-right font-medium">{{ money(itemTotal(item)) }}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
                                 </div>
-
-                                <div class="space-y-3">
-                                    <div v-for="(item, index) in form.items" :key="item.id ?? index" class="rounded-xl border bg-white p-4">
-                                        <div class="grid gap-3 sm:grid-cols-12">
-                                            <div class="sm:col-span-4">
-                                                <Label class="text-xs">Fee type *</Label>
-                                                <Input v-model="item.fee_type" list="fee-suggestions" placeholder="Tuition Fee" :class="{ 'border-red-500': errors[`item_${index}`] }" />
-                                            </div>
-                                            <div class="sm:col-span-3">
-                                                <Label class="text-xs">Description</Label>
-                                                <Input v-model="item.description" placeholder="Optional note" />
-                                            </div>
-                                            <div class="sm:col-span-1">
-                                                <Label class="text-xs">Qty</Label>
-                                                <Input v-model.number="item.quantity" class="w-full" type="number" min="1" />
-                                            </div>
-                                            <div class="sm:col-span-2">
-                                                <Label class="text-xs">Unit price *</Label>
-                                                <Input v-model.number="item.unit_price" type="number" min="0" step="0.01" :class="{ 'border-red-500': errors[`price_${index}`] }" />
-                                            </div>
-                                            <div class="sm:col-span-3">
-                                                <Label class="text-xs">Item discount</Label>
-                                                <div class="flex gap-1">
-                                                    <select v-model="item.discount_type" class="h-10 rounded-md border border-input bg-background px-2 text-xs">
-                                                        <option value="fixed">Fixed</option>
-                                                        <option value="percentage">%</option>
-                                                    </select>
-                                                    <Input v-model.number="item.discount_value" type="number" min="0" step="0.01" :disabled="(form.discountValue || 0) > 0" />
-                                                </div>
-                                            </div>
-                                            <div class="flex min-w-0 items-end justify-between gap-1 sm:col-span-2">
-                                                <span class="text-sm font-medium text-slate-700">{{ money(itemGross(item) - itemDiscount(item)) }}</span>
-                                                <Button type="button" variant="ghost" size="icon" class="text-red-600" :disabled="form.items.length === 1" @click="removeItem(index)"><Trash2 class="h-4 w-4" /></Button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <datalist id="fee-suggestions">
-                                    <option v-for="fee in feeTypeSuggestions" :key="fee" :value="fee" />
-                                </datalist>
+                                <p class="mt-2 text-xs text-slate-400">
+                                    Fee items are locked once an invoice is created. To correct a mistake, void/return this invoice and create a new one.
+                                </p>
                             </div>
 
                             <div class="border-t pt-5">
                                 <Label>Notes</Label>
-                                <Textarea v-model="form.notes" rows="3" />
+                                <Textarea v-model="form.notes" rows="3" :disabled="isFullyPaid" />
                             </div>
                         </CardContent>
                     </Card>
@@ -351,15 +302,17 @@ const submit = async () => {
                     <Card class="rounded-2xl border-0 shadow-sm">
                         <CardHeader class="border-b"><CardTitle>Discount & tax</CardTitle></CardHeader>
                         <CardContent class="space-y-2 p-4">
-                            <div>
-                                <Label class="text-xs">Discount type</Label>
-                                <div class="mt-1 flex gap-2">
-                                    <Button type="button" size="sm" :variant="form.discountType === 'fixed' ? 'default' : 'outline'" @click="form.discountType = 'fixed'; clearItemDiscounts()">Fixed</Button>
-                                    <Button type="button" size="sm" :variant="form.discountType === 'percentage' ? 'default' : 'outline'" @click="form.discountType = 'percentage'; clearItemDiscounts()">Percentage</Button>
+                            <fieldset :disabled="isFullyPaid" class="space-y-2">
+                                <div>
+                                    <Label class="text-xs">Discount type</Label>
+                                    <div class="mt-1 flex gap-2">
+                                        <Button type="button" size="sm" :variant="form.discountType === 'fixed' ? 'default' : 'outline'" :disabled="isFullyPaid" @click="form.discountType = 'fixed'">Fixed</Button>
+                                        <Button type="button" size="sm" :variant="form.discountType === 'percentage' ? 'default' : 'outline'" :disabled="isFullyPaid" @click="form.discountType = 'percentage'">Percentage</Button>
+                                    </div>
                                 </div>
-                            </div>
-                            <div><Label class="text-xs">Discount value</Label><Input v-model.number="form.discountValue" type="number" min="0" step="0.01" @input="clearItemDiscounts" /></div>
-                            <div><Label class="text-xs">Tax (%)</Label><Input v-model.number="form.taxPercentage" type="number" min="0" max="100" step="0.01" /></div>
+                                <div><Label class="text-xs">Discount value</Label><Input v-model.number="form.discountValue" type="number" min="0" step="0.01" /></div>
+                                <div><Label class="text-xs">Tax (%)</Label><Input v-model.number="form.taxPercentage" type="number" min="0" max="100" step="0.01" /></div>
+                            </fieldset>
                         </CardContent>
                     </Card>
 
@@ -378,7 +331,7 @@ const submit = async () => {
                         </CardContent>
                     </Card>
 
-                    <Card class="rounded-2xl border-0 shadow-sm">
+                    <Card v-if="!isFullyPaid" class="rounded-2xl border-0 shadow-sm">
                         <CardHeader class="flex flex-row items-center justify-between border-b">
                             <div>
                                 <CardTitle>{{ paymentForm.id ? 'Update payment' : 'Add payment' }}</CardTitle>
@@ -400,9 +353,7 @@ const submit = async () => {
                             </div>
                             <div>
                                 <Label>Payment method</Label>
-                                <select v-model="paymentForm.method" class="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
-                                    <option v-for="method in paymentMethods" :key="method.value" :value="method">{{ method.label }}</option>
-                                </select>
+                                <CustomSelect v-model="paymentForm.method" :options="paymentMethodOptions" placeholder="Select method" />
                             </div>
                             <div>
                                 <Label>Reference number</Label>
@@ -427,7 +378,7 @@ const submit = async () => {
                             <div>
                                 <CardTitle>Payment history</CardTitle>
                             </div>
-                            <Button v-if="!paymentForm.id" type="button" variant="outline" size="sm" @click="resetPaymentForm"><Plus class="mr-2 h-4 w-4" />New</Button>
+                            <Button v-if="!paymentForm.id && !isFullyPaid" type="button" variant="outline" size="sm" @click="resetPaymentForm"><Plus class="mr-2 h-4 w-4" />New</Button>
                         </CardHeader>
                         <CardContent class="p-0">
                             <div v-if="!invoice.payments?.length" class="p-6 text-center text-sm text-slate-500">No payments recorded yet.</div>
@@ -449,12 +400,14 @@ const submit = async () => {
                     </Card>
 
                     <div class="flex flex-col gap-2">
-                        <Button type="submit" :disabled="saving" size="lg"><Loader2 v-if="saving" class="mr-2 h-4 w-4 animate-spin" /><Save v-else class="mr-2 h-4 w-4" />{{ saving ? 'Saving...' : 'Save changes' }}</Button>
+                        <Button type="submit" :disabled="saving || isFullyPaid" size="lg">
+                            <Loader2 v-if="saving" class="mr-2 h-4 w-4 animate-spin" /><Save v-else class="mr-2 h-4 w-4" />
+                            {{ isFullyPaid ? 'Fully paid — locked' : saving ? 'Saving...' : 'Save changes' }}
+                        </Button>
                         <Button type="button" variant="outline" @click="router.visit(`/invoice/${invoice.id}`)">Cancel</Button>
                     </div>
                 </div>
             </form>
         </div>
     </AppLayout>
-
 </template>

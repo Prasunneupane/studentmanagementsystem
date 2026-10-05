@@ -58,6 +58,7 @@ class InvoiceController extends Controller
         return Inertia::render('invoice/Show', [
             'invoice' => $invoice,
             'paymentGateways' => $this->invoiceService->getPaymentGateways(),
+            'paymentMethods' => $this->invoiceService->getPaymentMethods(),
         ]);
     }
 
@@ -66,7 +67,10 @@ class InvoiceController extends Controller
         $invoice = $this->invoiceService->getInvoiceById((int) $id);
         abort_unless($invoice !== null, 404);
 
-        return Inertia::render('invoice/Edit', ['invoice' => $invoice]);
+        return Inertia::render('invoice/Edit', [
+            'invoice' => $invoice,
+            'paymentMethods' => $this->invoiceService->getPaymentMethods(),
+        ]);
     }
 
     public function update(UpdateInvoiceRequest $request, string $id)

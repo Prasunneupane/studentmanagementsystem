@@ -21,15 +21,19 @@ class ClassSubjectTeacher extends Seeder
     // Add debug to see if data exists
     if ($classSectionList->isEmpty()) {
         $this->command->warn('No class sections found!');
+        return;
     }
     if ($subjects->isEmpty()) {
         $this->command->warn('No subjects found!');
+        return;
     }
     if ($teachers->isEmpty()) {
         $this->command->warn('No active teachers found!');
+        return;
     }
     if (!$academicYearId) {
         $this->command->warn('No active academic year found!');
+        return;
     }
     
     foreach ($classSectionList as $classSection) {
