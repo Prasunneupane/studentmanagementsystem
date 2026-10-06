@@ -26,6 +26,14 @@ interface DataTableProps<TData, TValue> {
     data: TData[];
     loading?: boolean;
     title?: string;
+    /**
+     * Set when `data` is already one page from a server-side paginator (as
+     * opposed to the full dataset). Hides the "Show N entries" picker and the
+     * built-in pager, which would otherwise re-paginate an already-paginated
+     * slice — the caller is expected to render its own pager driven by the
+     * server's pagination meta instead.
+     */
+    serverPaginated?: boolean;
 }
 
 const props = defineProps<DataTableProps<any, any>>();
@@ -36,7 +44,7 @@ const columnFilters = ref<ColumnFiltersState>([]);
 const globalFilter = ref('');
 const pagination = ref<PaginationState>({
     pageIndex: 0,
-    pageSize: 10,
+    pageSize: props.serverPaginated ? Math.max(props.data.length, 1) : 10,
 });
 
 // === TanStack Table Instance ===
@@ -91,6 +99,9 @@ const table = useVueTable({
 watch(
     () => props.data,
     () => {
+        if (props.serverPaginated) {
+            table.setPageSize(Math.max(props.data.length, 1));
+        }
         table.setPageIndex(0);
     },
     { deep: true },
@@ -305,7 +316,7 @@ const handlePdfExport = () => {
     <div class="mt-5 space-y-5">
         <!-- Search & Controls -->
         <div class="flex flex-col items-start justify-between gap-4 lg:flex-row lg:items-center">
-            <div class="flex items-center gap-2">
+            <div v-if="!props.serverPaginated" class="flex items-center gap-2">
                 <span class="text-sm text-gray-700">Show</span>
                 <select
                     :value="table.getState().pagination.pageSize"
@@ -422,7 +433,7 @@ const handlePdfExport = () => {
         </div>
 
         <!-- Pagination -->
-        <div class="flex flex-col items-center justify-between gap-4 sm:flex-row" v-if="table.getPageCount() > 1">
+        <div class="flex flex-col items-center justify-between gap-4 sm:flex-row" v-if="!props.serverPaginated && table.getPageCount() > 1">
             <div class="text-sm text-gray-700">
                 Showing
                 {{ table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1 }}

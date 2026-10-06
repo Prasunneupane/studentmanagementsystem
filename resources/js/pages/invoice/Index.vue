@@ -13,9 +13,10 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { BS_END, BS_START, MONTH_NAMES, bsToAd, daysInMonth, isoAd, todayBs } from '@/composables/bikramSambat';
 import DataTable from '../students/Datatable.vue';
 import CustomSelect from '../CustomSelect.vue';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Head, Link, router } from '@inertiajs/vue3';
 import type { ColumnDef } from '@tanstack/vue-table';
-import { Eye, Loader2, Pencil, Plus, Printer, Trash2, X } from 'lucide-vue-next';
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Eye, Loader2, Pencil, Plus, Printer, Trash2, X } from 'lucide-vue-next';
 import { computed, h, onBeforeUnmount, ref, watch } from 'vue';
 import 'vue-sonner/style.css';
 
@@ -99,6 +100,17 @@ const activeFilterCount = computed(
         Number(!!filterState.value.class_id) +
         Number(hasDateRange.value),
 );
+
+/* ------------------------------------------------------------------ */
+/* Filter tabs — one section visible at a time, so the panel's height  */
+/* stays constant instead of stacking all three sections' height.      */
+/* ------------------------------------------------------------------ */
+const activeFilterTab = ref<'period' | 'status' | 'search'>('period');
+const tabHasActiveFilter = computed(() => ({
+    period: hasDateRange.value,
+    status: !!filterState.value.status,
+    search: !!filterState.value.search || !!filterState.value.class_id,
+}));
 
 /* ------------------------------------------------------------------ */
 /* Date presets — Nepali months and fiscal year, resolved to AD dates  */
@@ -226,6 +238,24 @@ watch(
     { deep: true },
 );
 onBeforeUnmount(() => clearTimeout(timer));
+
+// Page navigation bypasses the debounce — it's a click, not typing — and,
+// unlike applyFilters(), explicitly carries a `page` param.
+const goToPage = (page: number) => {
+    if (page < 1 || page > props.invoices.last_page || page === props.invoices.current_page) return;
+    const params = buildParams();
+    if (page > 1) params.page = String(page);
+
+    loading.value = true;
+    router.get('/invoice', params, {
+        preserveScroll: true,
+        preserveState: true,
+        replace: true,
+        onFinish: () => {
+            loading.value = false;
+        },
+    });
+};
 
 const resetFilters = () => {
     filterState.value = { ...DEFAULTS, per_page: filterState.value.per_page };
@@ -379,11 +409,27 @@ const removeInvoice = async (invoice: InvoiceRow) => {
                 </CardHeader>
 
                 <CardContent class="space-y-4 pt-4">
-                    <div class="space-y-5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                        <!-- 1. Period: decides which invoices are in scope -->
-                        <section class="space-y-3">
-                            <div class="flex flex-wrap items-center justify-between gap-2">
-                                <label class="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">Period</label>
+                    <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                        <Tabs v-model="activeFilterTab">
+                            <TabsList class="grid w-full grid-cols-3">
+                                <TabsTrigger value="period">
+                                    Period
+                                    <span v-if="tabHasActiveFilter.period" class="ml-1 h-1.5 w-1.5 rounded-full bg-blue-600"></span>
+                                </TabsTrigger>
+                                <TabsTrigger value="status">
+                                    Status
+                                    <span v-if="tabHasActiveFilter.status" class="ml-1 h-1.5 w-1.5 rounded-full bg-blue-600"></span>
+                                </TabsTrigger>
+                                <TabsTrigger value="search">
+                                    Search & class
+                                    <span v-if="tabHasActiveFilter.search" class="ml-1 h-1.5 w-1.5 rounded-full bg-blue-600"></span>
+                                </TabsTrigger>
+                            </TabsList>
+                        </Tabs>
+
+                        <!-- Only the active tab's section renders, so the panel's height stays constant -->
+                        <section v-if="activeFilterTab === 'period'" class="space-y-3 pt-4">
+                            <div class="flex flex-wrap items-center justify-end gap-2">
                                 <div class="flex items-center gap-2 text-sm text-slate-500">
                                     <span>Date by</span>
                                     <div class="inline-flex rounded-full bg-slate-100 p-0.5">
@@ -427,9 +473,7 @@ const removeInvoice = async (invoice: InvoiceRow) => {
                             <DateRangeFilter v-model="dateRangeFilter" :from-label="'From date'" :to-label="'To date'" />
                         </section>
 
-                        <!-- 2. Status: narrows within the period -->
-                        <section class="space-y-2 border-t border-slate-200 pt-4">
-                            <label class="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">Status</label>
+                        <section v-else-if="activeFilterTab === 'status'" class="space-y-2 pt-4">
                             <div class="flex flex-wrap gap-2">
                                 <button
                                     v-for="chip in statusChips"
@@ -455,8 +499,7 @@ const removeInvoice = async (invoice: InvoiceRow) => {
                             </div>
                         </section>
 
-                        <!-- 3. Search + class -->
-                        <section class="grid gap-3 border-t border-slate-200 pt-4 md:grid-cols-[1.5fr_1fr]">
+                        <section v-else class="grid gap-3 pt-4 md:grid-cols-[1.5fr_1fr]">
                             <div>
                                 <label class="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">Search</label>
                                 <Input
@@ -476,8 +519,8 @@ const removeInvoice = async (invoice: InvoiceRow) => {
                             </div>
                         </section>
 
-                        <!-- summary -->
-                        <div class="flex flex-col items-start justify-between gap-2 border-t border-slate-200 pt-4 sm:flex-row sm:items-center">
+                        <!-- summary — always visible, regardless of active tab -->
+                        <div class="flex flex-col items-start justify-between gap-2 border-t border-slate-200 pt-3 mt-3 sm:flex-row sm:items-center">
                             <div class="flex items-center gap-2 text-sm text-slate-500">
                                 <Loader2 v-if="loading" class="h-4 w-4 animate-spin" />
                                 <span>
@@ -499,8 +542,17 @@ const removeInvoice = async (invoice: InvoiceRow) => {
                         </div>
                     </div>
 
-                    <div class="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-                        <DataTable :columns="columns" :data="invoices.data" :loading="loading" title="Invoice List" />
+                    <DataTable :columns="columns" :data="invoices.data" :loading="loading" server-paginated title="Invoice List" />
+
+                    <div v-if="invoices.last_page > 1" class="flex flex-col items-center justify-between gap-3 border-t border-slate-200 pt-4 sm:flex-row">
+                        <p class="text-sm text-slate-500">Showing {{ invoices.from }}–{{ invoices.to }} of {{ invoices.total }}</p>
+                        <div class="flex items-center gap-1.5">
+                            <Button variant="outline" size="sm" :disabled="invoices.current_page <= 1" @click="goToPage(1)"><ChevronsLeft class="h-4 w-4" /></Button>
+                            <Button variant="outline" size="sm" :disabled="invoices.current_page <= 1" @click="goToPage(invoices.current_page - 1)"><ChevronLeft class="h-4 w-4" /></Button>
+                            <span class="px-2 text-sm text-slate-600">Page {{ invoices.current_page }} of {{ invoices.last_page }}</span>
+                            <Button variant="outline" size="sm" :disabled="invoices.current_page >= invoices.last_page" @click="goToPage(invoices.current_page + 1)"><ChevronRight class="h-4 w-4" /></Button>
+                            <Button variant="outline" size="sm" :disabled="invoices.current_page >= invoices.last_page" @click="goToPage(invoices.last_page)"><ChevronsRight class="h-4 w-4" /></Button>
+                        </div>
                     </div>
                 </CardContent>
             </Card>
