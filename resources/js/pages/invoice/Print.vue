@@ -5,6 +5,8 @@ import { Head } from '@inertiajs/vue3';
 import { Printer, ArrowLeft } from 'lucide-vue-next';
 import { router } from '@inertiajs/vue3';
 import type { Invoice } from '@/composables/invoiceService';
+import axios from 'axios';
+import { onMounted, ref } from 'vue';
 
 const props = defineProps<{ invoice: Invoice }>();
 
@@ -19,7 +21,28 @@ const statusStyles: Record<string, string> = {
     cancelled: 'background:#f1f5f9;color:#475569;',
 };
 
-const printInvoice = () => window.print();
+const pageSize = ref<'A4' | 'A5'>('A4');
+
+// Fire-and-forget: a failed count-bump shouldn't block the user from printing.
+const bumpPrintCount = async () => {
+    try {
+        await axios.post(`/invoice/${props.invoice.id}/print-count`);
+    } catch {
+        // non-critical — the print itself still proceeds
+    }
+};
+
+const printInvoice = () => {
+    bumpPrintCount();
+    window.print();
+};
+
+// "Print directly": opening this page is already the user's print intent
+// (reached via a Print button elsewhere), so trigger it immediately —
+// the toolbar button remains for a manual re-print at a different size.
+onMounted(() => {
+    printInvoice();
+});
 </script>
 
 <template>
@@ -27,10 +50,30 @@ const printInvoice = () => window.print();
 
     <div class="no-print flex items-center justify-between border-b bg-white p-4">
         <Button variant="outline" @click="router.visit(`/invoice/${invoice.id}`)"><ArrowLeft class="mr-2 h-4 w-4" />Back</Button>
-        <Button @click="printInvoice"><Printer class="mr-2 h-4 w-4" />Print invoice</Button>
+        <div class="flex items-center gap-3">
+            <div class="inline-flex rounded-full bg-slate-100 p-0.5">
+                <button
+                    type="button"
+                    class="rounded-full px-3 py-1 text-xs font-medium transition"
+                    :class="pageSize === 'A4' ? 'bg-slate-900 text-white' : 'text-slate-600'"
+                    @click="pageSize = 'A4'"
+                >
+                    A4
+                </button>
+                <button
+                    type="button"
+                    class="rounded-full px-3 py-1 text-xs font-medium transition"
+                    :class="pageSize === 'A5' ? 'bg-slate-900 text-white' : 'text-slate-600'"
+                    @click="pageSize = 'A5'"
+                >
+                    A5
+                </button>
+            </div>
+            <Button @click="printInvoice"><Printer class="mr-2 h-4 w-4" />Print invoice</Button>
+        </div>
     </div>
 
-    <div class="invoice-sheet">
+    <div class="invoice-sheet" :class="pageSize === 'A5' ? 'size-a5' : 'size-a4'">
         <div class="invoice-header">
             <div class="school-info">
                 <img src="/images/school-logo.png" alt="School logo" class="school-logo" />
@@ -150,7 +193,22 @@ const printInvoice = () => window.print();
 
 @media print {
     .no-print { display: none !important; }
-    .invoice-sheet { box-shadow: none; margin: 0; border-radius: 0; max-width: 100%; }
+    .invoice-sheet { box-shadow: none; margin: 0; border-radius: 0; max-width: 100%; padding: 14mm; }
+    .invoice-sheet.size-a5 { padding: 8mm; font-size: 12px; }
+    .invoice-sheet.size-a5 .invoice-meta h2 { font-size: 20px; }
+    .invoice-sheet.size-a5 .school-logo { height: 42px; width: 42px; }
+    .invoice-sheet.size-a5 .invoice-footer { margin-top: 32px; }
     body { background: #fff; }
 }
+</style>
+
+<!-- Unscoped: `@page` is a page-level directive, not an element selector —
+     Vue's scoped-CSS rewriting has nothing meaningful to attach to it. The
+     `page:` property (Chrome/Edge) maps each invoice size to its own named
+     page so A4 and A5 can coexist without a second print pass. -->
+<style>
+@page invoice-a4 { size: A4; margin: 12mm; }
+@page invoice-a5 { size: A5; margin: 8mm; }
+.invoice-sheet.size-a4 { page: invoice-a4; }
+.invoice-sheet.size-a5 { page: invoice-a5; }
 </style>

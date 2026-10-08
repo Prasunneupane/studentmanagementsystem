@@ -22,5 +22,6 @@ interface InvoiceInterface
     public function getInvoiceStatus():array;
     public function getPaymentGateways():array;
     public function outstandingBalance(Invoice|int $invoice): float;
+    public function recordPrint(int $id): array;
     public function applyGatewayPayment(int $invoiceId, PaymentAttempt $attempt, PaymentVerification $verification): array;
 }

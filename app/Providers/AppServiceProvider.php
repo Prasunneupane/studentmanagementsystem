@@ -20,8 +20,13 @@ use App\Interface\PaymentAttemptInterface;
 use App\Services\PaymentAttemptService;
 use App\Models\Permission;
 use App\Models\Roles;
+use App\Models\Students;
+use App\Models\Guardian;
+use App\Models\Invoice;
+use App\Models\InvoicePayment;
 use App\Observers\PermissionObserver;
 use App\Observers\RolesObserver;
+use App\Observers\AuditObserver;
 use App\Repositories\LocationInterface;
 use App\Repositories\LocationRepository;
 use App\Repositories\PermissionRepository;
@@ -87,5 +92,12 @@ class AppServiceProvider extends ServiceProvider
     ]);
         Roles::observe(RolesObserver::class);
         Permission::observe(PermissionObserver::class);
+
+        // Activity feed source for the principal dashboard (not built yet) —
+        // every create/update on these four models lands in tbl_audit_logs.
+        Students::observe(AuditObserver::class);
+        Guardian::observe(AuditObserver::class);
+        Invoice::observe(AuditObserver::class);
+        InvoicePayment::observe(AuditObserver::class);
     }
 }

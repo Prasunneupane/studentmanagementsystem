@@ -108,21 +108,29 @@ watch(
 );
 
 // === Export Functions ===
+// A column's raw getValue() is only safe to stringify when it's already a
+// primitive (a plain accessorKey on a string/number). Columns built from a
+// nested object (e.g. accessorKey: 'student') or with no accessorKey at all
+// (an actions/computed column) need either an explicit `meta.exportValue`
+// resolver or to be left out of the export entirely — otherwise this prints
+// "[object Object]" or a blank cell. Both are opt-in via `columnDef.meta`,
+// so every existing caller of this component keeps its current behavior.
+const exportableColumns = () => table.getAllColumns().filter((col) => col.getIsVisible() && !(col.columnDef.meta as { excludeFromExport?: boolean } | undefined)?.excludeFromExport);
+
 const getExportData = () => {
     const rows = table.getFilteredRowModel().rows;
-    const headers = table
-        .getAllColumns()
-        .filter((col) => col.getIsVisible())
-        .map((col) => col.columnDef.header as string);
+    const columns = exportableColumns();
+    const headers = columns.map((col) => col.columnDef.header as string);
 
     const data = rows.map((row) => {
-        return table
-            .getAllColumns()
-            .filter((col) => col.getIsVisible())
-            .map((col) => {
-                const cell = row.getAllCells().find((c) => c.column.id === col.id);
-                return cell ? String(cell.getValue() ?? '') : '';
-            });
+        return columns.map((col) => {
+            const meta = col.columnDef.meta as { exportValue?: (original: any) => string } | undefined;
+            if (meta?.exportValue) return meta.exportValue(row.original);
+
+            const cell = row.getAllCells().find((c) => c.column.id === col.id);
+            const value = cell?.getValue();
+            return value !== null && typeof value === 'object' ? '' : String(value ?? '');
+        });
     });
 
     return { headers, data };
@@ -332,7 +340,7 @@ const handlePdfExport = () => {
                 <span class="text-sm text-gray-700">entries</span>
             </div>
 
-            <div class="flex w-full flex-col items-start gap-3 sm:flex-row sm:items-center lg:w-auto">
+            <div class="flex w-full flex-col items-start gap-3 sm:flex-row sm:items-center lg:ml-auto lg:w-auto">
                 <!-- Export Buttons -->
                 <div class="flex items-center gap-2">
                     <Button

@@ -27,6 +27,7 @@ Route::middleware(['auth'])->group(function () {
         });
         Route::middleware(['permission:print_invoice'])->group(function () {
             Route::get('/{invoice}/print', [InvoiceController::class, 'print'])->whereNumber('invoice')->name('print');
+            Route::post('/{invoice}/print-count', [InvoiceController::class, 'recordPrint'])->whereNumber('invoice')->name('print.count');
         });
     });
    

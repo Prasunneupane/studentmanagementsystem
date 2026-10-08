@@ -291,31 +291,41 @@ const columns: ColumnDef<InvoiceRow>[] = [
         accessorKey: 'student',
         header: 'Student',
         cell: ({ row }) => h('div', { class: 'text-slate-700' }, `${row.original.student.first_name} ${row.original.student.last_name}`),
+        // accessorKey: 'student' means getValue() returns the raw nested object —
+        // stringifying that is what printed "[object Object]" before this fix.
+        meta: { exportValue: (invoice: InvoiceRow) => `${invoice.student.first_name} ${invoice.student.last_name}` },
     },
     {
         accessorKey: 'school_class',
         header: 'Class',
         cell: ({ row }) => h('div', { class: 'text-slate-500' }, row.original.school_class?.name || '-'),
+        meta: { exportValue: (invoice: InvoiceRow) => invoice.school_class?.name || '-' },
     },
     {
         accessorKey: 'issue_date',
         header: 'Issue date',
         cell: ({ row }) => h('div', { class: 'text-slate-500' }, formatDate(row.original.issue_date)),
+        meta: { exportValue: (invoice: InvoiceRow) => formatDate(invoice.issue_date) },
     },
     {
         accessorKey: 'due_date',
         header: 'Due date',
         cell: ({ row }) => h('div', { class: 'text-slate-500' }, formatDate(row.original.due_date)),
+        meta: { exportValue: (invoice: InvoiceRow) => formatDate(invoice.due_date) },
     },
     {
         accessorKey: 'total_amount',
         header: 'Total',
         cell: ({ row }) => h('div', { class: 'text-right font-medium text-slate-900' }, money(row.original.total_amount)),
+        meta: { exportValue: (invoice: InvoiceRow) => money(invoice.total_amount) },
     },
     {
         id: 'balance',
         header: 'Balance',
         enableSorting: false,
+        // id-only column, no accessorKey — getValue() has nothing to return,
+        // which is why this printed as a blank cell before this fix too.
+        meta: { exportValue: (invoice: InvoiceRow) => money(balanceDue(invoice)) },
         cell: ({ row }) =>
             h(
                 'div',
@@ -339,6 +349,7 @@ const columns: ColumnDef<InvoiceRow>[] = [
         id: 'actions',
         header: 'Actions',
         enableSorting: false,
+        meta: { excludeFromExport: true },
         cell: ({ row }) =>
             h('div', { class: 'flex justify-end gap-1' }, [
                 h(
@@ -544,7 +555,7 @@ const removeInvoice = async (invoice: InvoiceRow) => {
 
                     <DataTable :columns="columns" :data="invoices.data" :loading="loading" server-paginated title="Invoice List" />
 
-                    <div v-if="invoices.last_page > 1" class="flex flex-col items-center justify-between gap-3 border-t border-slate-200 pt-4 sm:flex-row">
+                    <div class="flex flex-col items-center justify-between gap-3 border-t border-slate-200 pt-4 sm:flex-row">
                         <p class="text-sm text-slate-500">Showing {{ invoices.from }}–{{ invoices.to }} of {{ invoices.total }}</p>
                         <div class="flex items-center gap-1.5">
                             <Button variant="outline" size="sm" :disabled="invoices.current_page <= 1" @click="goToPage(1)"><ChevronsLeft class="h-4 w-4" /></Button>

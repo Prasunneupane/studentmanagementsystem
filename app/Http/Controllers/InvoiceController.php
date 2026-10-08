@@ -125,4 +125,11 @@ class InvoiceController extends Controller
 
         return Inertia::render('invoice/Print', ['invoice' => $invoice]);
     }
+
+    public function recordPrint(string $id)
+    {
+        $this->invoiceService->recordPrint((int) $id);
+
+        return response()->noContent();
+    }
 }

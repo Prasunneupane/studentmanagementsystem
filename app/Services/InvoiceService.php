@@ -354,6 +354,17 @@ class InvoiceService implements InvoiceInterface
         $invoice->update(['status' => $this->billInVoiceStatus($invoice)]);
     }
 
+    public function recordPrint(int $id): array
+    {
+        $invoice = Invoice::findOrFail($id);
+        $invoice->increment('print_count');
+        if (!$invoice->is_printed) {
+            $invoice->update(['is_printed' => true]);
+        }
+
+        return $invoice->fresh()->toArray();
+    }
+
     public function outstandingBalance(Invoice|int $invoice): float
     {
         $invoice = $invoice instanceof Invoice ? $invoice : Invoice::findOrFail($invoice);
