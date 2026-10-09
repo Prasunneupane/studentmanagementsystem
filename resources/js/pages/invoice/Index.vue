@@ -553,18 +553,9 @@ const removeInvoice = async (invoice: InvoiceRow) => {
                         </div>
                     </div>
 
-                    <DataTable :columns="columns" :data="invoices.data" :loading="loading" server-paginated title="Invoice List" />
+                    <DataTable :columns="columns" :data="invoices.data" :loading="loading"  title="Invoice List" />
 
-                    <div class="flex flex-col items-center justify-between gap-3 border-t border-slate-200 pt-4 sm:flex-row">
-                        <p class="text-sm text-slate-500">Showing {{ invoices.from }}–{{ invoices.to }} of {{ invoices.total }}</p>
-                        <div class="flex items-center gap-1.5">
-                            <Button variant="outline" size="sm" :disabled="invoices.current_page <= 1" @click="goToPage(1)"><ChevronsLeft class="h-4 w-4" /></Button>
-                            <Button variant="outline" size="sm" :disabled="invoices.current_page <= 1" @click="goToPage(invoices.current_page - 1)"><ChevronLeft class="h-4 w-4" /></Button>
-                            <span class="px-2 text-sm text-slate-600">Page {{ invoices.current_page }} of {{ invoices.last_page }}</span>
-                            <Button variant="outline" size="sm" :disabled="invoices.current_page >= invoices.last_page" @click="goToPage(invoices.current_page + 1)"><ChevronRight class="h-4 w-4" /></Button>
-                            <Button variant="outline" size="sm" :disabled="invoices.current_page >= invoices.last_page" @click="goToPage(invoices.last_page)"><ChevronsRight class="h-4 w-4" /></Button>
-                        </div>
-                    </div>
+                    
                 </CardContent>
             </Card>
         </div>
