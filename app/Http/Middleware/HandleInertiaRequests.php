@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Interface\CompanyInfoInterface;
 use App\Services\PermissionService;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
@@ -11,7 +12,7 @@ use Tighten\Ziggy\Ziggy;
 class HandleInertiaRequests extends Middleware
 {
     protected $permissionService;
-    public function __construct(PermissionService $permissionService)
+    public function __construct(PermissionService $permissionService, private CompanyInfoInterface $companyInfoService)
     {
         $this->permissionService = $permissionService;
     }
@@ -63,6 +64,10 @@ class HandleInertiaRequests extends Middleware
                 'location' => $request->url(),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            // Same closure pattern as 'auth' above — resolves on every full
+            // page load, but cheaply: CompanyInfoService caches the active
+            // row, so this is a DB hit only once per cache TTL, not per request.
+            'companyInfo' => fn () => $this->companyInfoService->getActiveCompanyInfo(),
         ];
     }
 }

@@ -578,6 +578,7 @@ const columns: ColumnDef<Student>[] = [
         id: 'actions',
         header: 'Actions',
         enableSorting: false,
+        meta: { excludeFromExport: true },
         cell: ({ row }) => {
             const student = row.original;
             return h('div', { class: 'flex items-center gap-2' }, [

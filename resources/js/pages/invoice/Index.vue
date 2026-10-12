@@ -553,7 +553,16 @@ const removeInvoice = async (invoice: InvoiceRow) => {
                         </div>
                     </div>
 
-                    <DataTable :columns="columns" :data="invoices.data" :loading="loading"  title="Invoice List" />
+                    <DataTable
+                        :columns="columns"
+                        :data="invoices.data"
+                        :loading="loading"
+                        :server-paginated="false"
+                        :print-columns="[0, 1, 2, 4, 5, 6]"
+                        :excel-columns="[0, 1, 2, 4, 5, 6]"
+                        :pdf-columns="[0, 1, 2, 4, 5, 6]"
+                        title="Invoice List"
+                    />
 
                     
                 </CardContent>

@@ -584,6 +584,47 @@ class PermissionSeeder extends Seeder
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
+            // Company Info permissions
+            [
+                'name' => 'View Company Info',
+                'slug' => 'view_company_info',
+                'module' => 'Company Info',
+                'description' => 'Allows viewing company info',
+                'is_active' => 1,
+                'created_by' => 1,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'name' => 'Create Company Info',
+                'slug' => 'create_company_info',
+                'module' => 'Company Info',
+                'description' => 'Allows creating company info',
+                'is_active' => 1,
+                'created_by' => 1,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'name' => 'Edit Company Info',
+                'slug' => 'edit_company_info',
+                'module' => 'Company Info',
+                'description' => 'Allows editing company info',
+                'is_active' => 1,
+                'created_by' => 1,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'name' => 'Delete Company Info',
+                'slug' => 'delete_company_info',
+                'module' => 'Company Info',
+                'description' => 'Allows deleting company info',
+                'is_active' => 1,
+                'created_by' => 1,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
         ];
 
         foreach ($permissions as $permission) {

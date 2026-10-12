@@ -366,5 +366,6 @@ Route::middleware(['auth'])->group(function () {
 
 require __DIR__ . '/invoice.php';
 require __DIR__ . '/payment.php';
+require __DIR__ . '/company_info.php';
 require __DIR__ . '/settings.php';
 require __DIR__ . '/auth.php';

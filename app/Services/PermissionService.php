@@ -175,6 +175,7 @@ class PermissionService
                 'canAssignPermissions' => $can('assign_permissions'),
             ]),
             'permissions'             => $crud('permissions'),
+            'companyInfo'             => $crud('company_info'),
             'settings'                => [
                 'canView' => $can('view_settings'),
                 'canEdit' => $can('edit_settings'),
@@ -184,6 +185,7 @@ class PermissionService
                 'view_roles', 'create_roles', 'edit_roles', 'delete_roles',
                 'view_permissions', 'create_permissions', 'edit_permissions', 'delete_permissions',
                 'view_users', 'create_users', 'edit_users', 'delete_users',
+                'view_company_info', 'create_company_info', 'edit_company_info', 'delete_company_info',
             ]),
             'auth' => [
                 'isSuperAdmin' => $isSuperAdmin,

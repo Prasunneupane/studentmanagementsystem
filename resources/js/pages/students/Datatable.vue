@@ -34,9 +34,40 @@ interface DataTableProps<TData, TValue> {
      * server's pagination meta instead.
      */
     serverPaginated?: boolean;
+    /**
+     * Column positions (0-based, indexing `columns` exactly as given — not
+     * affected by sorting/visibility) to include for Print export. Omit to
+     * export every visible column not marked `meta.excludeFromExport` (the
+     * default). Explicit indices always win, even over `excludeFromExport`.
+     */
+    printColumns?: number[];
+    /** Same as `printColumns`, independently, for the Excel export. */
+    excelColumns?: number[];
+    /** Same as `printColumns`, independently, for the PDF export. */
+    pdfColumns?: number[];
 }
 
 const props = defineProps<DataTableProps<any, any>>();
+
+// A column's searchable text follows the same rule as its export text (see
+// resolveExportColumns() below): prefer meta.exportValue when the column
+// isn't a plain primitive accessorKey, otherwise fall back to the raw cell
+// value. Without this, TanStack's default global filter stringifies the raw
+// getValue() — for an object-valued column (e.g. accessorKey: 'student')
+// that produces the literal text "[object Object]", which can never match
+// anything typed into the search box, no matter the query.
+const columnSearchText = (row: { original: any; getValue: (id: string) => unknown }, columnId: string): string => {
+    const column = table.getColumn(columnId);
+    const meta = column?.columnDef.meta as { exportValue?: (original: any) => string } | undefined;
+    const raw = meta?.exportValue ? meta.exportValue(row.original) : row.getValue(columnId);
+    return raw !== null && typeof raw === 'object' ? '' : String(raw ?? '');
+};
+
+const globalSearchFilter = (row: { original: any; getValue: (id: string) => unknown }, columnId: string, filterValue: string): boolean => {
+    const needle = String(filterValue ?? '').trim().toLowerCase();
+    if (!needle) return true;
+    return columnSearchText(row, columnId).toLowerCase().includes(needle);
+};
 
 // === Reactive State ===
 const sorting = ref<SortingState>([]);
@@ -60,6 +91,15 @@ const table = useVueTable({
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    globalFilterFn: globalSearchFilter,
+    // TanStack's own default (`typeof value === 'string' || 'number'`) silently
+    // drops any column whose raw value isn't already a primitive from global
+    // filtering *before* globalFilterFn ever runs — which is exactly the object
+    // columns (e.g. accessorKey: 'student') this fix needs searchable. Our
+    // filterFn already handles every value type safely, so every column with
+    // an accessorFn is eligible; letting it through doesn't need a column-level
+    // `enableGlobalFilter: false` override to opt back out.
+    getColumnCanGlobalFilter: () => true,
 
     // === State Sync (CRITICAL) ===
     state: {
@@ -95,6 +135,10 @@ const table = useVueTable({
     manualPagination: false,
 });
 
+// console.log('table', table);
+// console.log(props.serverPaginated, "server paginated");
+// console.log(props.data.length, "data length");
+// console.log(table.getPageCount(), "page count");
 // === Reset page when data changes ===
 watch(
     () => props.data,
@@ -115,32 +159,37 @@ watch(
 // resolver or to be left out of the export entirely — otherwise this prints
 // "[object Object]" or a blank cell. Both are opt-in via `columnDef.meta`,
 // so every existing caller of this component keeps its current behavior.
-const exportableColumns = () => table.getAllColumns().filter((col) => col.getIsVisible() && !(col.columnDef.meta as { excludeFromExport?: boolean } | undefined)?.excludeFromExport);
+const resolveExportColumns = (indices?: number[]) => {
+    // Indices are positions in `columns` exactly as given — the original
+    // definition order, unaffected by sorting/hiding — so "0, 1, 2" always
+    // means the same columns regardless of table state.
+    const allInOrder = table.getAllColumns();
 
-const getExportData = () => {
+    if (!indices?.length) {
+        // Not passed — every visible column not explicitly excluded (unchanged default).
+        return allInOrder.filter((col) => col.getIsVisible() && !(col.columnDef.meta as { excludeFromExport?: boolean } | undefined)?.excludeFromExport);
+    }
+
+    // An explicit index always wins, even over excludeFromExport/visibility —
+    // picking a column by position is a deliberate, specific choice.
+    return indices.map((i) => allInOrder[i]).filter((col): col is NonNullable<typeof col> => !!col);
+};
+
+const getExportData = (indices?: number[]) => {
     const rows = table.getFilteredRowModel().rows;
-    const columns = exportableColumns();
+    const columns = resolveExportColumns(indices);
     const headers = columns.map((col) => col.columnDef.header as string);
 
-    const data = rows.map((row) => {
-        return columns.map((col) => {
-            const meta = col.columnDef.meta as { exportValue?: (original: any) => string } | undefined;
-            if (meta?.exportValue) return meta.exportValue(row.original);
-
-            const cell = row.getAllCells().find((c) => c.column.id === col.id);
-            const value = cell?.getValue();
-            return value !== null && typeof value === 'object' ? '' : String(value ?? '');
-        });
-    });
+    const data = rows.map((row) => columns.map((col) => columnSearchText(row, col.id)));
 
     return { headers, data };
 };
 
 // Print Function
 const handlePrint = () => {
-    const { headers, data } = getExportData();
+    const { headers, data } = getExportData(props.printColumns);
     const title = props.title || 'Data Table';
-
+ 
     // Create a new window for printing
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
@@ -250,7 +299,7 @@ const handlePrint = () => {
 
 // Excel Export Function
 const handleExcelExport = () => {
-    const { headers, data } = getExportData();
+    const { headers, data } = getExportData(props.excelColumns);
 
     // Create worksheet
     const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
@@ -272,7 +321,7 @@ const handleExcelExport = () => {
 
 // PDF Export Function
 const handlePdfExport = () => {
-    const { headers, data } = getExportData();
+    const { headers, data } = getExportData(props.pdfColumns);
     const title = props.title || 'Data Table';
 
     // Create PDF

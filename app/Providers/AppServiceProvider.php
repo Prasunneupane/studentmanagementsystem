@@ -17,7 +17,9 @@ use App\Interface\TeacherInterfacce;
 use App\Interface\UserInterface;
 use App\Interface\InvoiceInterface;
 use App\Interface\PaymentAttemptInterface;
+use App\Interface\CompanyInfoInterface;
 use App\Services\PaymentAttemptService;
+use App\Services\CompanyInfoService;
 use App\Models\Permission;
 use App\Models\Roles;
 use App\Models\Students;
@@ -79,6 +81,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(EventsInterface::class, EventsService::class);
         $this->app->bind(InvoiceInterface::class,InvoiceService::class);
         $this->app->bind(PaymentAttemptInterface::class, PaymentAttemptService::class);
+        $this->app->bind(CompanyInfoInterface::class, CompanyInfoService::class);
         $this->app->singleton(NepaliDateService::class);
     }
 
