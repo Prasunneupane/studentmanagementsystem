@@ -10,16 +10,19 @@ import {
     type PaginationState,
     type SortingState,
 } from '@tanstack/vue-table';
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useToast } from '@/composables/useToast';
+import type { AppPageProps } from '@/types';
+import { usePage } from '@inertiajs/vue3';
 import { FlexRender } from '@tanstack/vue-table';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { ArrowUpDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, FileSpreadsheet, FileText, Loader2, Printer } from 'lucide-vue-next';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 
 interface DataTableProps<TData, TValue> {
     columns: ColumnDef<TData, TValue>[];
@@ -48,6 +51,9 @@ interface DataTableProps<TData, TValue> {
 }
 
 const props = defineProps<DataTableProps<any, any>>();
+const page = usePage<AppPageProps>();
+const companyInfo = computed(() => page.props.companyInfo);
+const { toast } = useToast();
 
 // A column's searchable text follows the same rule as its export text (see
 // resolveExportColumns() below): prefer meta.exportValue when the column
@@ -185,20 +191,58 @@ const getExportData = (indices?: number[]) => {
     return { headers, data };
 };
 
+const escapeHtml = (value: string): string =>
+    value.replace(/[&<>"']/g, (character) => {
+        const entities: Record<string, string> = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;',
+        };
+
+        return entities[character];
+    });
+
+const companyInfoRows = () => {
+    const company = companyInfo.value;
+    if (!company) return [];
+
+    return [
+        ['Company', company.company_name],
+        ['Address', company.company_address],
+        ['PAN No.', company.company_pan_no],
+        ['Phone No.', [company.company_phone_no, company.company_mobile_no].filter(Boolean).join(' / ') || null],
+    ].filter((row): row is [string, string] => Boolean(row[1]));
+};
+
 // Print Function
 const handlePrint = () => {
     const { headers, data } = getExportData(props.printColumns);
     const title = props.title || 'Data Table';
+    const company = companyInfo.value;
  
     // Create a new window for printing
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
+    const companyHeader = company
+        ? `<tr><td class="company-cell" colspan="${headers.length}"><div class="company-info">
+            ${company.logo_url ? `<img src="${escapeHtml(company.logo_url)}" alt="">` : ''}
+            <div>
+              <strong>${escapeHtml(company.company_name)}</strong>
+              ${company.company_address ? `<div>${escapeHtml(company.company_address)}</div>` : ''}
+              ${company.company_pan_no ? `<div>PAN No.: ${escapeHtml(company.company_pan_no)}</div>` : ''}
+              ${company.company_phone_no || company.company_mobile_no ? `<div>Phone No.: ${escapeHtml([company.company_phone_no, company.company_mobile_no].filter(Boolean).join(' / '))}</div>` : ''}
+            </div>
+          </div></td></tr>`
+        : '';
+
     const htmlContent = `
     <!DOCTYPE html>
     <html>
     <head>
-      <title>${title}</title>
+      <title>${escapeHtml(title)}</title>
       <style>
         @media print {
           @page {
@@ -224,7 +268,10 @@ const handlePrint = () => {
         table {
           width: 100%;
           border-collapse: collapse;
-          margin-top: 20px;
+          margin-top: 10px;
+        }
+        thead {
+          display: table-header-group;
         }
         th, td {
           border: 1px solid #ddd;
@@ -236,6 +283,27 @@ const handlePrint = () => {
           background-color: #f3f4f6;
           font-weight: bold;
           color: #374151;
+        }
+        .company-cell {
+          border: 0;
+          padding: 0 0 8px;
+        }
+        .company-info {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 14px;
+          text-align: left;
+          font-size: 12px;
+          line-height: 1.5;
+        }
+        .company-info strong {
+          font-size: 17px;
+        }
+        .company-info img {
+          width: 58px;
+          height: 58px;
+          object-fit: contain;
         }
         tr:nth-child(even) {
           background-color: #f9fafb;
@@ -255,14 +323,15 @@ const handlePrint = () => {
       </style>
     </head>
     <body>
-      <h1>${title}</h1>
+      <h1>${escapeHtml(title)}</h1>
       <p style="text-align: center; color: #666; margin-bottom: 20px;">
-        Generated on ${new Date().toLocaleString()}
+        Generated on ${escapeHtml(new Date().toLocaleString())}
       </p>
       <table>
         <thead>
+          ${companyHeader}
           <tr>
-            ${headers.map((h) => `<th>${h}</th>`).join('')}
+            ${headers.map((h) => `<th>${escapeHtml(h)}</th>`).join('')}
           </tr>
         </thead>
         <tbody>
@@ -270,7 +339,7 @@ const handlePrint = () => {
               .map(
                   (row) => `
             <tr>
-              ${row.map((cell) => `<td>${cell}</td>`).join('')}
+              ${row.map((cell) => `<td>${escapeHtml(cell)}</td>`).join('')}
             </tr>
           `,
               )
@@ -284,62 +353,145 @@ const handlePrint = () => {
     </html>
   `;
 
-    printWindow.document.write(htmlContent);
-    printWindow.document.close();
-
-    // Wait for content to load then print
     printWindow.onload = () => {
         printWindow.focus();
         printWindow.print();
     };
-    printWindow.onafterprint = function () {
-        printWindow.close();
-    };
+    printWindow.onafterprint = () => printWindow.close();
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
 };
 
 // Excel Export Function
-const handleExcelExport = () => {
+const handleExcelExport = async () => {
     const { headers, data } = getExportData(props.excelColumns);
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Data');
+    const columnCount = Math.max(headers.length, 2);
+    const companyRows = companyInfoRows();
 
-    // Create worksheet
-    const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
+    for (const [index, [label, value]] of companyRows.entries()) {
+        const row = worksheet.addRow(index === 0 ? [value] : [label, value]);
+        worksheet.mergeCells(row.number, index === 0 ? 1 : 2, row.number, columnCount);
+        row.font = { bold: true, size: index === 0 ? 16 : 11 };
+    }
 
-    // Set column widths
-    const colWidths = headers.map(() => ({ wch: 15 }));
-    ws['!cols'] = colWidths;
+    if (companyRows.length) worksheet.addRow([]);
 
-    // Create workbook
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Data');
+    if (props.title) {
+        const titleRow = worksheet.addRow([props.title]);
+        worksheet.mergeCells(titleRow.number, 1, titleRow.number, columnCount);
+        titleRow.font = { bold: true, size: 13 };
+    }
 
-    // Generate filename
-    const filename = `${props.title || 'data'}_${new Date().toISOString().split('T')[0]}.xlsx`;
+    const headerRow = worksheet.addRow(headers);
+    headerRow.font = { bold: true };
+    headerRow.eachCell((cell) => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE5E7EB' } };
+        cell.border = {
+            top: { style: 'thin' },
+            bottom: { style: 'thin' },
+            left: { style: 'thin' },
+            right: { style: 'thin' },
+        };
+    });
 
-    // Save file
-    XLSX.writeFile(wb, filename);
+    for (const row of data) worksheet.addRow(row);
+
+    worksheet.columns = Array.from({ length: columnCount }, (_, index) => ({
+        width: index < headers.length ? Math.max(15, headers[index].length + 2) : 15,
+    }));
+    worksheet.pageSetup = {
+        orientation: 'landscape',
+        fitToPage: true,
+        fitToWidth: 1,
+        fitToHeight: 0,
+        printTitlesRow: `1:${headerRow.number}`,
+    };
+
+    try {
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${props.title || 'data'}_${new Date().toISOString().split('T')[0]}.xlsx`;
+        link.click();
+        URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error('Failed to export table to Excel.', error);
+        toast.error('Unable to export table to Excel.');
+    }
 };
 
 // PDF Export Function
-const handlePdfExport = () => {
+const handlePdfExport = async () => {
     const { headers, data } = getExportData(props.pdfColumns);
     const title = props.title || 'Data Table';
+    const company = companyInfo.value;
 
     // Create PDF
     const doc = new jsPDF('l', 'mm', 'a4'); // landscape, millimeters, A4
 
+    let logoDataUrl: string | null = null;
+    if (company?.logo_url) {
+        try {
+            const response = await fetch(company.logo_url);
+            if (!response.ok) throw new Error(`Logo request failed with status ${response.status}.`);
+
+            const logoUrl = URL.createObjectURL(await response.blob());
+            try {
+                const image = new Image();
+                image.src = logoUrl;
+                await image.decode();
+
+                const canvas = document.createElement('canvas');
+                canvas.width = image.naturalWidth;
+                canvas.height = image.naturalHeight;
+                const context = canvas.getContext('2d');
+                if (!context) throw new Error('Unable to prepare the company logo for the PDF.');
+
+                context.drawImage(image, 0, 0);
+                logoDataUrl = canvas.toDataURL('image/png');
+            } finally {
+                URL.revokeObjectURL(logoUrl);
+            }
+        } catch (error) {
+            console.error('Failed to load the company logo for PDF export.', error);
+            toast.error('Unable to load the company logo. PDF export was cancelled.');
+            return;
+        }
+    }
+
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const infoLines = company
+        ? [
+              company.company_address,
+              company.company_pan_no ? `PAN No.: ${company.company_pan_no}` : null,
+              [company.company_phone_no, company.company_mobile_no].filter(Boolean).length
+                  ? `Phone No.: ${[company.company_phone_no, company.company_mobile_no].filter(Boolean).join(' / ')}`
+                  : null,
+          ]
+              .filter((line): line is string => Boolean(line))
+              .flatMap((line) => doc.splitTextToSize(line, pageWidth - 28))
+        : [];
+    const companyNameLines = company ? doc.splitTextToSize(company.company_name, pageWidth - (logoDataUrl ? 42 : 28)) : [];
+    const titleY = company ? Math.max(39, 19 + infoLines.length * 4.5 + 5, 12 + companyNameLines.length * 5 + 5) : 15;
+    const tableStartY = company ? titleY + 12 : 28;
+
     // Add title
     doc.setFontSize(16);
-    doc.text(title, 14, 15);
+    doc.text(title, 14, titleY);
 
     // Add date
     doc.setFontSize(10);
-    doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 22);
+    doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, titleY + 6);
 
     // Add table
     autoTable(doc, {
         head: [headers],
         body: data,
-        startY: 28,
+        startY: tableStartY,
         styles: {
             fontSize: 9,
             cellPadding: 3,
@@ -352,7 +504,23 @@ const handlePdfExport = () => {
         alternateRowStyles: {
             fillColor: [249, 250, 251], // Light gray
         },
-        margin: { top: 28, right: 14, bottom: 14, left: 14 },
+        margin: { top: tableStartY, right: 14, bottom: 14, left: 14 },
+        willDrawPage: () => {
+            if (!company) return;
+
+            if (logoDataUrl) {
+                const imageSize = doc.getImageProperties(logoDataUrl);
+                const scale = Math.min(18 / imageSize.width, 18 / imageSize.height);
+                doc.addImage(logoDataUrl, 'PNG', 14, 6, imageSize.width * scale, imageSize.height * scale);
+            }
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(15);
+            doc.text(companyNameLines, logoDataUrl ? 38 : 14, 12);
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(9);
+
+            if (infoLines.length) doc.text(infoLines, 14, 19);
+        },
     });
 
     // Add footer

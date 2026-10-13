@@ -9,6 +9,7 @@ import {
     Book,
     BookOpen,
     BookUser,
+    Building2,
     CalendarPlus,
     CalendarRange,
     Eye,
@@ -496,6 +497,38 @@ const mainNavItems = computed((): NavItem[] => {
             }
         }
         // ClassTeacherMap sub-section end
+
+        // Company Info sub-section
+        if (permissions.value.companyInfo.canManage) {
+            const companyInfoItems: NavItem[] = [];
+
+            if (permissions.value.companyInfo.canCreate) {
+                companyInfoItems.push({
+                    title: 'Add Company Info',
+                    href: '/company-info/create',
+                    icon: FilePlusIcon,
+                });
+            }
+
+            if (permissions.value.companyInfo.canView) {
+                companyInfoItems.push({
+                    title: 'View Company Info',
+                    href: '/company-info',
+                    icon: Eye,
+                });
+            }
+
+            if (companyInfoItems.length > 0) {
+                const companyInfoItem: NavItem = {
+                    title: 'Company Info',
+                    icon: Building2,
+                    items: companyInfoItems,
+                    isActive: false,
+                };
+                companyInfoItem.isActive = isRouteActive(companyInfoItem);
+                masterSettingsItems.push(companyInfoItem);
+            }
+        }
 
         if (masterSettingsItems.length > 0) {
             const masterSettings: NavItem = {

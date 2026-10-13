@@ -29,6 +29,7 @@ export interface Permissions {
     permissions: CrudPermissions;
     events: CrudPermissions;
     invoice: CrudPermissions;
+    companyInfo: CrudPermissions;
     settings: {
         canView: boolean;
         canEdit: boolean;
@@ -58,9 +59,20 @@ export interface NavItem {
     isActive?: boolean;
 }
 
+export interface SharedCompanyInfo {
+    company_name: string;
+    company_address: string | null;
+    company_pan_no: string | null;
+    company_phone_no: string | null;
+    company_mobile_no: string | null;
+    logo_url: string | null;
+}
+
 export type AppPageProps<T extends Record<string, unknown> = Record<string, unknown>> = T & {
     name: string;
     quote: { message: string; author: string };
+    flash: { success: string | null; error: string | null };
+    companyInfo: SharedCompanyInfo | null;
     auth: Auth | null;
     ziggy: Config & { location: string };
     sidebarOpen: boolean;

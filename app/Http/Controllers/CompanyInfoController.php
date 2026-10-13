@@ -39,6 +39,7 @@ class CompanyInfoController extends Controller
 
     public function update(StoreCompanyInfoRequest $request, CompanyInfo $companyInfo)
     {
+        
         $this->companyInfoService->updateCompanyInfo($companyInfo->id, $request->validated());
 
         return redirect()->route('company-info.index')->with('success', 'Company info updated successfully.');

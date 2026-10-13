@@ -13,6 +13,7 @@ class StoreCompanyInfoRequest extends FormRequest
 
     public function rules(): array
     {
+        // dd($this->all());
         return [
             'company_name' => 'required|string|max:255',
             'company_address' => 'nullable|string|max:255',
